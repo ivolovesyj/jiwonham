@@ -128,6 +128,59 @@ function prosemirrorToText(doc) {
 }
 
 /**
+ * 평문 텍스트를 섹션 헤딩 기준으로 detail 필드로 분리
+ */
+function parseDetailSections(text) {
+  if (!text) return { intro: '', main_tasks: '', requirements: '', preferred_points: '', benefits: '', work_conditions: '' };
+
+  const sectionMap = {
+    main_tasks: /^(담당업무|주요업무|업무\s*내용|직무\s*내용|하는\s*일|업무\s*소개|업무\s*설명)/,
+    requirements: /^(자격요건|자격\s*조건|지원\s*자격|필수\s*요건|필수\s*조건|응모\s*자격|채용\s*조건)/,
+    preferred_points: /^(우대사항|우대\s*조건|우대\s*요건|이런\s*분.*우대|이런\s*분.*환영)/,
+    benefits: /^(복리후생|혜택|복지|근무\s*혜택|직원\s*혜택|사내\s*복지)/,
+    work_conditions: /^(근무환경|근무\s*조건|근무\s*시간|근무\s*형태|급여|연봉|근무환경\/급여|처우\s*조건)/,
+  };
+
+  const lines = text.split('\n');
+  const result = { intro: '', main_tasks: '', requirements: '', preferred_points: '', benefits: '', work_conditions: '' };
+  let currentSection = 'intro';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      result[currentSection] += '\n';
+      continue;
+    }
+
+    let matched = false;
+    for (const [key, regex] of Object.entries(sectionMap)) {
+      if (regex.test(trimmed)) {
+        currentSection = key;
+        matched = true;
+        break;
+      }
+    }
+
+    // 제출서류, 전형절차, 접수방법, 마감기한 등 기타 섹션은 work_conditions에 포함
+    if (!matched && /^(제출서류|전형절차|접수방법|마감기한|채용\s*절차|지원\s*방법|서류\s*접수)/.test(trimmed)) {
+      currentSection = 'work_conditions';
+      matched = true;
+    }
+
+    if (!matched) {
+      result[currentSection] += trimmed + '\n';
+    }
+  }
+
+  // trim all
+  for (const key of Object.keys(result)) {
+    result[key] = result[key].replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  return result;
+}
+
+/**
  * RSC flight data에서 "recruitment":{...} JSON 객체 추출
  */
 function extractRecruitmentFromRsc(html) {
@@ -214,15 +267,10 @@ export async function fetchJobDetail(entry) {
 
         views: recruitment.views || 0,
 
-        // summary/content를 평문 변환
-        detail: {
-          intro: '',
-          main_tasks: prosemirrorToText(recruitment.content) || prosemirrorToText(recruitment.summary) || $('meta[property="og:description"]').attr('content') || '',
-          requirements: '',
-          preferred_points: '',
-          benefits: '',
-          work_conditions: '',
-        },
+        // summary/content를 평문 변환 후 섹션 분리
+        detail: parseDetailSections(
+          prosemirrorToText(recruitment.content) || prosemirrorToText(recruitment.summary) || $('meta[property="og:description"]').attr('content') || ''
+        ),
 
         original_created_at: recruitment.createdAt || null,
         last_modified_at: entry.lastmod?.toISOString() || null,
