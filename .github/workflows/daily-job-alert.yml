@@ -1,0 +1,43 @@
+name: Daily Job Alert
+
+on:
+  schedule:
+    # 매일 아침 8시 (KST) = UTC 23:00 (전날)
+    - cron: '0 23 * * *'
+  workflow_dispatch: # 수동 실행 가능
+    inputs:
+      full_crawl:
+        description: '전체 크롤링 (초기 수집 시에만 사용)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  crawl-and-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 초기 전체 수집 시 최대 6시간
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run job crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          KAKAO_ACCESS_TOKEN: ${{ secrets.KAKAO_ACCESS_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.full_crawl }}" = "true" ]; then
+            node src/index.js --full
+          else
+            node src/index.js
+          fi
