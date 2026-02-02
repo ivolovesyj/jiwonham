@@ -1,0 +1,253 @@
+'use client'
+
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { MapPin, ExternalLink, X, Briefcase, Clock, Check, Calendar } from 'lucide-react'
+import { Job } from '@/types/job'
+import { useState } from 'react'
+
+interface JobCardProps {
+  job: Job
+  onPass?: () => void
+  onHold?: () => void
+  onApply?: () => void
+  disabled?: boolean
+  style?: React.CSSProperties
+}
+
+function formatCareer(job: Job): string {
+  if (job.career_min === 0 && (job.career_max === null || job.career_max === undefined)) return '신입/경력무관'
+  if (job.career_min === 0 && job.career_max) return `신입~${job.career_max}년`
+  if (job.career_min && job.career_max) return `${job.career_min}~${job.career_max}년`
+  if (job.career_min) return `${job.career_min}년 이상`
+  return job.info || '신입'
+}
+
+function formatDeadline(job: Job): string | null {
+  if (job.end_date) {
+    const d = new Date(job.end_date)
+    return `~${d.getMonth() + 1}/${d.getDate()}`
+  }
+  if (job.deadline_type === '상시채용') return '상시'
+  if (job.deadline_type === '채용시마감') return '채용시마감'
+  return null
+}
+
+export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const matchPercent = job.score
+  const deadline = formatDeadline(job)
+
+  // 직군 태그: depth_twos 우선, 없으면 depth_ones
+  const tags = (job.depth_twos?.length ? job.depth_twos : job.depth_ones) || []
+
+  return (
+    <Card
+      className="w-full max-w-lg hover:shadow-xl transition-all duration-200 flex flex-col select-none border border-gray-200 bg-white"
+      style={style}
+    >
+      <div onClick={() => setIsExpanded(!isExpanded)} className="cursor-pointer flex-1">
+        <div className="px-6 pt-6">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full">
+              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+              <span className="text-sm font-semibold">적합도 {matchPercent}%</span>
+            </div>
+            {job.is_new && (
+              <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                🆕 NEW
+              </span>
+            )}
+            {deadline && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
+                <Calendar className="w-3 h-3" />
+                {deadline}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <CardContent className="space-y-4 pt-4 px-6 pb-6">
+          {/* 회사명 + 이미지 */}
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              {job.company_image && (
+                <img
+                  src={job.company_image}
+                  alt={job.company}
+                  className="w-10 h-10 rounded-lg object-contain bg-gray-50 border border-gray-100"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <h2 className="text-2xl font-bold text-gray-900 leading-tight">{job.company}</h2>
+            </div>
+            <h3 className="text-lg text-gray-700 leading-snug">{job.title}</h3>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-xs text-gray-500 font-medium">위치</div>
+                <div className="text-sm text-gray-900">{job.location || '미정'}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Briefcase className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-xs text-gray-500 font-medium">경력</div>
+                <div className="text-sm text-gray-900">{formatCareer(job)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 직군 태그 */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.slice(0, 4).map((tag, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
+                  {tag}
+                </span>
+              ))}
+              {job.employee_types?.map((type, i) => (
+                <span key={`et-${i}`} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200">
+                  {type}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* 추천 포인트 */}
+          {job.reasons && job.reasons.length > 0 && (
+            <div className="pt-1">
+              <div className="flex flex-wrap gap-1.5">
+                {job.reasons.slice(0, 3).map((reason, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 bg-gray-50 text-gray-700 rounded-md border border-gray-200">
+                    {reason}
+                  </span>
+                ))}
+                {job.reasons.length > 3 && (
+                  <span className="text-xs px-2.5 py-1 bg-gray-50 text-gray-500 rounded-md border border-gray-200">
+                    +{job.reasons.length - 3}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 공고보기 버튼 */}
+          <div className="pt-3">
+            <a
+              href={job.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              <ExternalLink className="w-4 h-4" />
+              공고보기
+            </a>
+          </div>
+
+          {isExpanded && (
+            <div className="pt-4 border-t border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-2">
+              {job.detail?.intro && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">📋 회사 소개</div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.detail.intro}</p>
+                </div>
+              )}
+
+              {job.detail?.main_tasks && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">💼 주요 업무</div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.detail.main_tasks}</p>
+                </div>
+              )}
+
+              {job.detail?.requirements && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">✅ 자격 요건</div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.detail.requirements}</p>
+                </div>
+              )}
+
+              {job.detail?.preferred_points && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">⭐ 우대 사항</div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.detail.preferred_points}</p>
+                </div>
+              )}
+
+              {job.detail?.benefits && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">🎁 복지 혜택</div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.detail.benefits}</p>
+                </div>
+              )}
+
+              {job.warnings && job.warnings.length > 0 && (
+                <div>
+                  <div className="text-sm font-bold text-gray-900 mb-2">⚠️ 주의사항</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.warnings.map((warning, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 bg-red-50 text-red-700 rounded-md border border-red-200">
+                        {warning}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-400">{job.source}</span>
+            {!isExpanded && <span className="text-xs text-blue-600 font-medium">더보기 ↓</span>}
+            {isExpanded && <span className="text-xs text-gray-400">접기 ↑</span>}
+          </div>
+        </CardContent>
+      </div>
+
+      <CardContent className="pt-0 pb-6 px-6">
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            className="flex-1 h-12 border-red-200 hover:border-red-300 hover:bg-red-50 transition-colors font-medium"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPass?.()
+            }}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4 mr-1.5 text-red-600" />
+            <span className="text-sm text-red-700">지원 안 함</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 h-12 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium"
+            onClick={(e) => {
+              e.stopPropagation()
+              onHold?.()
+            }}
+            disabled={disabled}
+          >
+            <Clock className="h-4 w-4 mr-1.5 text-gray-600" />
+            <span className="text-sm text-gray-700">보류</span>
+          </Button>
+          <Button
+            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 transition-colors font-medium"
+            onClick={(e) => {
+              e.stopPropagation()
+              onApply?.()
+            }}
+            disabled={disabled}
+          >
+            <Check className="h-4 w-4 mr-1.5" />
+            <span className="text-sm">지원 예정</span>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
