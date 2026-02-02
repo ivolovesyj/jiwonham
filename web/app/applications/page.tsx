@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
 import { ApplicationCard } from '@/components/ApplicationCard'
 import { CompactApplicationRow } from '@/components/CompactApplicationRow'
+import { PinnedSection } from '@/components/PinnedSection'
 import { ApplicationToolbar, SortKey, ViewMode } from '@/components/ApplicationToolbar'
 import { getDeadlineSortValue } from '@/components/DeadlineBadge'
 import { Button } from '@/components/ui/button'
@@ -41,8 +42,9 @@ export default function ApplicationsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
   const [viewMode, setViewMode] = useState<ViewMode>('card')
 
-  // Phase 2: 핀 상태 (일단 로컬, 추후 DB)
+  // Phase 2: 핀 상태 + 순서
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
+  const [pinOrder, setPinOrder] = useState<string[]>([])
 
   // 로그인 체크
   useEffect(() => {
@@ -110,14 +112,17 @@ export default function ApplicationsPage() {
         })
       }
 
-      // 핀 상태 로드 (saved_jobs에 is_pinned가 있으면)
+      // 핀 상태 + 순서 로드
       const pinned = new Set<string>()
+      const pinnedJobs: { id: string; pin_order: number }[] = []
       for (const job of savedJobs) {
         if ((job as any).is_pinned) {
           pinned.add(job.id)
+          pinnedJobs.push({ id: job.id, pin_order: (job as any).pin_order || 0 })
         }
       }
       setPinnedIds(pinned)
+      setPinOrder(pinnedJobs.sort((a, b) => a.pin_order - b.pin_order).map((j) => j.id))
 
       setApplications(applicationsData)
     } catch (error) {
@@ -234,19 +239,37 @@ export default function ApplicationsPage() {
 
     if (isPinning) {
       newPinned.add(savedJobId)
+      setPinOrder((prev) => [...prev, savedJobId])
     } else {
       newPinned.delete(savedJobId)
+      setPinOrder((prev) => prev.filter((id) => id !== savedJobId))
     }
     setPinnedIds(newPinned)
 
-    // DB 업데이트 (is_pinned 컬럼이 있으면)
+    // DB 업데이트
     try {
       await supabase
         .from('saved_jobs')
-        .update({ is_pinned: isPinning })
+        .update({ is_pinned: isPinning, pin_order: isPinning ? pinOrder.length : 0 })
         .eq('id', savedJobId)
     } catch {
       // 컬럼 없어도 로컬 상태는 유지
+    }
+  }
+
+  const handleReorderPins = async (newOrder: string[]) => {
+    setPinOrder(newOrder)
+
+    // DB에 순서 저장
+    try {
+      for (let i = 0; i < newOrder.length; i++) {
+        await supabase
+          .from('saved_jobs')
+          .update({ pin_order: i })
+          .eq('id', newOrder[i])
+      }
+    } catch {
+      // 실패해도 로컬 상태는 유지
     }
   }
 
@@ -275,12 +298,10 @@ export default function ApplicationsPage() {
       )
     }
 
-    // 정렬 (핀 항상 최상단)
-    result = [...result].sort((a, b) => {
-      const aPinned = pinnedIds.has(a.saved_job.id) ? 0 : 1
-      const bPinned = pinnedIds.has(b.saved_job.id) ? 0 : 1
-      if (aPinned !== bPinned) return aPinned - bPinned
+    // 정렬 (핀 제외 - 핀은 별도 섹션)
+    const unpinned = result.filter((a) => !pinnedIds.has(a.saved_job.id))
 
+    unpinned.sort((a, b) => {
       switch (sortKey) {
         case 'deadline':
           return getDeadlineSortValue(a.saved_job.deadline) - getDeadlineSortValue(b.saved_job.deadline)
@@ -296,8 +317,32 @@ export default function ApplicationsPage() {
       }
     })
 
-    return result
+    return unpinned
   }, [applications, filter, searchQuery, sortKey, pinnedIds])
+
+  // 핀된 항목 (pinOrder 순서대로)
+  const pinnedApplications = useMemo(() => {
+    let result = filter === 'all'
+      ? applications
+      : applications.filter((app) => app.status === filter)
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      result = result.filter((app) =>
+        app.saved_job.company.toLowerCase().includes(q) ||
+        app.saved_job.title.toLowerCase().includes(q) ||
+        (app.saved_job.location || '').toLowerCase().includes(q)
+      )
+    }
+
+    const pinned = result.filter((a) => pinnedIds.has(a.saved_job.id))
+    // pinOrder 순서대로 정렬
+    return pinned.sort((a, b) => {
+      const aIdx = pinOrder.indexOf(a.saved_job.id)
+      const bIdx = pinOrder.indexOf(b.saved_job.id)
+      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx)
+    })
+  }, [applications, filter, searchQuery, pinnedIds, pinOrder])
 
   // 상태별 카운트
   const statusCounts = useMemo(() => {
@@ -440,7 +485,7 @@ export default function ApplicationsPage() {
         </div>
 
         {/* 공고 목록 */}
-        {processedApplications.length === 0 ? (
+        {processedApplications.length === 0 && pinnedApplications.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-600">
@@ -457,34 +502,58 @@ export default function ApplicationsPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {viewMode === 'card'
-              ? processedApplications.map((application) => (
-                  <ApplicationCard
-                    key={application.id}
-                    application={application}
-                    onStatusChange={handleStatusChange}
-                    onUpdateNotes={handleUpdateNotes}
-                    onUpdateDocuments={handleUpdateDocuments}
-                    onDelete={handleDelete}
-                    isPinned={pinnedIds.has(application.saved_job.id)}
-                    onTogglePin={handleTogglePin}
-                  />
-                ))
-              : processedApplications.map((application) => (
-                  <CompactApplicationRow
-                    key={application.id}
-                    application={application}
-                    onStatusChange={handleStatusChange}
-                    onUpdateNotes={handleUpdateNotes}
-                    onUpdateDocuments={handleUpdateDocuments}
-                    onDelete={handleDelete}
-                    isPinned={pinnedIds.has(application.saved_job.id)}
-                    onTogglePin={handleTogglePin}
-                  />
-                ))
-            }
-          </div>
+          <>
+            {/* 핀 고정 섹션 (드래그앤드롭) */}
+            <PinnedSection
+              pinnedApps={pinnedApplications}
+              viewMode={viewMode}
+              pinnedIds={pinnedIds}
+              onReorder={handleReorderPins}
+              onStatusChange={handleStatusChange}
+              onUpdateNotes={handleUpdateNotes}
+              onUpdateDocuments={handleUpdateDocuments}
+              onDelete={handleDelete}
+              onTogglePin={handleTogglePin}
+            />
+
+            {/* 나머지 공고 */}
+            {pinnedApplications.length > 0 && processedApplications.length > 0 && (
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="text-xs text-gray-400">일반</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {viewMode === 'card'
+                ? processedApplications.map((application) => (
+                    <ApplicationCard
+                      key={application.id}
+                      application={application}
+                      onStatusChange={handleStatusChange}
+                      onUpdateNotes={handleUpdateNotes}
+                      onUpdateDocuments={handleUpdateDocuments}
+                      onDelete={handleDelete}
+                      isPinned={false}
+                      onTogglePin={handleTogglePin}
+                    />
+                  ))
+                : processedApplications.map((application) => (
+                    <CompactApplicationRow
+                      key={application.id}
+                      application={application}
+                      onStatusChange={handleStatusChange}
+                      onUpdateNotes={handleUpdateNotes}
+                      onUpdateDocuments={handleUpdateDocuments}
+                      onDelete={handleDelete}
+                      isPinned={false}
+                      onTogglePin={handleTogglePin}
+                    />
+                  ))
+              }
+            </div>
+          </>
         )}
       </main>
     </div>
