@@ -167,39 +167,11 @@ export default function ApplicationsPage() {
 
           {!user ? (
             // 비로그인 상태 - 샘플 데이터로 구조 미리보기
-            <>
-              <div className="grid gap-4 relative min-h-[600px]">
-                {/* 오버레이 */}
-                <div className="absolute inset-0 bg-gray-50/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg min-h-full">
-                  <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md mx-4 text-center">
-                    <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                      <Briefcase className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      지원 관리를 시작하세요
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      채용 공고를 둘러보거나, 다른 사이트에서 지원한 내역을 추가해보세요
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Link href="/jobs">
-                        <Button size="lg" className="flex items-center gap-2 w-full">
-                          <Search className="w-5 h-5" />
-                          채용공고 보러가기
-                        </Button>
-                      </Link>
-                      <Link href="/login">
-                        <Button size="lg" variant="outline" className="flex items-center gap-2 w-full">
-                          지원 내역 추가하기
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 샘플 카드들 (흐리게 표시) */}
+            <div className="relative">
+              {/* 샘플 카드들 먼저 배치 */}
+              <div className="grid gap-4">
                 {SAMPLE_APPLICATIONS.map((app) => (
-                  <div key={app.id} className="bg-white rounded-lg border p-4 opacity-40">
+                  <div key={app.id} className="bg-white rounded-lg border p-4 opacity-30 pointer-events-none">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-900">{app.company}</h3>
@@ -226,7 +198,35 @@ export default function ApplicationsPage() {
                   </div>
                 ))}
               </div>
-            </>
+
+              {/* 오버레이 (그 위에) */}
+              <div className="absolute inset-0 bg-gray-50/90 backdrop-blur-sm flex items-center justify-center">
+                <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md mx-4 text-center">
+                  <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <Briefcase className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    지원 관리를 시작하세요
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    채용 공고를 둘러보거나, 다른 사이트에서 지원한 내역을 추가해보세요
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <Link href="/jobs" className="w-full">
+                      <Button size="lg" className="w-full flex items-center justify-center gap-2">
+                        <Search className="w-5 h-5" />
+                        채용공고 보러가기
+                      </Button>
+                    </Link>
+                    <Link href="/login" className="w-full">
+                      <Button size="lg" variant="outline" className="w-full flex items-center justify-center gap-2">
+                        지원 내역 추가하기
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : applications.length === 0 ? (
             // 로그인했지만 지원 내역 없음
             <div className="flex flex-col items-center justify-center py-20 text-center">
