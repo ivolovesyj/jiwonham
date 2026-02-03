@@ -82,6 +82,7 @@ export default function ApplicationsPage() {
       fetchApplications()
     } else if (!authLoading && !user) {
       setLoading(false)
+      console.log('Non-logged-in user detected, loading set to false')
     }
   }, [user, authLoading])
 
@@ -110,6 +111,7 @@ export default function ApplicationsPage() {
   }
 
   if (!minLoadingComplete || authLoading || loading) {
+    console.log('Loading screen shown:', { minLoadingComplete, authLoading, loading, user: !!user })
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
@@ -121,6 +123,8 @@ export default function ApplicationsPage() {
       </div>
     )
   }
+
+  console.log('Main content rendered:', { user: !!user, applications: applications.length })
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
