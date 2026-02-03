@@ -130,6 +130,21 @@ export default function Home() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loadingMessage] = useState(() => getRandomLoadingMessage())
+  const initialLoadStartRef = useRef<number>(Date.now())
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+
+  // 최소 로딩 시간 보장 (2초)
+  useEffect(() => {
+    const minLoadingTime = 2000
+    const elapsed = Date.now() - initialLoadStartRef.current
+    const remaining = Math.max(0, minLoadingTime - elapsed)
+
+    const timer = setTimeout(() => {
+      setMinLoadingComplete(true)
+    }, remaining)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // 로그인된 경우에만 온보딩 체크
   useEffect(() => {
@@ -183,10 +198,6 @@ export default function Home() {
   }
 
   const fetchJobs = async (append = false) => {
-    // 최소 로딩 시간 보장 (로딩 메시지를 볼 수 있도록)
-    const startTime = Date.now()
-    const minLoadingTime = 1300 // 1.3초
-
     try {
       if (!append) setLoading(true)
       setError(null)
@@ -284,14 +295,6 @@ export default function Home() {
       console.error('Failed to fetch jobs:', error)
       setError('공고를 불러오는데 실패했습니다.')
     } finally {
-      // 최소 로딩 시간 보장
-      if (!append) {
-        const elapsedTime = Date.now() - startTime
-        const remainingTime = minLoadingTime - elapsedTime
-        if (remainingTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, remainingTime))
-        }
-      }
       setLoading(false)
     }
   }
@@ -466,20 +469,8 @@ export default function Home() {
     }
   }
 
-  if (authLoading || checkingOnboarding) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-bounce">
-            <span className="text-3xl">📦</span>
-          </div>
-          <p className="mt-4 text-lg font-medium text-gray-700">{loadingMessage}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading && jobs.length === 0) {
+  // 최소 로딩 시간이 완료될 때까지 로딩 화면 표시
+  if (!minLoadingComplete || authLoading || checkingOnboarding || (loading && jobs.length === 0)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
