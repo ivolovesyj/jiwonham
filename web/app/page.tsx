@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { SwipeCard } from '@/components/SwipeCard'
+import { Carousel3D } from '@/components/Carousel3D'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, Briefcase, LogOut, SlidersHorizontal, X as XIcon, Check, LogIn, UserPlus } from 'lucide-react'
+import { RotateCcw, Briefcase, LogOut, SlidersHorizontal, X as XIcon, Check, LogIn, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
@@ -458,6 +458,20 @@ export default function Home() {
     await fetchJobs(true)
   }
 
+  // 키보드 네비게이션
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1)
+      } else if (e.key === 'ArrowRight' && currentIndex < jobs.length - 1) {
+        setCurrentIndex(currentIndex + 1)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentIndex, jobs.length])
+
   const handleLogout = async () => {
     try {
       await signOut()
@@ -474,8 +488,8 @@ export default function Home() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-bounce">
-            <span className="text-3xl">📦</span>
+          <div className="w-24 h-24 mx-auto animate-bounce">
+            <Image src="/logo-final.png" alt="지원함" width={96} height={96} className="w-full h-full object-contain" />
           </div>
           <p className="mt-4 text-lg font-medium text-gray-700">{loadingMessage}</p>
         </div>
@@ -553,9 +567,7 @@ export default function Home() {
       <header className="bg-white border-b px-4 py-3 md:py-4 sticky top-0 z-50">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">📦</span>
-            </div>
+            <Image src="/logo-final.png" alt="지원함" width={32} height={32} className="w-8 h-8 object-contain" />
             <h1 className="text-lg md:text-xl font-bold text-gray-900">지원함</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -696,29 +708,14 @@ export default function Home() {
         </div>
       )}
 
-      {/* 카드 영역 */}
-      <main className="flex-1 flex items-start justify-center p-4 relative overflow-y-auto">
-        <div className="w-full max-w-md relative">
-          {/* 다음 카드 미리보기 */}
-          {currentIndex + 1 < jobs.length && (
-            <div className="absolute top-4 left-0 right-0 mx-auto w-full opacity-50 scale-95 pointer-events-none">
-              <SwipeCard
-                job={jobs[currentIndex + 1]}
-                onAction={() => {}}
-                active={false}
-              />
-            </div>
-          )}
-
-          {/* 현재 카드 */}
-          <SwipeCard
-            key={jobs[currentIndex].id}
-            job={jobs[currentIndex]}
-            onAction={handleAction}
-            active={true}
-            triggerAction={triggerAction}
-          />
-        </div>
+      {/* 3D 캐러셀 영역 */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <Carousel3D
+          jobs={jobs}
+          currentIndex={currentIndex}
+          onAction={handleAction}
+          onIndexChange={setCurrentIndex}
+        />
       </main>
 
       {/* 로그인 모달 */}

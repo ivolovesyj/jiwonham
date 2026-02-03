@@ -480,9 +480,7 @@ export default function ApplicationsPage() {
                 </Button>
               </Link>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">📦</span>
-                </div>
+                <Image src="/logo-final.png" alt="지원함" width={32} height={32} className="w-8 h-8 object-contain" />
                 <h1 className="text-lg md:text-xl font-bold text-gray-900">
                   지원함 - 지원 관리
                 </h1>

@@ -41,8 +41,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
-            <span className="text-white font-bold text-5xl">📦</span>
+          <div className="w-32 h-32 mx-auto">
+            <Image src="/logo-final.png" alt="지원함" width={128} height={128} className="w-full h-full object-contain" />
           </div>
           <h1 className="mt-6 text-3xl font-bold text-gray-900">지원함</h1>
           <p className="mt-2 text-gray-600">
