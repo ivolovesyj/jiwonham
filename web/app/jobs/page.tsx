@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Carousel3D } from '@/components/Carousel3D'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check } from 'lucide-react'
+import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check, Package } from 'lucide-react'
 import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
@@ -132,22 +132,6 @@ export default function Home() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
-  const [loadingMessage] = useState(() => getRandomLoadingMessage())
-  const initialLoadStartRef = useRef<number>(Date.now())
-  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
-
-  // 최소 로딩 시간 보장 (1.7초)
-  useEffect(() => {
-    const minLoadingTime = 1700
-    const elapsed = Date.now() - initialLoadStartRef.current
-    const remaining = Math.max(0, minLoadingTime - elapsed)
-
-    const timer = setTimeout(() => {
-      setMinLoadingComplete(true)
-    }, remaining)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   // 로그인된 경우에만 온보딩 체크
   useEffect(() => {
@@ -477,15 +461,15 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, jobs.length])
 
-  // 최소 로딩 시간이 완료될 때까지 로딩 화면 표시
-  if (!minLoadingComplete || authLoading || checkingOnboarding || (loading && jobs.length === 0)) {
+  // 로딩 화면 (의도적 지연 없음)
+  if (authLoading || checkingOnboarding || (loading && jobs.length === 0)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
-          <div className="w-24 h-24 mx-auto animate-bounce">
-            <Image src="/logo-final.png" alt="지원함" width={96} height={96} className="w-full h-full object-contain" />
+          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-bounce">
+            <Package className="w-8 h-8 text-white" />
           </div>
-          <p className="mt-4 text-lg font-medium text-gray-700">{loadingMessage}</p>
+          <p className="text-lg font-medium text-gray-700">로딩 중...</p>
         </div>
       </div>
     )
@@ -606,27 +590,6 @@ export default function Home() {
                 onCancel={() => setShowFilterEdit(false)}
               />
             )}
-          </div>
-        </div>
-      )}
-
-      {/* 비로그인 사용자 안내 배너 */}
-      {!user && (
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 border-b px-4 py-3">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-            <div className="flex-1 text-left">
-              <h2 className="text-base font-bold text-white leading-tight">
-                지원한 곳 헷갈릴 땐? 지원함
-              </h2>
-              <p className="text-xs text-blue-100 mt-0.5">
-                메모장·노션은 이제 끝. 수동 입력 없이 자동으로 관리하세요.
-              </p>
-            </div>
-            <Link href="/login">
-              <button className="px-3 py-1.5 bg-white text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition text-xs whitespace-nowrap">
-                시작하기
-              </button>
-            </Link>
           </div>
         </div>
       )}
