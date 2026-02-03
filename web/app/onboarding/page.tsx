@@ -118,7 +118,7 @@ export default function OnboardingPage() {
   // 테스트 단계
   const [testJobs, setTestJobs] = useState<Job[]>([])
   const [testIndex, setTestIndex] = useState(0)
-  const [testResults, setTestResults] = useState<{job: Job, liked: boolean}[]>([])
+  const [testResults, setTestResults] = useState<{ job: Job, liked: boolean }[]>([])
   const [loadingTest, setLoadingTest] = useState(false)
 
   useEffect(() => {
@@ -300,6 +300,36 @@ export default function OnboardingPage() {
     }
   }
 
+  // 온보딩 SKIP 처리
+  const handleSkip = async () => {
+    if (!user) return
+    setSaving(true)
+    try {
+      // 기본값으로 user_preferences 생성
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        preferred_job_types: [],
+        preferred_locations: [],
+        career_level: '경력무관',
+        work_style: [],
+      })
+
+      // onboarding 완료 처리
+      await supabase.from('user_profiles').upsert({
+        id: user.id,
+        onboarding_completed: true,
+        email: user.email,
+      })
+
+      router.push('/')
+    } catch (e) {
+      console.error('Skip failed:', e)
+      alert('처리 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
   }
@@ -339,11 +369,11 @@ export default function OnboardingPage() {
               <div className="text-5xl">🎯</div>
               <h1 className="text-2xl font-bold text-gray-900">성향 분석 완료!</h1>
               <p className="text-gray-600">
-                {testResults.length}개 공고를 평가했어요.<br/>
+                {testResults.length}개 공고를 평가했어요.<br />
                 <span className="text-blue-600 font-semibold">{likedCount}개 관심</span> / <span className="text-red-500 font-semibold">{passedCount}개 패스</span>
               </p>
               <p className="text-sm text-gray-500">
-                이 결과를 바탕으로 맞춤 공고를 추천해드릴게요.<br/>
+                이 결과를 바탕으로 맞춤 공고를 추천해드릴게요.<br />
                 사용하면서 추천이 점점 더 정확해집니다!
               </p>
               <Button
@@ -367,10 +397,9 @@ export default function OnboardingPage() {
           <div className="max-w-md mx-auto">
             <div className="flex gap-1">
               {Array.from({ length: Math.min(testJobs.length, 10) }).map((_, i) => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i < testIndex ? (testResults[i]?.liked ? 'bg-blue-500' : 'bg-red-300') :
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i < testIndex ? (testResults[i]?.liked ? 'bg-blue-500' : 'bg-red-300') :
                   i === testIndex ? 'bg-blue-600' : 'bg-gray-200'
-                }`} />
+                  }`} />
               ))}
             </div>
             <div className="flex items-center justify-between mt-2">
@@ -414,9 +443,8 @@ export default function OnboardingPage() {
           <div className="flex flex-wrap gap-2">
             {options?.depth_ones.map(depthOne => (
               <button key={depthOne} onClick={() => toggleItem(selectedDepthOnes, setSelectedDepthOnes, depthOne)}
-                className={`px-4 py-2 rounded-full text-sm border transition-all ${
-                  selectedDepthOnes.includes(depthOne) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                }`}
+                className={`px-4 py-2 rounded-full text-sm border transition-all ${selectedDepthOnes.includes(depthOne) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                  }`}
               >
                 {selectedDepthOnes.includes(depthOne) && <Check className="w-3 h-3 inline mr-1" />}
                 {depthOne}
@@ -464,9 +492,8 @@ export default function OnboardingPage() {
                   <div className="flex flex-wrap gap-2">
                     {twos.map(depthTwo => (
                       <button key={depthTwo} onClick={() => toggleItem(selectedDepthTwos, setSelectedDepthTwos, depthTwo)}
-                        className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
-                          selectedDepthTwos.includes(depthTwo) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-sm border transition-all ${selectedDepthTwos.includes(depthTwo) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
+                          }`}
                       >
                         {selectedDepthTwos.includes(depthTwo) && <Check className="w-3 h-3 inline mr-1" />}
                         {depthTwo}
@@ -509,9 +536,8 @@ export default function OnboardingPage() {
         <div className="grid grid-cols-2 gap-3">
           {CAREER_OPTIONS.map(opt => (
             <button key={opt.value} onClick={() => setSelectedCareer(opt.value)}
-              className={`px-4 py-3 rounded-xl text-sm border transition-all ${
-                selectedCareer === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-              }`}
+              className={`px-4 py-3 rounded-xl text-sm border transition-all ${selectedCareer === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                }`}
             >{opt.label}</button>
           ))}
         </div>
@@ -526,9 +552,8 @@ export default function OnboardingPage() {
         <div className="flex flex-wrap gap-2">
           {options?.regions.map(region => (
             <button key={region} onClick={() => toggleItem(selectedRegions, setSelectedRegions, region)}
-              className={`px-4 py-2 rounded-full text-sm border transition-all ${
-                selectedRegions.includes(region) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
-              }`}
+              className={`px-4 py-2 rounded-full text-sm border transition-all ${selectedRegions.includes(region) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
+                }`}
             >
               {selectedRegions.includes(region) && <Check className="w-3 h-3 inline mr-1" />}
               {region}
@@ -546,9 +571,8 @@ export default function OnboardingPage() {
         <div className="flex flex-wrap gap-2">
           {options?.employee_types.map(type => (
             <button key={type} onClick={() => toggleItem(selectedEmployeeTypes, setSelectedEmployeeTypes, type)}
-              className={`px-4 py-2 rounded-full text-sm border transition-all ${
-                selectedEmployeeTypes.includes(type) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-              }`}
+              className={`px-4 py-2 rounded-full text-sm border transition-all ${selectedEmployeeTypes.includes(type) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                }`}
             >
               {selectedEmployeeTypes.includes(type) && <Check className="w-3 h-3 inline mr-1" />}
               {type}
@@ -564,34 +588,48 @@ export default function OnboardingPage() {
   const isLastFilter = step === filterSteps.length - 1
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <div className="bg-white border-b px-4 py-3">
-        <div className="max-w-md mx-auto">
-          <div className="flex gap-1">
-            {filterSteps.map((_, i) => (
-              <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i <= step ? 'bg-blue-600' : 'bg-gray-200'
-              }`} />
-            ))}
-            {/* 테스트 단계 표시 */}
-            <div className="h-1.5 flex-1 rounded-full bg-gray-200" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* 헤더: 진행 표시 + SKIP 버튼 */}
+        <div className="bg-white border-b px-4 py-3 flex-shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex-1">
+              <div className="flex gap-1">
+                {filterSteps.map((_, i) => (
+                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? 'bg-blue-600' : 'bg-gray-200'
+                    }`} />
+                ))}
+                <div className="h-1.5 flex-1 rounded-full bg-gray-200" />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{step + 1} / {filterSteps.length + 1}</p>
+            </div>
+            <button
+              onClick={handleSkip}
+              disabled={saving}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 hover:bg-gray-100 rounded-lg transition"
+            >
+              건너뛰기
+            </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">{step + 1} / {filterSteps.length + 1}</p>
         </div>
-      </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{currentStep.title}</h1>
-            <p className="text-sm text-gray-500 mt-1">{currentStep.subtitle}</p>
+        {/* 컨텐츠 */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{currentStep.title}</h1>
+              <p className="text-sm text-gray-500 mt-1">{currentStep.subtitle}</p>
+            </div>
+
+            <div className="max-h-[40vh] overflow-y-auto py-2">
+              {currentStep.content}
+            </div>
           </div>
+        </div>
 
-          <div className="max-h-[55vh] overflow-y-auto py-2">
-            {currentStep.content}
-          </div>
-
-          <div className="flex gap-3 pt-4">
+        {/* 하단 버튼 */}
+        <div className="bg-gray-50 border-t px-4 py-3 flex-shrink-0">
+          <div className="flex gap-3">
             {step > 0 && (
               <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-shrink-0">
                 <ChevronLeft className="w-4 h-4 mr-1" />이전
@@ -613,7 +651,7 @@ export default function OnboardingPage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
