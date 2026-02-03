@@ -181,27 +181,33 @@ export default function ApplicationsPage() {
               {/* 샘플 카드들 먼저 배치 */}
               <div className="grid gap-4">
                 {SAMPLE_APPLICATIONS.map((app) => (
-                  <div key={app.id} className="bg-white rounded-lg border p-4 opacity-60">
+                  <div key={app.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition opacity-60">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-900">{app.company}</h3>
                         <p className="text-gray-700 mt-1">{app.title}</p>
                         <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
                           <span>{app.location}</span>
-                          <span>마감: {new Date(app.deadline).toLocaleDateString()}</span>
+                          {app.deadline && <span>마감: {new Date(app.deadline).toLocaleDateString()}</span>}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${app.status === 'pending' ? 'bg-blue-100 text-blue-700' :
-                          app.status === 'hold' ? 'bg-gray-100 text-gray-700' :
-                            'bg-green-100 text-green-700'
+                            app.status === 'passed' ? 'bg-red-100 text-red-700' :
+                              app.status === 'hold' ? 'bg-gray-100 text-gray-700' :
+                                'bg-green-100 text-green-700'
                           }`}>
                           {app.status === 'pending' ? '지원 예정' :
-                            app.status === 'hold' ? '보류' : '지원 완료'}
+                            app.status === 'passed' ? '지원 안 함' :
+                              app.status === 'hold' ? '보류' : '지원 완료'}
                         </span>
-                        <Button variant="outline" size="sm" disabled>
-                          원문 보기
-                        </Button>
+                        {app.link && (
+                          <a href={app.link} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm">
+                              원문 보기
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
