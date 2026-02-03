@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 구체형 캐러셀 프로토타입 - 지원함</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* 헤더 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header-counter {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        /* 캐러셀 컨테이너 */
+        .carousel-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 70vh;
+            perspective: 1800px;
+            perspective-origin: center 40%;
+        }
+
+        /* 3D 회전 트랙 */
+        .carousel-track {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        /* 카드 스타일 */
+        .card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 340px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            color: #1a1a2e;
+            transform-style: preserve-3d;
+            overflow: hidden;
+            /* 부드러운 전환 효과 - 핵심! */
+            transition:
+                transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity 0.5s ease-out,
+                filter 0.5s ease-out;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 카드 내부 */
+        .card-content {
+            padding: 28px 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .company-logo {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .match-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .match-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+        }
+
+        .job-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
+
+        .job-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .detail-text {
+            font-size: 13px;
+        }
+
+        .detail-label {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .tag-job {
+            background: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .tag-type {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .tag-new {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* 액션 버튼 */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            padding: 20px 24px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-pass {
+            background: white;
+            color: #ef4444;
+            border: 2px solid #fecaca;
+        }
+
+        .btn-pass:hover {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+
+        .btn-hold {
+            background: white;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-hold:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .btn-apply {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 네비게이션 버튼 */
+        .nav-buttons {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 진행 인디케이터 */
+        .progress-indicator {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .progress-dot.passed {
+            background: rgba(239, 68, 68, 0.6);
+        }
+
+        .progress-dot.applied {
+            background: rgba(102, 126, 234, 0.8);
+        }
+
+        .progress-dot.held {
+            background: rgba(156, 163, 175, 0.6);
+        }
+
+        /* 스와이프 힌트 */
+        .swipe-hint {
+            position: fixed;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeInOut 3s infinite;
+        }
+
+        @keyframes fadeInOut {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* 완료 메시지 */
+        .completion-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .completion-message.show {
+            opacity: 1;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 640px) {
+            .card {
+                width: calc(100vw - 40px);
+                max-width: 340px;
+            }
+
+            .carousel-container {
+                height: 65vh;
+            }
+
+            .card-content {
+                padding: 22px 18px;
+            }
+
+            .card-actions {
+                padding: 16px 18px;
+            }
+
+            .nav-buttons {
+                bottom: 24px;
+            }
+
+            .nav-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .progress-indicator {
+                bottom: 90px;
+            }
+
+            .swipe-hint {
+                bottom: 130px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-logo">
+            <div class="logo-icon">📦</div>
+            <h1 class="header-title">지원함</h1>
+        </div>
+        <div class="header-counter">
+            <span id="current">1</span> / <span id="total">5</span>
+        </div>
+    </header>
+
+    <!-- 3D 캐러셀 -->
+    <div class="carousel-container" id="carouselContainer">
+        <div class="carousel-track" id="carouselTrack">
+            <!-- 카드들은 JavaScript로 한 번만 생성 -->
+        </div>
+        <div class="completion-message" id="completionMessage">
+            <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+            <h2 style="font-size: 28px; margin-bottom: 12px;">모든 공고를 확인했어요!</h2>
+            <p style="opacity: 0.7;">지원 관리에서 선택한 공고들을 확인하세요</p>
+        </div>
+    </div>
+
+    <!-- 스와이프 힌트 -->
+    <div class="swipe-hint">
+        ← 스와이프하여 다음 공고 보기 →
+    </div>
+
+    <!-- 진행 인디케이터 -->
+    <div class="progress-indicator" id="progressIndicator">
+        <!-- 동적 생성 -->
+    </div>
+
+    <!-- 네비게이션 버튼 -->
+    <div class="nav-buttons">
+        <button class="nav-btn" id="prevBtn" disabled>←</button>
+        <button class="nav-btn" id="nextBtn">→</button>
+    </div>
+
+    <script>
+        // 샘플 채용 공고 데이터
+        const jobs = [
+            {
+                id: 1,
+                company: '카카오',
+                logo: 'K',
+                title: '프론트엔드 개발자 (React/TypeScript)',
+                location: '판교',
+                career: '3~5년',
+                score: 92,
+                tags: ['프론트엔드', '정규직'],
+                isNew: true
+            },
+            {
+                id: 2,
+                company: '네이버',
+                logo: 'N',
+                title: '백엔드 엔지니어 (Spring Boot)',
+                location: '성남시',
+                career: '신입~3년',
+                score: 87,
+                tags: ['백엔드', '정규직'],
+                isNew: false
+            },
+            {
+                id: 3,
+                company: '토스',
+                logo: 'T',
+                title: 'iOS 개발자',
+                location: '서울 강남',
+                career: '5년 이상',
+                score: 78,
+                tags: ['iOS', '정규직'],
+                isNew: true
+            },
+            {
+                id: 4,
+                company: '라인',
+                logo: 'L',
+                title: 'DevOps 엔지니어',
+                location: '판교',
+                career: '경력무관',
+                score: 85,
+                tags: ['DevOps', '계약직'],
+                isNew: false
+            },
+            {
+                id: 5,
+                company: '쿠팡',
+                logo: 'C',
+                title: '데이터 엔지니어 (Spark/Hadoop)',
+                location: '서울 송파',
+                career: '3년 이상',
+                score: 81,
+                tags: ['데이터', '정규직'],
+                isNew: false
+            }
+        ];
+
+        let currentIndex = 0;
+        const cardStatuses = new Array(jobs.length).fill(null);
+        const cardElements = []; // DOM 요소 참조 저장
+
+        const track = document.getElementById('carouselTrack');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressIndicator = document.getElementById('progressIndicator');
+        const currentCounter = document.getElementById('current');
+        const totalCounter = document.getElementById('total');
+        const completionMessage = document.getElementById('completionMessage');
+
+        // 카드 HTML 생성
+        function createCardHTML(job) {
+            return `
+        <div class="card-content">
+          <div class="card-header">
+            <div class="company-logo">${job.logo}</div>
+            <div class="company-info">
+              <div class="company-name">${job.company}</div>
+              <div class="match-badge">적합도 ${job.score}%</div>
+            </div>
+          </div>
+          <div class="job-title">${job.title}</div>
+          <div class="job-details">
+            <div class="detail-item">
+              <div class="detail-icon">📍</div>
+              <div class="detail-text">
+                <div class="detail-label">위치</div>
+                <div class="detail-value">${job.location}</div>
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-icon">💼</div>
+              <div class="detail-text">
+                <div class="detail-label">경력</div>
+                <div class="detail-value">${job.career}</div>
+              </div>
+            </div>
+          </div>
+          <div class="tags">
+            ${job.tags.map((tag, i) => `<span class="tag ${i === 0 ? 'tag-job' : 'tag-type'}">${tag}</span>`).join('')}
+            ${job.isNew ? '<span class="tag tag-new">🆕 NEW</span>' : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn btn-pass" data-action="pass" data-job-id="${job.id}">
+            ✕ 지원 안 함
+          </button>
+          <button class="action-btn btn-hold" data-action="hold" data-job-id="${job.id}">
+            ⏸ 보류
+          </button>
+          <button class="action-btn btn-apply" data-action="apply" data-job-id="${job.id}">
+            ✓ 지원 예정
+          </button>
+        </div>
+      `;
+        }
+
+        // 3D 위치 계산
+        function calculateCardPosition(index, currentIdx) {
+            const diff = index - currentIdx;
+            const sphereRadius = 1200;
+            const angleStep = 0.25;
+            const angle = diff * angleStep;
+
+            const x = Math.sin(angle) * sphereRadius;
+            const z = (1 - Math.cos(angle)) * sphereRadius * 0.3;
+            const scale = Math.max(0.65, 1 - Math.abs(diff) * 0.12);
+
+            let opacity = 1;
+            if (Math.abs(diff) === 1) {
+                opacity = 0.7;
+            } else if (Math.abs(diff) > 1) {
+                opacity = 0;
+            }
+
+            const blur = Math.abs(diff) === 1 ? 1 : 0;
+            const zIndex = 100 - Math.abs(diff) * 10;
+
+            return { x, z, scale, opacity, blur, zIndex };
+        }
+
+        // 카드 초기 생성 (한 번만 실행)
+        function initCards() {
+            jobs.forEach((job, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = createCardHTML(job);
+                card.dataset.index = index;
+
+                // 버튼 이벤트 리스너 등록
+                card.querySelectorAll('.action-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const action = e.currentTarget.dataset.action;
+                        const jobId = parseInt(e.currentTarget.dataset.jobId);
+                        handleAction(action, jobId);
+                    });
+                });
+
+                track.appendChild(card);
+                cardElements.push(card); // 참조 저장
+            });
+
+            // 진행 인디케이터 초기화
+            jobs.forEach((_, i) => {
+                const dot = document.createElement('div');
+                dot.className = 'progress-dot';
+                progressIndicator.appendChild(dot);
+            });
+
+            // 초기 위치 적용
+            updateCardPositions();
+        }
+
+        // 카드 위치 업데이트 (DOM 재생성 없이 스타일만 변경)
+        function updateCardPositions() {
+            cardElements.forEach((card, index) => {
+                const pos = calculateCardPosition(index, currentIndex);
+
+                card.style.transform = `
+          translate(-50%, -50%)
+          translateX(${pos.x}px)
+          translateZ(${-pos.z}px)
+          scale(${pos.scale})
+        `;
+                card.style.opacity = pos.opacity;
+                card.style.zIndex = pos.zIndex;
+                card.style.filter = pos.blur > 0 ? `blur(${pos.blur}px)` : 'none';
+                card.style.pointerEvents = index === currentIndex ? 'auto' : 'none';
+            });
+
+            updateControls();
+        }
+
+        // 컨트롤 업데이트
+        function updateControls() {
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex >= jobs.length - 1;
+
+            currentCounter.textContent = currentIndex + 1;
+            totalCounter.textContent = jobs.length;
+
+            // 진행 인디케이터 업데이트
+            const dots = progressIndicator.querySelectorAll('.progress-dot');
+            dots.forEach((dot, i) => {
+                dot.className = 'progress-dot';
+                if (i === currentIndex) dot.classList.add('active');
+                if (cardStatuses[i] === 'pass') dot.classList.add('passed');
+                if (cardStatuses[i] === 'apply') dot.classList.add('applied');
+                if (cardStatuses[i] === 'hold') dot.classList.add('held');
+            });
+        }
+
+        // 카드 이동
+        function goTo(index) {
+            if (index < 0 || index >= jobs.length) return;
+            currentIndex = index;
+            updateCardPositions(); // DOM 재생성 없이 위치만 업데이트
+        }
+
+        function goNext() {
+            if (cardStatuses[currentIndex] === null) {
+                cardStatuses[currentIndex] = 'pass';
+            }
+
+            if (currentIndex >= jobs.length - 1) {
+                // 마지막 카드 이후 완료 메시지
+                cardElements.forEach(card => {
+                    card.style.opacity = 0;
+                });
+                completionMessage.classList.add('show');
+                return;
+            }
+
+            goTo(currentIndex + 1);
+        }
+
+        function goPrev() {
+            goTo(currentIndex - 1);
+        }
+
+        // 액션 핸들러
+        function handleAction(action, jobId) {
+            const index = jobs.findIndex(j => j.id === jobId);
+            if (index === -1) return;
+
+            cardStatuses[index] = action;
+            goNext();
+        }
+
+        // 스와이프 지원
+        let startX = 0;
+        let isDragging = false;
+
+        const container = document.getElementById('carouselContainer');
+
+        container.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+        });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+        }, { passive: false });
+
+        container.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const endX = e.changedTouches[0].clientX;
+            const diff = startX - endX;
+
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) goNext();
+                else goPrev();
+            }
+        });
+
+        // 마우스 드래그
+        container.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isDragging = true;
+        });
+
+        container.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const diff = startX - e.clientX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) goNext();
+                else goPrev();
+            }
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        // 키보드 네비게이션
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') goPrev();
+            if (e.key === 'ArrowRight') goNext();
+        });
+
+        // 버튼 이벤트
+        prevBtn.addEventListener('click', goPrev);
+        nextBtn.addEventListener('click', goNext);
+
+        // 초기화
+        initCards();
+    </script>
+</body>
+
+</html>

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { ArrowLeft, Briefcase, Search, Package } from 'lucide-react'
+import { Briefcase, Search, Package } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { Navigation } from '@/components/Navigation'
 
 export default function ApplicationsPage() {
   const router = useRouter()
@@ -62,21 +62,7 @@ export default function ApplicationsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white border-b px-4 py-3 md:py-4 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
-            <Image src="/logo-final.png" alt="지원함" width={32} height={32} className="w-8 h-8 object-contain" />
-            <h1 className="text-lg md:text-xl font-bold text-gray-900">지원함</h1>
-          </Link>
-          <Link href="/jobs">
-            <Button className="flex items-center gap-1">
-              <Search className="w-4 h-4" />
-              <span>채용공고 찾기</span>
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <Navigation />
 
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto">

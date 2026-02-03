@@ -1,639 +1,645 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
-import { ApplicationCard } from '@/components/ApplicationCard'
-import { CompactApplicationRow } from '@/components/CompactApplicationRow'
-import { PinnedSection } from '@/components/PinnedSection'
-import { AddExternalJobModal } from '@/components/AddExternalJobModal'
-import { ApplicationToolbar, SortKey, ViewMode } from '@/components/ApplicationToolbar'
-import { getDeadlineSortValue } from '@/components/DeadlineBadge'
+import { Carousel3D } from '@/components/Carousel3D'
 import { Button } from '@/components/ui/button'
+import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check } from 'lucide-react'
+import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { ArrowLeft, Briefcase, LogOut, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { LoginPromptModal } from '@/components/LoginPromptModal'
+import { Navigation } from '@/components/Navigation'
 
-// 상태 정렬 우선순위 (숫자가 작을수록 상위)
-const STATUS_ORDER: Record<string, number> = {
-  pending: 0,
-  hold: 1,
-  applied: 2,
-  document_pass: 3,
-  interviewing: 4,
-  final: 5,
-  accepted: 6,
-  not_applying: 7,
-  passed: 8,
-  rejected: 9,
-  declined: 10,
+const CAREER_OPTIONS = [
+  { value: '신입', label: '신입' },
+  { value: '1-3', label: '1~3년' },
+  { value: '3-5', label: '3~5년' },
+  { value: '5-10', label: '5~10년' },
+  { value: '10+', label: '10년+' },
+  { value: '경력무관', label: '경력무관' },
+]
+
+const LOADING_MESSAGES = [
+  '지원함이 열심히 정리 중!',
+  '당신의 지원함을 채우는 중...',
+  '합격의 기운을 수집 중...',
+  '지원함 싹- 모으는 중!',
+  '내 지원함 착착 정리 중!',
+  '소중한 기회를 담는 중...',
+]
+
+// 랜덤 로딩 메시지 선택
+const getRandomLoadingMessage = () => {
+  return LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]
 }
 
-export default function ApplicationsPage() {
+function FilterEditPanel({ filters, options, onSave, onCancel }: {
+  filters: UserFilters
+  options: { depth_ones: string[], regions: string[], employee_types: string[] } | null
+  onSave: (f: UserFilters) => void
+  onCancel: () => void
+}) {
+  const [jobs, setJobs] = useState(filters.preferred_job_types)
+  const [regions, setRegions] = useState(filters.preferred_locations)
+  const [career, setCareer] = useState(filters.career_level)
+  const [empTypes, setEmpTypes] = useState(filters.work_style)
+
+  const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
+    setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
+  }
+
+  if (!options) return <div className="py-2 text-sm text-gray-400">로딩 중...</div>
+
+  return (
+    <div className="space-y-3 py-2">
+      <div>
+        <div className="text-xs font-semibold text-gray-500 mb-1">직무</div>
+        <div className="flex flex-wrap gap-1.5">
+          {options.depth_ones.map(d => (
+            <button key={d} onClick={() => toggle(jobs, setJobs, d)}
+              className={`text-xs px-2 py-1 rounded-full border transition ${jobs.includes(d) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+            >{d}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold text-gray-500 mb-1">경력</div>
+        <div className="flex flex-wrap gap-1.5">
+          {CAREER_OPTIONS.map(o => (
+            <button key={o.value} onClick={() => setCareer(o.value)}
+              className={`text-xs px-2 py-1 rounded-full border transition ${career === o.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+            >{o.label}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold text-gray-500 mb-1">지역</div>
+        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+          {options.regions.map(r => (
+            <button key={r} onClick={() => toggle(regions, setRegions, r)}
+              className={`text-xs px-2 py-1 rounded-full border transition ${regions.includes(r) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-300'}`}
+            >{r}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold text-gray-500 mb-1">고용형태</div>
+        <div className="flex flex-wrap gap-1.5">
+          {options.employee_types.map(t => (
+            <button key={t} onClick={() => toggle(empTypes, setEmpTypes, t)}
+              className={`text-xs px-2 py-1 rounded-full border transition ${empTypes.includes(t) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'}`}
+            >{t}</button>
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Button variant="outline" size="sm" onClick={onCancel}>취소</Button>
+        <Button size="sm" onClick={() => onSave({ preferred_job_types: jobs, preferred_locations: regions, career_level: career, work_style: empTypes })}
+          disabled={jobs.length === 0}
+        >
+          <Check className="w-3 h-3 mr-1" />적용
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface UserFilters {
+  preferred_job_types: string[]
+  preferred_locations: string[]
+  career_level: string
+  work_style: string[]
+}
+
+export default function Home() {
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
-  const [applications, setApplications] = useState<ApplicationWithJob[]>([])
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<ApplicationStatus | 'all'>('all')
+  const [error, setError] = useState<string | null>(null)
+  const [appliedJobs, setAppliedJobs] = useState<Job[]>([])
+  const [triggerAction, setTriggerAction] = useState<'pass' | 'hold' | 'apply' | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const offsetRef = useRef(0)
+  const [filters, setFilters] = useState<UserFilters | null>(null)
+  const [showFilterEdit, setShowFilterEdit] = useState(false)
+  const [filterOptions, setFilterOptions] = useState<{depth_ones: string[], regions: string[], employee_types: string[]} | null>(null)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [loadingMessage] = useState(() => getRandomLoadingMessage())
+  const initialLoadStartRef = useRef<number>(Date.now())
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
 
-  // Phase 1: 검색, 정렬, 뷰 모드
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('created_at')
-  const [viewMode, setViewMode] = useState<ViewMode>('card')
-
-  // Phase 2: 핀 상태 + 순서
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
-  const [pinOrder, setPinOrder] = useState<string[]>([])
-
-  // Phase 3: 외부 공고 모달
-  const [showExternalModal, setShowExternalModal] = useState(false)
-
-  // 로그인 체크
+  // 최소 로딩 시간 보장 (1.7초)
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-    }
-  }, [user, authLoading, router])
+    const minLoadingTime = 1700
+    const elapsed = Date.now() - initialLoadStartRef.current
+    const remaining = Math.max(0, minLoadingTime - elapsed)
 
+    const timer = setTimeout(() => {
+      setMinLoadingComplete(true)
+    }, remaining)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // 로그인된 경우에만 온보딩 체크
   useEffect(() => {
-    if (user) {
-      fetchApplications()
+    if (user && !authLoading) {
+      setCheckingOnboarding(true)
+      checkOnboarding()
+    } else if (!authLoading) {
+      // 비로그인: 바로 공고 로드
+      setCheckingOnboarding(false)
+      fetchJobs()
     }
-  }, [user])
+  }, [user, authLoading])
 
-  const fetchApplications = async () => {
-    if (!user) return
-
+  const checkOnboarding = async () => {
     try {
-      setLoading(true)
-
-      const { data: savedJobs, error: savedError } = await supabase
-        .from('saved_jobs')
+      // user_preferences 확인
+      const { data } = await supabase
+        .from('user_preferences')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .eq('user_id', user!.id)
+        .single()
 
-      if (savedError) throw savedError
-
-      if (!savedJobs || savedJobs.length === 0) {
-        setApplications([])
+      if (!data || !data.preferred_job_types?.length) {
+        // 온보딩 미완료 → 온보딩으로 이동
+        router.push('/onboarding')
         return
       }
 
-      const applicationsData: ApplicationWithJob[] = []
+      setFilters({
+        preferred_job_types: data.preferred_job_types || [],
+        preferred_locations: data.preferred_locations || [],
+        career_level: data.career_level || '경력무관',
+        work_style: data.work_style || [],
+      })
+      setCheckingOnboarding(false)
+      fetchJobs()
+    } catch {
+      // user_preferences 없음 → 온보딩으로
+      router.push('/onboarding')
+    }
+  }
 
-      for (const job of savedJobs) {
-        let { data: status } = await supabase
-          .from('application_status')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('saved_job_id', job.id)
-          .single()
+  const loadFilterOptions = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) return
+    const res = await fetch('/api/filters', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) setFilterOptions(await res.json())
+  }
 
-        if (!status) {
-          const { data: newStatus, error: createError } = await supabase
-            .from('application_status')
-            .insert({
-              user_id: user.id,
-              saved_job_id: job.id,
-              status: 'pending',
+  const fetchJobs = async (append = false) => {
+    try {
+      if (!append) setLoading(true)
+      setError(null)
+
+      // 비로그인 사용자: 토큰 없이 요청
+      const { data: { session } } = await supabase.auth.getSession()
+      let token = session?.access_token
+
+      const offset = append ? offsetRef.current : 0
+      const response = await fetch(`/api/jobs?limit=20&offset=${offset}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 && user) {
+          // 로그인 유저만 토큰 갱신 시도
+          const { data: refreshed } = await supabase.auth.refreshSession()
+          if (refreshed.session?.access_token) {
+            const retry = await fetch(`/api/jobs?limit=20&offset=${offset}`, {
+              headers: { 'Authorization': `Bearer ${refreshed.session.access_token}` },
             })
-            .select()
-            .single()
-
-          if (createError) {
-            console.error('Failed to create status:', createError)
-            continue
+            if (retry.ok) {
+              const data = await retry.json()
+              if (data.jobs?.length > 0) {
+                const newJobs: Job[] = data.jobs.map((job: any) => ({
+                  id: job.id, company: job.company, company_image: job.company_image,
+                  title: job.title, location: job.location || '위치 미정',
+                  score: job.score || 0, reason: job.reason || '추천 공고',
+                  reasons: job.reasons || [], warnings: job.warnings || [],
+                  link: job.link, source: job.source || 'zighang',
+                  crawledAt: job.crawledAt, detail: job.detail || undefined,
+                  depth_ones: job.depth_ones, depth_twos: job.depth_twos,
+                  keywords: job.keywords, career_min: job.career_min,
+                  career_max: job.career_max, employee_types: job.employee_types,
+                  deadline_type: job.deadline_type, end_date: job.end_date,
+                  is_new: job.is_new,
+                }))
+                setHasMore(data.hasMore ?? false)
+                offsetRef.current = (data.offset ?? 0) + newJobs.length
+                if (append) setJobs(prev => [...prev, ...newJobs])
+                else { setJobs(newJobs); setCurrentIndex(0) }
+              }
+              return
+            }
           }
-          status = newStatus
+          await supabase.auth.signOut()
+          router.push('/login')
+          return
         }
-
-        applicationsData.push({
-          ...status,
-          saved_job: job,
-        })
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      // 핀 상태 + 순서 로드
-      const pinned = new Set<string>()
-      const pinnedJobs: { id: string; pin_order: number }[] = []
-      for (const job of savedJobs) {
-        if ((job as any).is_pinned) {
-          pinned.add(job.id)
-          pinnedJobs.push({ id: job.id, pin_order: (job as any).pin_order || 0 })
-        }
-      }
-      setPinnedIds(pinned)
-      setPinOrder(pinnedJobs.sort((a, b) => a.pin_order - b.pin_order).map((j) => j.id))
+      const data = await response.json()
 
-      setApplications(applicationsData)
+      if (data.jobs && data.jobs.length > 0) {
+        const newJobs: Job[] = data.jobs.map((job: any) => ({
+          id: job.id,
+          company: job.company,
+          company_image: job.company_image,
+          title: job.title,
+          location: job.location || '위치 미정',
+          score: job.score || 0,
+          reason: job.reason || '추천 공고',
+          reasons: job.reasons || [],
+          warnings: job.warnings || [],
+          link: job.link,
+          source: job.source || 'zighang',
+          crawledAt: job.crawledAt,
+          detail: job.detail || undefined,
+          depth_ones: job.depth_ones,
+          depth_twos: job.depth_twos,
+          keywords: job.keywords,
+          career_min: job.career_min,
+          career_max: job.career_max,
+          employee_types: job.employee_types,
+          deadline_type: job.deadline_type,
+          end_date: job.end_date,
+          is_new: job.is_new,
+        }))
+
+        setHasMore(data.hasMore ?? false)
+        offsetRef.current = (data.offset ?? 0) + newJobs.length
+
+        if (append) {
+          setJobs(prev => [...prev, ...newJobs])
+        } else {
+          setJobs(newJobs)
+          setCurrentIndex(0)
+        }
+      } else if (!append) {
+        setJobs([])
+        setError('새로운 공고가 없습니다.')
+      }
     } catch (error) {
-      console.error('Failed to fetch applications:', error)
+      console.error('Failed to fetch jobs:', error)
+      setError('공고를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleStatusChange = async (
-    applicationId: string,
-    newStatus: ApplicationStatus
-  ) => {
-    try {
-      const updateData: any = { status: newStatus }
+  // 실시간 학습: 액션에 따라 keyword_weights, company_preference 업데이트
+  const updateLearningData = async (userId: string, job: Job, action: 'pass' | 'hold' | 'apply') => {
+    const weightDelta = action === 'apply' ? 2 : action === 'hold' ? 0.5 : -1.5
+    const countField = action === 'apply' ? 'apply_count' : action === 'hold' ? 'hold_count' : 'pass_count'
 
-      if (newStatus === 'applied' && !applications.find((a) => a.id === applicationId)?.applied_date) {
-        updateData.applied_date = new Date().toISOString().split('T')[0]
+    // 1. 키워드 학습
+    const keywords = [
+      ...(job.depth_ones || []),
+      ...(job.depth_twos || []),
+      ...(job.keywords || []),
+    ].filter(Boolean)
+
+    for (const keyword of keywords) {
+      const { data: existing } = await supabase
+        .from('keyword_weights')
+        .select('weight, apply_count, hold_count, pass_count')
+        .eq('user_id', userId)
+        .eq('keyword', keyword)
+        .single()
+
+      if (existing) {
+        await supabase.from('keyword_weights').update({
+          weight: existing.weight + weightDelta,
+          [countField]: (existing[countField] || 0) + 1,
+        }).eq('user_id', userId).eq('keyword', keyword)
+      } else {
+        await supabase.from('keyword_weights').insert({
+          user_id: userId,
+          keyword,
+          weight: weightDelta,
+          apply_count: action === 'apply' ? 1 : 0,
+          hold_count: action === 'hold' ? 1 : 0,
+          pass_count: action === 'pass' ? 1 : 0,
+        })
       }
-
-      const { error } = await supabase
-        .from('application_status')
-        .update(updateData)
-        .eq('id', applicationId)
-
-      if (error) throw error
-
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId
-            ? { ...app, status: newStatus, applied_date: updateData.applied_date || app.applied_date }
-            : app
-        )
-      )
-    } catch (error) {
-      console.error('Failed to update status:', error)
-      alert('상태 변경에 실패했습니다.')
     }
-  }
 
-  const handleUpdateNotes = async (applicationId: string, notes: string) => {
-    try {
-      const { error } = await supabase
-        .from('application_status')
-        .update({ notes })
-        .eq('id', applicationId)
+    // 2. 회사 선호도 학습
+    const companyDelta = action === 'apply' ? 3 : action === 'hold' ? 1 : -2
+    const { data: existingCompany } = await supabase
+      .from('company_preference')
+      .select('preference_score, apply_count, hold_count, pass_count')
+      .eq('user_id', userId)
+      .eq('company_name', job.company)
+      .single()
 
-      if (error) throw error
-
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId ? { ...app, notes } : app
-        )
-      )
-    } catch (error) {
-      console.error('Failed to update notes:', error)
-      alert('메모 저장에 실패했습니다.')
-    }
-  }
-
-  const handleUpdateDocuments = async (applicationId: string, documents: RequiredDocuments) => {
-    try {
-      const { error } = await supabase
-        .from('application_status')
-        .update({ required_documents: documents })
-        .eq('id', applicationId)
-
-      if (error) throw error
-
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId ? { ...app, required_documents: documents } : app
-        )
-      )
-    } catch (error) {
-      console.error('Failed to update documents:', error)
-      alert('서류 정보 저장에 실패했습니다.')
-    }
-  }
-
-  const handleUpdateDeadline = async (savedJobId: string, deadline: string) => {
-    try {
-      const { error } = await supabase
-        .from('saved_jobs')
-        .update({ deadline })
-        .eq('id', savedJobId)
-
-      if (error) throw error
-
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.saved_job.id === savedJobId
-            ? { ...app, saved_job: { ...app.saved_job, deadline } }
-            : app
-        )
-      )
-    } catch (error) {
-      console.error('Failed to update deadline:', error)
-      alert('마감일 저장에 실패했습니다.')
-    }
-  }
-
-  const handleDelete = async (applicationId: string, savedJobId: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
-
-    try {
-      const { error: statusError } = await supabase
-        .from('application_status')
-        .delete()
-        .eq('id', applicationId)
-
-      if (statusError) throw statusError
-
-      const { error: jobError } = await supabase
-        .from('saved_jobs')
-        .delete()
-        .eq('id', savedJobId)
-
-      if (jobError) throw jobError
-
-      setApplications((prev) => prev.filter((app) => app.id !== applicationId))
-      setPinnedIds((prev) => {
-        const next = new Set(prev)
-        next.delete(savedJobId)
-        return next
-      })
-    } catch (error) {
-      console.error('Failed to delete:', error)
-      alert('삭제에 실패했습니다.')
-    }
-  }
-
-  const handleTogglePin = async (savedJobId: string) => {
-    const newPinned = new Set(pinnedIds)
-    const isPinning = !newPinned.has(savedJobId)
-
-    if (isPinning) {
-      newPinned.add(savedJobId)
-      setPinOrder((prev) => [...prev, savedJobId])
+    if (existingCompany) {
+      await supabase.from('company_preference').update({
+        preference_score: existingCompany.preference_score + companyDelta,
+        [countField]: (existingCompany[countField] || 0) + 1,
+      }).eq('user_id', userId).eq('company_name', job.company)
     } else {
-      newPinned.delete(savedJobId)
-      setPinOrder((prev) => prev.filter((id) => id !== savedJobId))
-    }
-    setPinnedIds(newPinned)
-
-    // DB 업데이트
-    try {
-      await supabase
-        .from('saved_jobs')
-        .update({ is_pinned: isPinning, pin_order: isPinning ? pinOrder.length : 0 })
-        .eq('id', savedJobId)
-    } catch {
-      // 컬럼 없어도 로컬 상태는 유지
+      await supabase.from('company_preference').insert({
+        user_id: userId,
+        company_name: job.company,
+        preference_score: companyDelta,
+        apply_count: action === 'apply' ? 1 : 0,
+        hold_count: action === 'hold' ? 1 : 0,
+        pass_count: action === 'pass' ? 1 : 0,
+      })
     }
   }
 
-  const handleReorderPins = async (newOrder: string[]) => {
-    setPinOrder(newOrder)
+  const handleAction = async (action: 'pass' | 'hold' | 'apply') => {
+    const currentJob = jobs[currentIndex]
 
-    // DB에 순서 저장
+    // 비로그인 사용자: 로그인 유도
+    if (!user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    // 즉시 다음 카드로 이동
+    const newIndex = currentIndex + 1
+    setCurrentIndex(newIndex)
+
     try {
-      for (let i = 0; i < newOrder.length; i++) {
-        await supabase
-          .from('saved_jobs')
-          .update({ pin_order: i })
-          .eq('id', newOrder[i])
+      // user_job_actions 테이블에 선택 기록
+      await supabase.from('user_job_actions').upsert({
+        user_id: user.id,
+        job_id: currentJob.id,
+        action: action,
+        company: currentJob.company,
+        job_title: currentJob.title,
+        location: currentJob.location,
+        keywords: currentJob.reasons || [],
+      })
+
+      // 모든 액션을 saved_jobs에 저장 (pass 포함 - 지원관리에서 조회 가능)
+      if (action === 'hold' || action === 'apply') {
+        setAppliedJobs([...appliedJobs, currentJob])
       }
-    } catch {
-      // 실패해도 로컬 상태는 유지
-    }
-  }
 
-  const handleSaveExternal = async (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
-    if (!user) return
-    try {
-      // saved_jobs에 삽입
-      const { data: savedJob, error: saveError } = await supabase
+      const statusMap = { pass: 'passed', hold: 'hold', apply: 'pending' } as const
+
+      const { data: savedJob, error: savedJobError } = await supabase
         .from('saved_jobs')
-        .insert({
+        .upsert({
           user_id: user.id,
-          job_id: `external_${Date.now()}`,
-          source: 'external',
-          company: data.company,
-          title: data.title,
-          location: data.location,
-          link: data.link,
-          deadline: data.deadline || null,
-          is_external: true,
-          source_url: data.link,
+          job_id: currentJob.id,
+          source: currentJob.source,
+          company: currentJob.company,
+          title: currentJob.title,
+          location: currentJob.location,
+          link: currentJob.link,
+          deadline: currentJob.end_date || null,
+          score: currentJob.score,
+          reason: currentJob.reason,
+          reasons: currentJob.reasons || [],
+          warnings: currentJob.warnings || [],
+          description: currentJob.description,
+          detail: currentJob.detail || null,
         })
         .select()
         .single()
 
-      if (saveError) throw saveError
-
-      // application_status 생성
-      const { data: status, error: statusError } = await supabase
-        .from('application_status')
-        .insert({
-          user_id: user.id,
-          saved_job_id: savedJob.id,
-          status: 'pending',
-          notes: data.notes || null,
-        })
-        .select()
-        .single()
-
-      if (statusError) throw statusError
-
-      // 로컬 상태 추가
-      setApplications((prev) => [
-        { ...status, saved_job: savedJob },
-        ...prev,
-      ])
-    } catch (error) {
-      console.error('Failed to save external job:', error)
-      alert('저장에 실패했습니다.')
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await signOut()
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout failed:', error)
-    }
-  }
-
-  // 필터 → 검색 → 정렬
-  const processedApplications = useMemo(() => {
-    let result = filter === 'all'
-      ? applications
-      : applications.filter((app) => app.status === filter)
-
-    // 검색
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase()
-      result = result.filter((app) =>
-        app.saved_job.company.toLowerCase().includes(q) ||
-        app.saved_job.title.toLowerCase().includes(q) ||
-        (app.saved_job.location || '').toLowerCase().includes(q)
-      )
-    }
-
-    // 정렬 (핀 제외 - 핀은 별도 섹션)
-    const unpinned = result.filter((a) => !pinnedIds.has(a.saved_job.id))
-
-    unpinned.sort((a, b) => {
-      switch (sortKey) {
-        case 'deadline':
-          return getDeadlineSortValue(a.saved_job.deadline) - getDeadlineSortValue(b.saved_job.deadline)
-        case 'score':
-          return (b.saved_job.score || 0) - (a.saved_job.score || 0)
-        case 'company':
-          return (a.saved_job.company || '').localeCompare(b.saved_job.company || '', 'ko')
-        case 'status':
-          return (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
-        case 'created_at':
-        default:
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      if (savedJobError) {
+        console.error('Failed to save job:', savedJobError)
+        if (action !== 'pass') {
+          alert(`저장 실패: ${savedJobError.message || savedJobError.code || 'Unknown error'}`)
+        }
+        return
       }
-    })
 
-    return unpinned
-  }, [applications, filter, searchQuery, sortKey, pinnedIds])
+      // application_status 생성/업데이트
+      if (savedJob) {
+        const { error: statusError } = await supabase
+          .from('application_status')
+          .upsert({
+            user_id: user.id,
+            saved_job_id: savedJob.id,
+            status: statusMap[action],
+          })
 
-  // 핀된 항목 (pinOrder 순서대로)
-  const pinnedApplications = useMemo(() => {
-    let result = filter === 'all'
-      ? applications
-      : applications.filter((app) => app.status === filter)
+        if (statusError) {
+          console.error('Failed to save status:', statusError)
+        }
+      }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase()
-      result = result.filter((app) =>
-        app.saved_job.company.toLowerCase().includes(q) ||
-        app.saved_job.title.toLowerCase().includes(q) ||
-        (app.saved_job.location || '').toLowerCase().includes(q)
-      )
+      // === 실시간 학습: keyword_weights + company_preference 업데이트 ===
+      // 백그라운드로 실행 (UI 블로킹 안 함)
+      updateLearningData(user.id, currentJob, action).catch(console.error)
+
+    } catch (error) {
+      console.error('Failed to save action:', error)
+      alert(`저장 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
+    }
+  }
+
+  const handleReset = () => {
+    offsetRef.current = 0
+    setAppliedJobs([])
+    fetchJobs()
+  }
+
+  const handleLoadMore = async () => {
+    await fetchJobs(true)
+  }
+
+  // 키보드 네비게이션
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1)
+      } else if (e.key === 'ArrowRight' && currentIndex < jobs.length - 1) {
+        setCurrentIndex(currentIndex + 1)
+      }
     }
 
-    const pinned = result.filter((a) => pinnedIds.has(a.saved_job.id))
-    // pinOrder 순서대로 정렬
-    return pinned.sort((a, b) => {
-      const aIdx = pinOrder.indexOf(a.saved_job.id)
-      const bIdx = pinOrder.indexOf(b.saved_job.id)
-      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx)
-    })
-  }, [applications, filter, searchQuery, pinnedIds, pinOrder])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentIndex, jobs.length])
 
-  // 상태별 카운트
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: applications.length }
-    for (const app of applications) {
-      counts[app.status] = (counts[app.status] || 0) + 1
-    }
-    return counts
-  }, [applications])
-
-  // 마감 임박 알림
-  const urgentCount = useMemo(() => {
-    return applications.filter((app) => {
-      if (!app.saved_job.deadline) return false
-      if (app.status === 'rejected' || app.status === 'accepted' || app.status === 'declined' || app.status === 'passed') return false
-      const d = new Date(app.saved_job.deadline)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      d.setHours(0, 0, 0, 0)
-      const diff = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      return diff >= 0 && diff <= 3
-    }).length
-  }, [applications])
-
-  if (authLoading || loading) {
+  // 최소 로딩 시간이 완료될 때까지 로딩 화면 표시
+  if (!minLoadingComplete || authLoading || checkingOnboarding || (loading && jobs.length === 0)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-4 text-gray-600">불러오는 중...</p>
+        <div className="text-center space-y-4">
+          <div className="w-24 h-24 mx-auto animate-bounce">
+            <Image src="/logo-final.png" alt="지원함" width={96} height={96} className="w-full h-full object-contain" />
+          </div>
+          <p className="mt-4 text-lg font-medium text-gray-700">{loadingMessage}</p>
         </div>
       </div>
     )
   }
 
-  if (!user) return null
+  if (error && jobs.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-6xl">😢</div>
+          <h1 className="text-2xl font-bold text-gray-900">앗!</h1>
+          <p className="text-gray-600">{error}</p>
+          <Button onClick={() => fetchJobs()}>다시 시도</Button>
+        </div>
+      </div>
+    )
+  }
 
-  const filterButtons: { key: ApplicationStatus | 'all'; label: string }[] = [
-    { key: 'all', label: '전체' },
-    { key: 'pending', label: '지원 예정' },
-    { key: 'hold', label: '보류' },
-    { key: 'applied', label: '지원 완료' },
-    { key: 'document_pass', label: '서류 합격' },
-    { key: 'interviewing', label: '면접 중' },
-    { key: 'accepted', label: '합격' },
-    { key: 'not_applying', label: '미지원' },
-    { key: 'rejected', label: '불합격' },
-    { key: 'passed', label: '지원안함' },
-  ]
+  if (jobs.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-6xl">📭</div>
+          <h1 className="text-2xl font-bold text-gray-900">공고가 없습니다</h1>
+          <p className="text-gray-600">
+            크롤러를 실행하여 공고 데이터를 수집해주세요.
+          </p>
+          <Button onClick={() => fetchJobs()}>새로고침</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // 모든 공고를 다 봤을 때
+  if (currentIndex >= jobs.length) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-6 max-w-md mx-auto">
+          <div className="text-6xl">🎉</div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">모든 공고를 확인했어요!</h1>
+          {user && (
+            <p className="text-gray-600">
+              지원 예정 공고: <span className="font-semibold">{appliedJobs.length}개</span>
+            </p>
+          )}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={handleReset} variant="outline" className="w-full sm:w-auto">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              처음부터 다시 보기
+            </Button>
+            {hasMore && (
+              <Button onClick={handleLoadMore} className="w-full sm:w-auto">
+                공고 20개 더 볼게요 📬
+              </Button>
+            )}
+            {user && (
+              <Link href="/applications" className="w-full sm:w-auto">
+                <Button variant="secondary" className="w-full">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  지원 관리 보기
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white border-b px-4 py-3 md:py-4 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <Image src="/logo-final.png" alt="지원함" width={32} height={32} className="w-8 h-8 object-contain" />
-                <h1 className="text-lg md:text-xl font-bold text-gray-900">
-                  지원함 - 지원 관리
-                </h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-600">
-                총 {applications.length}개
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="flex items-center gap-1"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">로그아웃</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <Navigation />
 
-      <main className="max-w-4xl mx-auto p-4 py-6">
-        {/* 마감 임박 알림 */}
-        {urgentCount > 0 && (
-          <div
-            className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
-            onClick={() => {
-              setFilter('all')
-              setSortKey('deadline')
-            }}
-          >
-            <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-            <span className="text-sm font-medium text-red-700">
-              3일 내 마감 {urgentCount}건
-            </span>
-            <span className="text-xs text-red-500">클릭하면 마감일순 정렬</span>
-          </div>
-        )}
-
-        {/* 툴바 */}
-        <ApplicationToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortKey={sortKey}
-          onSortChange={setSortKey}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onAddExternal={() => setShowExternalModal(true)}
-        />
-
-        {/* 필터 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {filterButtons.map(({ key, label }) => {
-              const count = statusCounts[key] || 0
-              if (key !== 'all' && count === 0) return null
-              return (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant={filter === key ? 'default' : 'outline'}
-                  onClick={() => setFilter(key)}
+      {/* 필터 바 (로그인 사용자만) */}
+      {user && filters && (
+        <div className="bg-white border-b px-4 py-2">
+          <div className="max-w-md mx-auto">
+            {!showFilterEdit ? (
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => { setShowFilterEdit(true); loadFilterOptions() }}
+                  className="flex-shrink-0 p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
                 >
-                  {label} ({count})
-                </Button>
-              )
-            })}
+                  <SlidersHorizontal className="w-4 h-4 text-gray-600" />
+                </button>
+                {filters.preferred_job_types.map(t => (
+                  <span key={t} className="flex-shrink-0 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200">{t}</span>
+                ))}
+                {filters.preferred_locations.map(l => (
+                  <span key={l} className="flex-shrink-0 text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-full border border-green-200">{l}</span>
+                ))}
+                <span className="flex-shrink-0 text-xs px-2.5 py-1 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
+                  {filters.career_level}
+                </span>
+                {filters.work_style?.map(s => (
+                  <span key={s} className="flex-shrink-0 text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full border border-purple-200">{s}</span>
+                ))}
+              </div>
+            ) : (
+              <FilterEditPanel
+                filters={filters}
+                options={filterOptions}
+                onSave={async (newFilters) => {
+                  await supabase.from('user_preferences').upsert({
+                    user_id: user!.id,
+                    preferred_job_types: newFilters.preferred_job_types,
+                    preferred_locations: newFilters.preferred_locations,
+                    career_level: newFilters.career_level,
+                    work_style: newFilters.work_style,
+                  })
+                  setFilters(newFilters)
+                  setShowFilterEdit(false)
+                  // 필터 변경 시 공고 새로 불러오기
+                  offsetRef.current = 0
+                  setAppliedJobs([])
+                  fetchJobs()
+                }}
+                onCancel={() => setShowFilterEdit(false)}
+              />
+            )}
           </div>
         </div>
+      )}
 
-        {/* 공고 목록 */}
-        {processedApplications.length === 0 && pinnedApplications.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">
-              {searchQuery
-                ? `"${searchQuery}" 검색 결과가 없습니다.`
-                : filter === 'all'
-                  ? '저장된 공고가 없습니다.'
-                  : '해당 상태의 공고가 없습니다.'}
-            </p>
-            {!searchQuery && (
-              <Link href="/">
-                <Button className="mt-4">공고 둘러보기</Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* 핀 고정 섹션 (드래그앤드롭) */}
-            <PinnedSection
-              pinnedApps={pinnedApplications}
-              viewMode={viewMode}
-              pinnedIds={pinnedIds}
-              onReorder={handleReorderPins}
-              onStatusChange={handleStatusChange}
-              onUpdateNotes={handleUpdateNotes}
-              onUpdateDocuments={handleUpdateDocuments}
-              onUpdateDeadline={handleUpdateDeadline}
-              onDelete={handleDelete}
-              onTogglePin={handleTogglePin}
-            />
-
-            {/* 나머지 공고 */}
-            {pinnedApplications.length > 0 && processedApplications.length > 0 && (
-              <div className="flex items-center gap-2 mb-2 px-1">
-                <div className="flex-1 border-t border-gray-200" />
-                <span className="text-xs text-gray-400">일반</span>
-                <div className="flex-1 border-t border-gray-200" />
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {viewMode === 'card'
-                ? processedApplications.map((application) => (
-                    <ApplicationCard
-                      key={application.id}
-                      application={application}
-                      onStatusChange={handleStatusChange}
-                      onUpdateNotes={handleUpdateNotes}
-                      onUpdateDocuments={handleUpdateDocuments}
-                      onUpdateDeadline={handleUpdateDeadline}
-                      onDelete={handleDelete}
-                      isPinned={false}
-                      onTogglePin={handleTogglePin}
-                    />
-                  ))
-                : processedApplications.map((application) => (
-                    <CompactApplicationRow
-                      key={application.id}
-                      application={application}
-                      onStatusChange={handleStatusChange}
-                      onUpdateNotes={handleUpdateNotes}
-                      onUpdateDocuments={handleUpdateDocuments}
-                      onUpdateDeadline={handleUpdateDeadline}
-                      onDelete={handleDelete}
-                      isPinned={false}
-                      onTogglePin={handleTogglePin}
-                    />
-                  ))
-              }
+      {/* 비로그인 사용자 안내 배너 */}
+      {!user && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 border-b px-4 py-3">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="flex-1 text-left">
+              <h2 className="text-base font-bold text-white leading-tight">
+                지원한 곳 헷갈릴 땐? 지원함
+              </h2>
+              <p className="text-xs text-blue-100 mt-0.5">
+                메모장·노션은 이제 끝. 수동 입력 없이 자동으로 관리하세요.
+              </p>
             </div>
-          </>
-        )}
+            <Link href="/login">
+              <button className="px-3 py-1.5 bg-white text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition text-xs whitespace-nowrap">
+                시작하기
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 3D 캐러셀 영역 */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <Carousel3D
+          jobs={jobs}
+          currentIndex={currentIndex}
+          onAction={handleAction}
+          onIndexChange={setCurrentIndex}
+        />
       </main>
 
-      {/* 외부 공고 추가 모달 */}
-      <AddExternalJobModal
-        isOpen={showExternalModal}
-        onClose={() => setShowExternalModal(false)}
-        onSave={handleSaveExternal}
+      {/* 로그인 모달 */}
+      <LoginPromptModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
       />
     </div>
   )
