@@ -306,7 +306,7 @@ export default function OnboardingPage() {
     setSaving(true)
     try {
       // 기본값으로 user_preferences 생성
-      await supabase.from('user_preferences').upsert({
+      const { error: prefError } = await supabase.from('user_preferences').upsert({
         user_id: user.id,
         preferred_job_types: [],
         preferred_locations: [],
@@ -314,17 +314,27 @@ export default function OnboardingPage() {
         work_style: [],
       })
 
+      if (prefError) {
+        console.error('user_preferences 저장 실패:', prefError)
+      }
+
       // onboarding 완료 처리
-      await supabase.from('user_profiles').upsert({
+      const { error: profileError } = await supabase.from('user_profiles').upsert({
         id: user.id,
         onboarding_completed: true,
         email: user.email,
       })
 
+      if (profileError) {
+        console.error('user_profiles 저장 실패:', profileError)
+      }
+
+      // 저장 실패해도 일단 홈으로 이동 (사용자 경험 우선)
       router.push('/')
     } catch (e) {
       console.error('Skip failed:', e)
-      alert('처리 실패')
+      // 에러가 나도 홈으로 이동
+      router.push('/')
     } finally {
       setSaving(false)
     }
