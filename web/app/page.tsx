@@ -167,11 +167,11 @@ export default function ApplicationsPage() {
 
           {!user ? (
             // 비로그인 상태 - 샘플 데이터로 구조 미리보기
-            <div className="relative">
+            <div className="relative min-h-[500px]">
               {/* 샘플 카드들 먼저 배치 */}
               <div className="grid gap-4">
                 {SAMPLE_APPLICATIONS.map((app) => (
-                  <div key={app.id} className="bg-white rounded-lg border p-4 opacity-30 pointer-events-none">
+                  <div key={app.id} className="bg-white rounded-lg border p-4 opacity-30">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-900">{app.company}</h3>
@@ -200,7 +200,7 @@ export default function ApplicationsPage() {
               </div>
 
               {/* 오버레이 (그 위에) */}
-              <div className="absolute inset-0 bg-gray-50/90 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute top-0 left-0 right-0 bottom-0 bg-gray-50/90 backdrop-blur-sm flex items-center justify-center z-10">
                 <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md mx-4 text-center">
                   <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <Briefcase className="w-8 h-8 text-white" />
