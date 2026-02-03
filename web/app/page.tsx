@@ -59,8 +59,8 @@ export default function ApplicationsPage() {
   const { user, loading: authLoading } = useAuth()
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingMessage] = useState(() => getRandomLoadingMessage())
-  const initialLoadStartRef = useRef<number>(Date.now())
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])
+  const initialLoadStartRef = useRef<number | null>(null)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
   const [showHeroBanner, setShowHeroBanner] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -68,10 +68,14 @@ export default function ApplicationsPage() {
   // 클라이언트 마운트 확인
   useEffect(() => {
     setMounted(true)
+    setLoadingMessage(getRandomLoadingMessage())
+    initialLoadStartRef.current = Date.now()
   }, [])
 
   // 최소 로딩 시간 보장 (1초)
   useEffect(() => {
+    if (!initialLoadStartRef.current) return
+
     const minLoadingTime = 1000
     const elapsed = Date.now() - initialLoadStartRef.current
     const remaining = Math.max(0, minLoadingTime - elapsed)
@@ -81,7 +85,7 @@ export default function ApplicationsPage() {
     }, remaining)
 
     return () => clearTimeout(timer)
-  }, [])
+  }, [mounted])
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -172,8 +176,8 @@ export default function ApplicationsPage() {
           </div>
 
           {!user ? (
-              // 비로그인 상태 - 샘플 데이터로 구조 미리보기
-              <div className="relative min-h-[500px]">
+            // 비로그인 상태 - 샘플 데이터로 구조 미리보기
+            <div className="relative min-h-[500px]">
               {/* 샘플 카드들 먼저 배치 */}
               <div className="grid gap-4">
                 {SAMPLE_APPLICATIONS.map((app) => (
@@ -188,13 +192,12 @@ export default function ApplicationsPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          app.status === 'pending' ? 'bg-blue-100 text-blue-700' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${app.status === 'pending' ? 'bg-blue-100 text-blue-700' :
                           app.status === 'hold' ? 'bg-gray-100 text-gray-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
+                            'bg-green-100 text-green-700'
+                          }`}>
                           {app.status === 'pending' ? '지원 예정' :
-                           app.status === 'hold' ? '보류' : '지원 완료'}
+                            app.status === 'hold' ? '보류' : '지원 완료'}
                         </span>
                         <Button variant="outline" size="sm" disabled>
                           원문 보기
@@ -273,15 +276,14 @@ export default function ApplicationsPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        app.application_status?.[0]?.status === 'pending' ? 'bg-blue-100 text-blue-700' :
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${app.application_status?.[0]?.status === 'pending' ? 'bg-blue-100 text-blue-700' :
                         app.application_status?.[0]?.status === 'passed' ? 'bg-red-100 text-red-700' :
-                        app.application_status?.[0]?.status === 'hold' ? 'bg-gray-100 text-gray-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
+                          app.application_status?.[0]?.status === 'hold' ? 'bg-gray-100 text-gray-700' :
+                            'bg-green-100 text-green-700'
+                        }`}>
                         {app.application_status?.[0]?.status === 'pending' ? '지원 예정' :
-                         app.application_status?.[0]?.status === 'passed' ? '지원 안 함' :
-                         app.application_status?.[0]?.status === 'hold' ? '보류' : '지원 완료'}
+                          app.application_status?.[0]?.status === 'passed' ? '지원 안 함' :
+                            app.application_status?.[0]?.status === 'hold' ? '보류' : '지원 완료'}
                       </span>
                       {app.link && (
                         <a href={app.link} target="_blank" rel="noopener noreferrer">
