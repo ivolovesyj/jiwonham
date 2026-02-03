@@ -124,7 +124,12 @@ export default function ApplicationsPage() {
     )
   }
 
-  console.log('Main content rendered:', { user: !!user, applications: applications.length })
+  console.log('Main content rendered:', {
+    user: !!user,
+    userValue: user,
+    userType: typeof user,
+    applications: applications.length
+  })
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -169,9 +174,11 @@ export default function ApplicationsPage() {
             </div>
           </div>
 
-          {!user ? (
-            // 비로그인 상태 - 샘플 데이터로 구조 미리보기
-            <div className="relative min-h-[500px]">
+          {(() => {
+            console.log('Rendering condition check:', { user: !!user, userValue: user })
+            return !user ? (
+              // 비로그인 상태 - 샘플 데이터로 구조 미리보기
+              <div className="relative min-h-[500px]">
               {/* 샘플 카드들 먼저 배치 */}
               <div className="grid gap-4">
                 {SAMPLE_APPLICATIONS.map((app) => (
@@ -293,7 +300,7 @@ export default function ApplicationsPage() {
                 </div>
               ))}
             </div>
-          )}
+          )})()}
         </div>
       </main>
     </div>
