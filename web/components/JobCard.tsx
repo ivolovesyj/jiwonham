@@ -33,6 +33,14 @@ function formatDeadline(job: Job): string | null {
   return null
 }
 
+// 연속 줄바꿈을 하나로 압축
+function compactText(text: string): string {
+  return text
+    .trim()
+    .replace(/\n{3,}/g, '\n\n')  // 3개 이상 줄바꿈 -> 2개로
+    .replace(/\n{2}/g, '\n')      // 2개 줄바꿈 -> 1개로
+}
+
 export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const matchPercent = job.score
@@ -108,7 +116,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
                 {type}
               </span>
             ))}
-            {job.reasons?.slice(0, 2).map((reason, i) => (
+            {job.reasons?.filter(r => !r.includes('신규')).slice(0, 2).map((reason, i) => (
               <span key={`r-${i}`} className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md border border-gray-200">
                 ✓ {reason}
               </span>
@@ -139,42 +147,42 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
               {job.detail?.intro && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">📋 회사 소개</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.intro.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.intro)}</p>
                 </div>
               )}
 
               {job.detail?.main_tasks && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">💼 주요 업무</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.main_tasks.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.main_tasks)}</p>
                 </div>
               )}
 
               {job.detail?.requirements && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">✅ 자격 요건</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.requirements.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.requirements)}</p>
                 </div>
               )}
 
               {job.detail?.preferred_points && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">⭐ 우대 사항</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.preferred_points.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.preferred_points)}</p>
                 </div>
               )}
 
               {job.detail?.benefits && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">🎁 복지 혜택</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.benefits.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.benefits)}</p>
                 </div>
               )}
 
               {job.detail?.work_conditions && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">🏢 근무 조건</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.work_conditions.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.work_conditions)}</p>
                 </div>
               )}
 
@@ -182,7 +190,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
               {job.detail?.raw_content && !job.detail?.intro && !job.detail?.main_tasks && !job.detail?.requirements && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">📄 상세 정보</div>
-                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{job.detail.raw_content.trim()}</p>
+                  <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap">{compactText(job.detail.raw_content)}</p>
                 </div>
               )}
 
