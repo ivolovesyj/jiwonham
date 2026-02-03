@@ -9,8 +9,10 @@ import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
+import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
 import { Navigation } from '@/components/Navigation'
+import { OnboardingModal } from '@/components/OnboardingModal'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -129,6 +131,7 @@ export default function Home() {
   const [filterOptions, setFilterOptions] = useState<{depth_ones: string[], regions: string[], employee_types: string[]} | null>(null)
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const [loadingMessage] = useState(() => getRandomLoadingMessage())
   const initialLoadStartRef = useRef<number>(Date.now())
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
@@ -168,8 +171,9 @@ export default function Home() {
         .single()
 
       if (!data || !data.preferred_job_types?.length) {
-        // 온보딩 미완료 → 온보딩으로 이동
-        router.push('/onboarding')
+        // 온보딩 미완료 → 온보딩 모달 표시
+        setCheckingOnboarding(false)
+        setShowOnboardingModal(true)
         return
       }
 
@@ -182,8 +186,9 @@ export default function Home() {
       setCheckingOnboarding(false)
       fetchJobs()
     } catch {
-      // user_preferences 없음 → 온보딩으로
-      router.push('/onboarding')
+      // user_preferences 없음 → 온보딩 모달 표시
+      setCheckingOnboarding(false)
+      setShowOnboardingModal(true)
     }
   }
 
@@ -640,6 +645,16 @@ export default function Home() {
       <LoginPromptModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+      />
+
+      {/* 온보딩 모달 */}
+      <OnboardingModal
+        isOpen={showOnboardingModal}
+        onClose={() => setShowOnboardingModal(false)}
+        onComplete={() => {
+          setShowOnboardingModal(false)
+          checkOnboarding()
+        }}
       />
     </div>
   )
