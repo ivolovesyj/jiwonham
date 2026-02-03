@@ -228,6 +228,20 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
         return
       }
 
+      // user_profiles의 onboarding_completed를 true로 설정
+      const { error: profileError } = await supabase.from('user_profiles').upsert(
+        {
+          id: user.id,
+          onboarding_completed: true,
+        },
+        { onConflict: 'id' }
+      )
+
+      if (profileError) {
+        console.error('Profile update error:', profileError)
+        // 프로필 업데이트 실패해도 기본 설정은 저장됨
+      }
+
       // 저장 성공시 localStorage 초기화
       clearOnboardingState()
       onComplete()
@@ -261,6 +275,15 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
         console.error('Supabase error:', error)
         return
       }
+
+      // user_profiles의 onboarding_completed를 true로 설정
+      await supabase.from('user_profiles').upsert(
+        {
+          id: user.id,
+          onboarding_completed: true,
+        },
+        { onConflict: 'id' }
+      )
 
       clearOnboardingState()
       onComplete()

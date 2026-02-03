@@ -411,22 +411,25 @@ export default function Home() {
 
       const { data: savedJob, error: savedJobError } = await supabase
         .from('saved_jobs')
-        .upsert({
-          user_id: user.id,
-          job_id: currentJob.id,
-          source: currentJob.source,
-          company: currentJob.company,
-          title: currentJob.title,
-          location: currentJob.location,
-          link: currentJob.link,
-          deadline: currentJob.end_date || null,
-          score: currentJob.score,
-          reason: currentJob.reason,
-          reasons: currentJob.reasons || [],
-          warnings: currentJob.warnings || [],
-          description: currentJob.description,
-          detail: currentJob.detail || null,
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            job_id: currentJob.id,
+            source: currentJob.source,
+            company: currentJob.company,
+            title: currentJob.title,
+            location: currentJob.location,
+            link: currentJob.link,
+            deadline: currentJob.end_date || null,
+            score: currentJob.score,
+            reason: currentJob.reason,
+            reasons: currentJob.reasons || [],
+            warnings: currentJob.warnings || [],
+            description: currentJob.description,
+            detail: currentJob.detail || null,
+          },
+          { onConflict: 'user_id,job_id' }
+        )
         .select()
         .single()
 
@@ -442,11 +445,14 @@ export default function Home() {
       if (savedJob) {
         const { error: statusError } = await supabase
           .from('application_status')
-          .upsert({
-            user_id: user.id,
-            saved_job_id: savedJob.id,
-            status: statusMap[action],
-          })
+          .upsert(
+            {
+              user_id: user.id,
+              saved_job_id: savedJob.id,
+              status: statusMap[action],
+            },
+            { onConflict: 'user_id,saved_job_id' }
+          )
 
         if (statusError) {
           console.error('Failed to save status:', statusError)
@@ -599,13 +605,16 @@ export default function Home() {
                 filters={filters}
                 options={filterOptions}
                 onSave={async (newFilters) => {
-                  await supabase.from('user_preferences').upsert({
-                    user_id: user!.id,
-                    preferred_job_types: newFilters.preferred_job_types,
-                    preferred_locations: newFilters.preferred_locations,
-                    career_level: newFilters.career_level,
-                    work_style: newFilters.work_style,
-                  })
+                  await supabase.from('user_preferences').upsert(
+                    {
+                      user_id: user!.id,
+                      preferred_job_types: newFilters.preferred_job_types,
+                      preferred_locations: newFilters.preferred_locations,
+                      career_level: newFilters.career_level,
+                      work_style: newFilters.work_style,
+                    },
+                    { onConflict: 'user_id' }
+                  )
                   setFilters(newFilters)
                   setShowFilterEdit(false)
                   // 필터 변경 시 공고 새로 불러오기
