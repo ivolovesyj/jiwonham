@@ -51,6 +51,8 @@ function FilterSidebar({ filters, options, onSave, user }: {
   )
   const [empTypes, setEmpTypes] = useState(filters?.work_style || [])
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [isJobSectionExpanded, setIsJobSectionExpanded] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   // filters 변경 시 로컬 상태 업데이트
   useEffect(() => {
@@ -76,21 +78,41 @@ function FilterSidebar({ filters, options, onSave, user }: {
   }, [filters, options])
 
   const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
+    if (!user) {
+      setShowLoginPrompt(true)
+      return
+    }
     setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
   }
 
-  const handleDepthOneToggle = (depthOne: string) => {
-    const isSelected = selectedDepthOnes.includes(depthOne)
+  const handleDepthTwoToggle = (depthOne: string, depthTwo: string) => {
+    if (!user) {
+      setShowLoginPrompt(true)
+      return
+    }
 
-    if (isSelected) {
-      // 대분류 제거 시 해당 소분류도 제거
-      setSelectedDepthOnes(selectedDepthOnes.filter(d => d !== depthOne))
-      const twosToRemove = options?.depth_twos_map[depthOne] || []
-      setSelectedDepthTwos(selectedDepthTwos.filter(dt => !twosToRemove.includes(dt)))
+    // "전체" 선택 시 해당 대분류의 모든 소분류 선택
+    if (depthTwo === '전체') {
+      const allDepthTwos = options?.depth_twos_map[depthOne] || []
+      const realSubcategories = allDepthTwos.filter(dt => dt !== '전체')
+      const allSelected = realSubcategories.every(dt => selectedDepthTwos.includes(dt))
+
+      if (allSelected) {
+        // 모두 선택된 상태면 모두 해제
+        setSelectedDepthTwos(selectedDepthTwos.filter(dt => !realSubcategories.includes(dt)))
+      } else {
+        // 하나라도 해제된 상태면 모두 선택
+        const newSelection = [...selectedDepthTwos]
+        realSubcategories.forEach(dt => {
+          if (!newSelection.includes(dt)) {
+            newSelection.push(dt)
+          }
+        })
+        setSelectedDepthTwos(newSelection)
+      }
     } else {
-      // 대분류 추가 시 확장
-      setSelectedDepthOnes([...selectedDepthOnes, depthOne])
-      setExpandedCategories(prev => new Set(prev).add(depthOne))
+      // 일반 소분류 토글
+      toggle(selectedDepthTwos, setSelectedDepthTwos, depthTwo)
     }
   }
 
@@ -107,8 +129,13 @@ function FilterSidebar({ filters, options, onSave, user }: {
   }
 
   const handleApply = () => {
-    // 소분류 선택했으면 소분류만, 아니면 대분류
-    const finalJobTypes = selectedDepthTwos.length > 0 ? selectedDepthTwos : selectedDepthOnes
+    if (!user) {
+      setShowLoginPrompt(true)
+      return
+    }
+
+    // 소분류만 사용
+    const finalJobTypes = selectedDepthTwos
     const newFilters = {
       preferred_job_types: finalJobTypes,
       preferred_locations: regions,
@@ -119,6 +146,10 @@ function FilterSidebar({ filters, options, onSave, user }: {
   }
 
   const handleReset = () => {
+    if (!user) {
+      setShowLoginPrompt(true)
+      return
+    }
     setSelectedDepthOnes([])
     setSelectedDepthTwos([])
     setRegions([])
@@ -145,54 +176,76 @@ function FilterSidebar({ filters, options, onSave, user }: {
           </button>
         </div>
 
-        {/* 직무 - 계층 구조 */}
+        {/* 직무 - 계층 구조 (토글 가능) */}
         <div>
-          <div className="text-sm font-semibold text-gray-700 mb-2">직무</div>
-          <div className="space-y-1">
-            {options.depth_ones.map(depthOne => {
-              const isSelected = selectedDepthOnes.includes(depthOne)
-              const isExpanded = expandedCategories.has(depthOne)
-              const depthTwos = options.depth_twos_map[depthOne] || []
+          <button
+            onClick={() => setIsJobSectionExpanded(!isJobSectionExpanded)}
+            className="w-full flex items-center justify-between text-sm font-semibold text-gray-700 mb-2 hover:text-gray-900"
+          >
+            <span>직무</span>
+            <span className="text-gray-400">{isJobSectionExpanded ? '▲' : '▼'}</span>
+          </button>
 
-              return (
-                <div key={depthOne} className="border rounded-lg overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleDepthOneToggle(depthOne)}
-                      className={`flex-1 text-left text-sm px-3 py-2 transition ${isSelected ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
-                      {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                      {depthOne}
-                    </button>
-                    {depthTwos.length > 0 && (
+          {isJobSectionExpanded && (
+            <div className="space-y-1">
+              {options.depth_ones.map(depthOne => {
+                const isExpanded = expandedCategories.has(depthOne)
+                const depthTwos = options.depth_twos_map[depthOne] || []
+                const depthTwosWithAll = ['전체', ...depthTwos]
+
+                return (
+                  <div key={depthOne} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => toggleCategory(depthOne)}
-                        className={`px-2 py-2 ${isSelected ? 'text-white' : 'text-gray-400'}`}
+                        className="flex-1 text-left text-sm px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-medium"
                       >
-                        {isExpanded ? '▲' : '▼'}
+                        {depthOne}
                       </button>
+                      {depthTwos.length > 0 && (
+                        <button
+                          onClick={() => toggleCategory(depthOne)}
+                          className="px-2 py-2 text-gray-400"
+                        >
+                          {isExpanded ? '▲' : '▼'}
+                        </button>
+                      )}
+                    </div>
+
+                    {isExpanded && depthTwos.length > 0 && (
+                      <div className="bg-gray-50 p-2 border-t">
+                        <div className="flex flex-wrap gap-1.5">
+                          {depthTwosWithAll.map(depthTwo => {
+                            const isAll = depthTwo === '전체'
+                            const realSubcategories = depthTwos.filter((dt: string) => dt !== '전체')
+                            const allSelected = isAll && realSubcategories.every((dt: string) => selectedDepthTwos.includes(dt))
+                            const isSelected = isAll ? allSelected : selectedDepthTwos.includes(depthTwo)
+
+                            return (
+                              <button
+                                key={depthTwo}
+                                onClick={() => handleDepthTwoToggle(depthOne, depthTwo)}
+                                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                                  isSelected
+                                    ? 'bg-purple-600 text-white border-purple-600'
+                                    : user
+                                      ? 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
+                                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                }`}
+                                disabled={!user}
+                              >
+                                {depthTwo}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  {isExpanded && depthTwos.length > 0 && (
-                    <div className="bg-gray-50 p-2 border-t">
-                      <div className="flex flex-wrap gap-1.5">
-                        {depthTwos.map(depthTwo => (
-                          <button
-                            key={depthTwo}
-                            onClick={() => toggle(selectedDepthTwos, setSelectedDepthTwos, depthTwo)}
-                            className={`text-xs px-2.5 py-1 rounded-full border transition ${selectedDepthTwos.includes(depthTwo) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'}`}
-                          >
-                            {depthTwo}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* 경력 (다중 선택) */}
@@ -200,8 +253,17 @@ function FilterSidebar({ filters, options, onSave, user }: {
           <div className="text-sm font-semibold text-gray-700 mb-2">경력 (여러 개 선택 가능)</div>
           <div className="flex flex-wrap gap-1.5">
             {CAREER_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => toggle(careers, setCareers, o.value)}
-                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${careers.includes(o.value) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
+              <button
+                key={o.value}
+                onClick={() => toggle(careers, setCareers, o.value)}
+                disabled={!user}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${
+                  careers.includes(o.value)
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
               >{o.label}</button>
             ))}
           </div>
@@ -212,8 +274,17 @@ function FilterSidebar({ filters, options, onSave, user }: {
           <div className="text-sm font-semibold text-gray-700 mb-2">지역</div>
           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
             {options.regions.map(r => (
-              <button key={r} onClick={() => toggle(regions, setRegions, r)}
-                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${regions.includes(r) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}
+              <button
+                key={r}
+                onClick={() => toggle(regions, setRegions, r)}
+                disabled={!user}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${
+                  regions.includes(r)
+                    ? 'bg-green-600 text-white border-green-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
               >{r}</button>
             ))}
           </div>
@@ -224,8 +295,17 @@ function FilterSidebar({ filters, options, onSave, user }: {
           <div className="text-sm font-semibold text-gray-700 mb-2">고용형태</div>
           <div className="flex flex-wrap gap-1.5">
             {options.employee_types.map(t => (
-              <button key={t} onClick={() => toggle(empTypes, setEmpTypes, t)}
-                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${empTypes.includes(t) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'}`}
+              <button
+                key={t}
+                onClick={() => toggle(empTypes, setEmpTypes, t)}
+                disabled={!user}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${
+                  empTypes.includes(t)
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
               >{t}</button>
             ))}
           </div>
@@ -235,7 +315,7 @@ function FilterSidebar({ filters, options, onSave, user }: {
         <div className="pt-2 sticky bottom-0 bg-white">
           <Button
             onClick={handleApply}
-            disabled={!user || (selectedDepthOnes.length === 0 && selectedDepthTwos.length === 0)}
+            disabled={!user || selectedDepthTwos.length === 0}
             className="w-full"
           >
             <Check className="w-4 h-4 mr-2" />
@@ -248,6 +328,24 @@ function FilterSidebar({ filters, options, onSave, user }: {
           )}
         </div>
       </div>
+
+      {/* 로그인 안내 모달 */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowLoginPrompt(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">로그인이 필요합니다</h3>
+            <p className="text-gray-600 mb-4">필터를 선택하려면 먼저 로그인해주세요.</p>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowLoginPrompt(false)} variant="outline" className="flex-1">
+                닫기
+              </Button>
+              <Link href="/login" className="flex-1">
+                <Button className="w-full">로그인</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
