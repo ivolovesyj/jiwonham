@@ -12,7 +12,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
 import { Navigation } from '@/components/Navigation'
-import { OnboardingModal } from '@/components/OnboardingModal'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -37,72 +36,126 @@ const getRandomLoadingMessage = () => {
   return LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]
 }
 
-function FilterEditPanel({ filters, options, onSave, onCancel }: {
-  filters: UserFilters
+// 왼쪽 사이드바 필터 (항상 표시)
+function FilterSidebar({ filters, options, onSave, user }: {
+  filters: UserFilters | null
   options: { depth_ones: string[], regions: string[], employee_types: string[] } | null
   onSave: (f: UserFilters) => void
-  onCancel: () => void
+  user: any
 }) {
-  const [jobs, setJobs] = useState(filters.preferred_job_types)
-  const [regions, setRegions] = useState(filters.preferred_locations)
-  const [career, setCareer] = useState(filters.career_level)
-  const [empTypes, setEmpTypes] = useState(filters.work_style)
+  const [jobs, setJobs] = useState(filters?.preferred_job_types || [])
+  const [regions, setRegions] = useState(filters?.preferred_locations || [])
+  const [career, setCareer] = useState(filters?.career_level || '경력무관')
+  const [empTypes, setEmpTypes] = useState(filters?.work_style || [])
+
+  // filters 변경 시 로컬 상태 업데이트
+  useEffect(() => {
+    if (filters) {
+      setJobs(filters.preferred_job_types)
+      setRegions(filters.preferred_locations)
+      setCareer(filters.career_level)
+      setEmpTypes(filters.work_style)
+    }
+  }, [filters])
 
   const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
   }
 
-  if (!options) return <div className="py-2 text-sm text-gray-400">로딩 중...</div>
+  const handleApply = () => {
+    const newFilters = { preferred_job_types: jobs, preferred_locations: regions, career_level: career, work_style: empTypes }
+    onSave(newFilters)
+  }
+
+  const handleReset = () => {
+    setJobs([])
+    setRegions([])
+    setCareer('경력무관')
+    setEmpTypes([])
+  }
+
+  if (!options) {
+    return (
+      <div className="hidden lg:block w-72 bg-white border-r p-4">
+        <div className="text-sm text-gray-400">필터 로딩 중...</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-3 py-2">
-      <div>
-        <div className="text-xs font-semibold text-gray-500 mb-1">직무</div>
-        <div className="flex flex-wrap gap-1.5">
-          {options.depth_ones.map(d => (
-            <button key={d} onClick={() => toggle(jobs, setJobs, d)}
-              className={`text-xs px-2 py-1 rounded-full border transition ${jobs.includes(d) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-            >{d}</button>
-          ))}
+    <div className="hidden lg:block w-72 bg-white border-r overflow-y-auto">
+      <div className="p-4 space-y-4 sticky top-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">필터</h2>
+          <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700">
+            초기화
+          </button>
         </div>
-      </div>
-      <div>
-        <div className="text-xs font-semibold text-gray-500 mb-1">경력</div>
-        <div className="flex flex-wrap gap-1.5">
-          {CAREER_OPTIONS.map(o => (
-            <button key={o.value} onClick={() => setCareer(o.value)}
-              className={`text-xs px-2 py-1 rounded-full border transition ${career === o.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-            >{o.label}</button>
-          ))}
+
+        {/* 직무 */}
+        <div>
+          <div className="text-sm font-semibold text-gray-700 mb-2">직무</div>
+          <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+            {options.depth_ones.map(d => (
+              <button key={d} onClick={() => toggle(jobs, setJobs, d)}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${jobs.includes(d) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
+              >{d}</button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div>
-        <div className="text-xs font-semibold text-gray-500 mb-1">지역</div>
-        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-          {options.regions.map(r => (
-            <button key={r} onClick={() => toggle(regions, setRegions, r)}
-              className={`text-xs px-2 py-1 rounded-full border transition ${regions.includes(r) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-300'}`}
-            >{r}</button>
-          ))}
+
+        {/* 경력 */}
+        <div>
+          <div className="text-sm font-semibold text-gray-700 mb-2">경력</div>
+          <div className="flex flex-col gap-1.5">
+            {CAREER_OPTIONS.map(o => (
+              <button key={o.value} onClick={() => setCareer(o.value)}
+                className={`text-sm px-3 py-2 rounded-lg border transition text-left ${career === o.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
+              >{o.label}</button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div>
-        <div className="text-xs font-semibold text-gray-500 mb-1">고용형태</div>
-        <div className="flex flex-wrap gap-1.5">
-          {options.employee_types.map(t => (
-            <button key={t} onClick={() => toggle(empTypes, setEmpTypes, t)}
-              className={`text-xs px-2 py-1 rounded-full border transition ${empTypes.includes(t) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'}`}
-            >{t}</button>
-          ))}
+
+        {/* 지역 */}
+        <div>
+          <div className="text-sm font-semibold text-gray-700 mb-2">지역</div>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+            {options.regions.map(r => (
+              <button key={r} onClick={() => toggle(regions, setRegions, r)}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${regions.includes(r) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}
+              >{r}</button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2 pt-1">
-        <Button variant="outline" size="sm" onClick={onCancel}>취소</Button>
-        <Button size="sm" onClick={() => onSave({ preferred_job_types: jobs, preferred_locations: regions, career_level: career, work_style: empTypes })}
-          disabled={jobs.length === 0}
-        >
-          <Check className="w-3 h-3 mr-1" />적용
-        </Button>
+
+        {/* 고용형태 */}
+        <div>
+          <div className="text-sm font-semibold text-gray-700 mb-2">고용형태</div>
+          <div className="flex flex-wrap gap-1.5">
+            {options.employee_types.map(t => (
+              <button key={t} onClick={() => toggle(empTypes, setEmpTypes, t)}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${empTypes.includes(t) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'}`}
+              >{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* 적용 버튼 */}
+        <div className="pt-2">
+          <Button
+            onClick={handleApply}
+            disabled={!user || jobs.length === 0}
+            className="w-full"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            필터 적용
+          </Button>
+          {!user && (
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              로그인 후 필터를 저장할 수 있습니다
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -127,12 +180,15 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const offsetRef = useRef(0)
   const [filters, setFilters] = useState<UserFilters | null>(null)
-  const [showFilterEdit, setShowFilterEdit] = useState(false)
   const [filterOptions, setFilterOptions] = useState<{ depth_ones: string[], regions: string[], employee_types: string[] } | null>(null)
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const [loadingMessage] = useState(() => getRandomLoadingMessage())
+
+  // 페이지 로드 시 필터 옵션 로드
+  useEffect(() => {
+    loadFilterOptions()
+  }, [])
 
   // 로그인된 경우에만 온보딩 체크
   useEffect(() => {
@@ -201,13 +257,18 @@ export default function Home() {
   }
 
   const loadFilterOptions = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
-    if (!token) return
-    const res = await fetch('/api/filters', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (res.ok) setFilterOptions(await res.json())
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const res = await fetch('/api/filters', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (res.ok) {
+        setFilterOptions(await res.json())
+      }
+    } catch (error) {
+      console.error('Failed to load filter options:', error)
+    }
   }
 
   const fetchJobs = async (append = false) => {
@@ -610,84 +671,48 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Navigation />
 
-      {/* 필터 바 (로그인 사용자만) */}
-      {user && filters && (
-        <div className="bg-white border-b px-4 py-2">
-          <div className="max-w-md mx-auto">
-            {!showFilterEdit ? (
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                <button
-                  onClick={() => { setShowFilterEdit(true); loadFilterOptions() }}
-                  className="flex-shrink-0 p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-                >
-                  <SlidersHorizontal className="w-4 h-4 text-gray-600" />
-                </button>
-                {filters.preferred_job_types.map(t => (
-                  <span key={t} className="flex-shrink-0 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200">{t}</span>
-                ))}
-                {filters.preferred_locations.map(l => (
-                  <span key={l} className="flex-shrink-0 text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-full border border-green-200">{l}</span>
-                ))}
-                <span className="flex-shrink-0 text-xs px-2.5 py-1 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
-                  {filters.career_level}
-                </span>
-                {filters.work_style?.map(s => (
-                  <span key={s} className="flex-shrink-0 text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full border border-purple-200">{s}</span>
-                ))}
-              </div>
-            ) : (
-              <FilterEditPanel
-                filters={filters}
-                options={filterOptions}
-                onSave={async (newFilters) => {
-                  await supabase.from('user_preferences').upsert(
-                    {
-                      user_id: user!.id,
-                      preferred_job_types: newFilters.preferred_job_types,
-                      preferred_locations: newFilters.preferred_locations,
-                      career_level: newFilters.career_level,
-                      work_style: newFilters.work_style,
-                    },
-                    { onConflict: 'user_id' }
-                  )
-                  setFilters(newFilters)
-                  setShowFilterEdit(false)
-                  // 필터 변경 시 공고 새로 불러오기
-                  offsetRef.current = 0
-                  setAppliedJobs([])
-                  fetchJobs()
-                }}
-                onCancel={() => setShowFilterEdit(false)}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      <div className="flex flex-1 overflow-hidden">
+        {/* 왼쪽 필터 사이드바 (PC만) */}
+        <FilterSidebar
+          filters={filters}
+          options={filterOptions}
+          user={user}
+          onSave={async (newFilters) => {
+            if (!user) return
 
-      {/* 3D 캐러셀 영역 */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <Carousel3D
-          jobs={jobs}
-          currentIndex={currentIndex}
-          onAction={handleAction}
-          onIndexChange={setCurrentIndex}
+            await supabase.from('user_preferences').upsert(
+              {
+                user_id: user.id,
+                preferred_job_types: newFilters.preferred_job_types,
+                preferred_locations: newFilters.preferred_locations,
+                career_level: newFilters.career_level,
+                work_style: newFilters.work_style,
+              },
+              { onConflict: 'user_id' }
+            )
+            setFilters(newFilters)
+            // 필터 변경 시 공고 새로 불러오기
+            offsetRef.current = 0
+            setAppliedJobs([])
+            fetchJobs()
+          }}
         />
-      </main>
+
+        {/* 메인 컨텐츠: 3D 캐러셀 */}
+        <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+          <Carousel3D
+            jobs={jobs}
+            currentIndex={currentIndex}
+            onAction={handleAction}
+            onIndexChange={setCurrentIndex}
+          />
+        </main>
+      </div>
 
       {/* 로그인 모달 */}
       <LoginPromptModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-      />
-
-      {/* 온보딩 모달 */}
-      <OnboardingModal
-        isOpen={showOnboardingModal}
-        onClose={() => setShowOnboardingModal(false)}
-        onComplete={() => {
-          setShowOnboardingModal(false)
-          checkOnboarding()
-        }}
       />
     </div>
   )

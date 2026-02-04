@@ -4,9 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Navigation } from '@/components/Navigation'
-import { Button } from '@/components/ui/button'
-import { User, Settings } from 'lucide-react'
-import Link from 'next/link'
+import { User } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -44,12 +42,9 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-4">
-              <Link href="/onboarding">
-                <Button variant="outline" className="w-full justify-between">
-                  <span>선호 조건 재설정</span>
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </Link>
+              <div className="text-sm text-gray-600">
+                <p>선호 조건은 채용공고 페이지의 필터에서 설정할 수 있습니다.</p>
+              </div>
             </div>
           </div>
 
