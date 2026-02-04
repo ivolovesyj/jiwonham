@@ -65,14 +65,14 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
       style={style}
     >
       <div className="flex-1">
-        <div className="px-6 pt-6">
+        <div className="px-4 pt-4">
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full">
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
               <span className="text-sm font-semibold">적합도 {matchPercent}%</span>
             </div>
             {deadline && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
                 <Calendar className="w-3 h-3" />
                 {deadline}
               </span>
@@ -80,24 +80,24 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           </div>
         </div>
 
-        <CardContent className="space-y-4 pt-4 px-6 pb-6">
+        <CardContent className="space-y-3 pt-3 px-4 pb-4">
           {/* 회사명 + 이미지 */}
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-2.5 mb-1.5">
               {job.company_image && (
                 <img
                   src={job.company_image}
                   alt={job.company}
-                  className="w-10 h-10 rounded-lg object-contain bg-gray-50 border border-gray-100"
+                  className="w-9 h-9 rounded-lg object-contain bg-gray-50 border border-gray-100"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               )}
-              <h2 className="text-2xl font-bold text-gray-900 leading-tight">{job.company}</h2>
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">{job.company}</h2>
             </div>
-            <h3 className="text-lg text-gray-700 leading-snug">{job.title}</h3>
+            <h3 className="text-base text-gray-700 leading-snug">{job.title}</h3>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
             <div className="flex items-start gap-2">
               <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
@@ -148,7 +148,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           </div>
 
           {/* 공고보기 버튼 */}
-          <div className="pt-3">
+          <div className="pt-2">
             <a
               href={job.link}
               target="_blank"
@@ -162,7 +162,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           </div>
 
           {isExpanded && (
-            <div className="pt-4 border-t border-gray-100 space-y-3 animate-in fade-in slide-in-from-top-2 max-h-[40vh] overflow-y-auto">
+            <div className="pt-3 border-t border-gray-100 space-y-2.5 animate-in fade-in slide-in-from-top-2 max-h-[40vh] overflow-y-auto">
               {job.detail?.intro && (
                 <div>
                   <div className="text-sm font-bold text-gray-900 mb-1">📋 회사 소개</div>
@@ -228,14 +228,14 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
             <span className="text-xs text-gray-400">{job.source}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 setIsExpanded(!isExpanded)
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-sm hover:shadow-md"
             >
               {isExpanded ? (
                 <>
@@ -257,11 +257,11 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
         </CardContent>
       </div>
 
-      <CardContent className="pt-0 pb-6 px-6">
-        <div className="flex items-center gap-2.5">
+      <CardContent className="pt-0 pb-4 px-4">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className={`flex-1 h-12 border-red-200 hover:border-red-300 hover:bg-red-50 transition-all font-medium ${clickedBtn === 'pass' ? 'animate-pulse bg-red-100 border-red-400 scale-95' : ''
+            className={`flex-1 h-11 border-red-200 hover:border-red-300 hover:bg-red-50 transition-all font-medium ${clickedBtn === 'pass' ? 'animate-pulse bg-red-100 border-red-400 scale-95' : ''
               }`}
             onClick={(e) => {
               e.stopPropagation()
@@ -274,7 +274,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           </Button>
           <Button
             variant="outline"
-            className={`flex-1 h-12 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all font-medium ${clickedBtn === 'hold' ? 'animate-pulse bg-yellow-100 border-yellow-400 scale-95' : ''
+            className={`flex-1 h-11 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all font-medium ${clickedBtn === 'hold' ? 'animate-pulse bg-yellow-100 border-yellow-400 scale-95' : ''
               }`}
             onClick={(e) => {
               e.stopPropagation()
@@ -286,7 +286,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
             <span className="text-sm text-gray-700">{clickedBtn === 'hold' ? '처리중...' : '보류'}</span>
           </Button>
           <Button
-            className={`flex-1 h-12 bg-blue-600 hover:bg-blue-700 transition-all font-medium ${clickedBtn === 'apply' ? 'animate-pulse bg-green-500 scale-95' : ''
+            className={`flex-1 h-11 bg-blue-600 hover:bg-blue-700 transition-all font-medium ${clickedBtn === 'apply' ? 'animate-pulse bg-green-500 scale-95' : ''
               }`}
             onClick={(e) => {
               e.stopPropagation()

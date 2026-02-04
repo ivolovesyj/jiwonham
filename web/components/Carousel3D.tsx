@@ -123,7 +123,7 @@ export function Carousel3D({ jobs, currentIndex, onAction, onIndexChange }: Caro
       className="relative w-full h-[70vh] md:h-[75vh]"
       style={{
         perspective: '1800px',
-        perspectiveOrigin: 'center 40%',
+        perspectiveOrigin: 'center 30%',
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -140,7 +140,7 @@ export function Carousel3D({ jobs, currentIndex, onAction, onIndexChange }: Caro
         {jobs.map((job, index) => (
           <div
             key={job.id}
-            className="carousel-card absolute top-1/2 left-1/2 w-full max-w-md"
+            className="carousel-card absolute top-[40%] left-1/2 w-full max-w-md"
             style={{
               transformStyle: 'preserve-3d',
               transition: 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease-out, filter 0.5s ease-out',
