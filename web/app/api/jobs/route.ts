@@ -492,16 +492,33 @@ export async function GET(request: Request) {
     const companyPrefs: CompanyPref[] = companiesResult.data || []
     const seenJobIds = new Set(seenResult.data?.map(a => a.job_id) || [])
 
-    // 5. 활성 공고 가져오기 (충분히 많이 가져와서 필터링)
-    // TODO: 추후 DB 쿼리 최적화 (직무/지역 필터 추가)
-    const fetchLimit = Math.max(5000, (offset + limit) * 10)
+    // 5. 활성 공고 가져오기 (PostgreSQL 함수로 직무/지역 필터링)
+    const fetchLimit = Math.max(2000, (offset + limit) * 5)
 
-    const { data: jobs, error: jobsError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('is_active', true)
-      .order('crawled_at', { ascending: false })
-      .limit(fetchLimit)
+    // 직무 필터용 확장 키워드 생성 (원본 + 동의어)
+    let expandedJobTypes: string[] = []
+    if (preferences?.preferred_job_types?.length) {
+      for (const jobType of preferences.preferred_job_types) {
+        expandedJobTypes.push(jobType)
+        // 동의어 추가
+        const synonyms = JOB_TYPE_SYNONYMS[jobType] || []
+        expandedJobTypes.push(...synonyms)
+        // 역방향 동의어도 추가
+        for (const [key, values] of Object.entries(JOB_TYPE_SYNONYMS)) {
+          if (values.includes(jobType)) {
+            expandedJobTypes.push(key)
+          }
+        }
+      }
+      expandedJobTypes = [...new Set(expandedJobTypes)] // 중복 제거
+    }
+
+    // PostgreSQL RPC 함수 호출
+    const { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', {
+      p_job_types: expandedJobTypes.length > 0 ? expandedJobTypes : null,
+      p_locations: preferences?.preferred_locations || null,
+      p_limit: fetchLimit
+    }) as { data: JobRow[] | null, error: any }
 
     if (jobsError) {
       console.error('Jobs query error:', jobsError)
