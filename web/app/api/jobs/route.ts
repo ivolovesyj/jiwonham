@@ -57,28 +57,39 @@ function scoreJob(
   prefs: UserPreferences | null,
   keywordWeights: KeywordWeight[],
   companyPrefs: CompanyPref[]
-): { score: number; reasons: string[]; warnings: string[] } {
+): { score: number; reasons: string[]; warnings: string[]; matchesFilter: boolean } {
   let score = 50
   const reasons: string[] = []
   const warnings: string[] = []
+  let matchesFilter = true
 
   const jobText = `${job.company} ${job.title} ${job.depth_ones?.join(' ') || ''} ${job.depth_twos?.join(' ') || ''} ${job.keywords?.join(' ') || ''} ${job.detail?.raw_content || ''} ${job.detail?.main_tasks || ''} ${job.detail?.requirements || ''}`.toLowerCase()
 
   if (!prefs) {
-    return { score: 50, reasons: ['기본 추천'], warnings: [] }
+    return { score: 50, reasons: ['기본 추천'], warnings: [], matchesFilter: true }
   }
 
-  // 1. 직무 매칭 (preferred_job_types vs depth_ones/depth_twos)
+  // 1. 직무 매칭 (preferred_job_types vs depth_ones/depth_twos) - 필수 필터
   if (prefs.preferred_job_types?.length) {
     const jobTypes = [...(job.depth_ones || []), ...(job.depth_twos || [])]
+    let jobMatched = false
+
     for (const prefType of prefs.preferred_job_types) {
       const prefLower = prefType.toLowerCase()
       if (jobTypes.some(t => t.toLowerCase().includes(prefLower)) ||
           jobText.includes(prefLower)) {
         score += 15
         reasons.push(`✓ ${prefType}`)
+        jobMatched = true
         break
       }
+    }
+
+    // 직무가 하나도 매칭되지 않으면 필터 불통과
+    if (!jobMatched) {
+      matchesFilter = false
+      score = 0
+      warnings.push('⚠️ 선호 직무 불일치')
     }
   }
 
@@ -154,7 +165,7 @@ function scoreJob(
   }
 
   score = Math.max(0, Math.min(100, score))
-  return { score, reasons, warnings }
+  return { score, reasons, warnings, matchesFilter }
 }
 
 // ============================================
@@ -310,12 +321,12 @@ export async function GET(request: Request) {
       })
     }
 
-    // 6. 이미 본 공고 제외 + 점수 계산 + 정렬
+    // 6. 이미 본 공고 제외 + 점수 계산 + 필터링 + 정렬
     const now = Date.now()
     const scoredJobs = jobs
       .filter((job: JobRow) => !seenJobIds.has(job.id))
       .map((job: JobRow) => {
-        const { score, reasons, warnings } = scoreJob(job, preferences, keywordWeights, companyPrefs)
+        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs)
         const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
         return {
@@ -341,8 +352,10 @@ export async function GET(request: Request) {
           deadline_type: job.deadline_type,
           end_date: job.end_date,
           is_new: isNew,
+          matchesFilter,
         }
       })
+      .filter(j => j.matchesFilter) // 필터 통과한 공고만
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score
         return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
