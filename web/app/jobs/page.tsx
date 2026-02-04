@@ -157,17 +157,15 @@ export default function Home() {
 
       if (profileError) {
         console.error('user_profiles 조회 실패:', profileError)
-        // DB 에러 발생해도 일단 채용공고 로드 (온보딩 모달만 표시)
+        // DB 에러 발생해도 일단 채용공고 로드 (온보딩 모달은 표시하지 않음)
         setCheckingOnboarding(false)
-        setShowOnboardingModal(true)
         fetchJobs() // 채용공고는 로드
         return
       }
 
       if (!profile || !profile.onboarding_completed) {
-        // 온보딩 미완료 → 온보딩 모달 표시 + 채용공고도 로드
+        // 온보딩 미완료 → 채용공고만 로드 (온보딩 모달은 표시하지 않음)
         setCheckingOnboarding(false)
-        setShowOnboardingModal(true)
         fetchJobs() // 채용공고는 로드
         return
       }

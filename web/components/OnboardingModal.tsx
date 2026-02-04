@@ -549,7 +549,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleSkip}
+                onClick={onClose}
                 className="text-gray-500"
               >
                 건너뛰기
