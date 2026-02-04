@@ -621,6 +621,18 @@ export async function GET(request: Request) {
 
     console.log('[API /jobs] RPC returned:', jobs ? jobs.length : 0, 'jobs')
 
+    // jsonb 타입을 배열로 변환
+    if (jobs && jobs.length > 0) {
+      jobs = jobs.map((job: any) => ({
+        ...job,
+        depth_ones: Array.isArray(job.depth_ones) ? job.depth_ones : (job.depth_ones || []),
+        depth_twos: Array.isArray(job.depth_twos) ? job.depth_twos : (job.depth_twos || []),
+        keywords: Array.isArray(job.keywords) ? job.keywords : (job.keywords || []),
+        regions: Array.isArray(job.regions) ? job.regions : (job.regions || []),
+        employee_types: Array.isArray(job.employee_types) ? job.employee_types : (job.employee_types || []),
+      }))
+    }
+
     if (jobsError) {
       console.error('[API /jobs] RPC error:', jobsError)
       console.error('[API /jobs] RPC may have timed out. Indexes may need time to build.')
