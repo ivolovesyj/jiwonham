@@ -12,6 +12,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
 import { Navigation } from '@/components/Navigation'
+import { FilterModal } from '@/components/FilterModal'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -36,144 +37,32 @@ const getRandomLoadingMessage = () => {
   return LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]
 }
 
-// 왼쪽 사이드바 필터 (항상 표시)
-function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, setIsSidebarCollapsed }: {
+// 왼쪽 사이드바 필터 (필터 버튼으로 변경)
+function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, setIsSidebarCollapsed, onOpenModal }: {
   filters: UserFilters | null
   options: { depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null
   onSave: (f: UserFilters) => void
   user: any
   isSidebarCollapsed: boolean
   setIsSidebarCollapsed: (collapsed: boolean) => void
+  onOpenModal: () => void
 }) {
-  const [selectedDepthOnes, setSelectedDepthOnes] = useState<string[]>([])
-  const [selectedDepthTwos, setSelectedDepthTwos] = useState<string[]>([])
-  const [regions, setRegions] = useState(filters?.preferred_locations || [])
-  const [careers, setCareers] = useState<string[]>(
-    filters?.career_level ? filters.career_level.split(',').filter(Boolean) : ['경력무관']
-  )
-  const [empTypes, setEmpTypes] = useState(filters?.work_style || [])
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
-  const [isJobSectionExpanded, setIsJobSectionExpanded] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
-  const [showJobModal, setShowJobModal] = useState(false)
 
-  // filters 변경 시 로컬 상태 업데이트
-  useEffect(() => {
-    // options가 아직 로드되지 않았으면 대기
-    if (!options) return
 
-    if (filters && filters.preferred_job_types) {
-      // DB에 저장된 _ 를 화면 표시용 · 로 변환
-      const displayJobTypes = filters.preferred_job_types.map(job => job.replace(/_/g, '·'))
-
-      // 저장된 필터가 대분류인지 소분류인지 구분
-      const depth1s: string[] = []
-      const depth2s: string[] = []
-
-      displayJobTypes.forEach(job => {
-        if (options.depth_ones.includes(job)) {
-          depth1s.push(job)
-        } else {
-          depth2s.push(job)
-        }
-      })
-
-      setSelectedDepthOnes(depth1s)
-      setSelectedDepthTwos(depth2s)
-      setRegions(filters.preferred_locations || [])
-      setCareers(filters.career_level ? filters.career_level.split(',').filter(Boolean) : ['경력무관'])
-      setEmpTypes(filters.work_style || [])
+  // 필터 개수 계산
+  const getFilterCount = () => {
+    let count = 0
+    if (filters?.preferred_job_types?.length) count += filters.preferred_job_types.length
+    if (filters?.career_level && filters.career_level !== '경력무관') {
+      count += filters.career_level.split(',').filter(Boolean).length
     }
-  }, [filters, options])
-
-  const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
-    if (!user) {
-      setShowLoginPrompt(true)
-      return
-    }
-    setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
+    if (filters?.preferred_locations?.length) count += filters.preferred_locations.length
+    if (filters?.work_style?.length) count += filters.work_style.length
+    return count
   }
 
-  const handleDepthTwoToggle = (depthOne: string, depthTwo: string) => {
-    if (!user) {
-      setShowLoginPrompt(true)
-      return
-    }
-
-    // "전체" 선택 시 해당 대분류의 모든 소분류 선택
-    if (depthTwo === '전체') {
-      const allDepthTwos = options?.depth_twos_map[depthOne] || []
-      const realSubcategories = allDepthTwos.filter(dt => dt !== '전체')
-      const allSelected = realSubcategories.every(dt => selectedDepthTwos.includes(dt))
-
-      if (allSelected) {
-        // 모두 선택된 상태면 모두 해제
-        setSelectedDepthTwos(selectedDepthTwos.filter(dt => !realSubcategories.includes(dt)))
-      } else {
-        // 하나라도 해제된 상태면 모두 선택
-        const newSelection = [...selectedDepthTwos]
-        realSubcategories.forEach(dt => {
-          if (!newSelection.includes(dt)) {
-            newSelection.push(dt)
-          }
-        })
-        setSelectedDepthTwos(newSelection)
-      }
-    } else {
-      // 일반 소분류 토글
-      toggle(selectedDepthTwos, setSelectedDepthTwos, depthTwo)
-    }
-  }
-
-  const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(category)) {
-        newSet.delete(category)
-      } else {
-        newSet.add(category)
-      }
-      return newSet
-    })
-  }
-
-  const handleApply = () => {
-    if (!user) {
-      setShowLoginPrompt(true)
-      return
-    }
-
-    // 소분류만 사용 - 화면에 표시된 · 를 DB 저장용 _ 로 다시 변환
-    const finalJobTypes = selectedDepthTwos.map(job => job.replace(/·/g, '_'))
-    const newFilters = {
-      preferred_job_types: finalJobTypes,
-      preferred_locations: regions,
-      career_level: careers.join(','), // 다중 선택이므로 콤마로 연결
-      work_style: empTypes
-    }
-    onSave(newFilters)
-  }
-
-  const handleReset = () => {
-    if (!user) {
-      setShowLoginPrompt(true)
-      return
-    }
-    setSelectedDepthOnes([])
-    setSelectedDepthTwos([])
-    setRegions([])
-    setCareers(['경력무관'])
-    setEmpTypes([])
-    setExpandedCategories(new Set())
-  }
-
-  if (!options) {
-    return (
-      <div className="hidden lg:block w-80 bg-white border-r p-4">
-        <div className="text-sm text-gray-400">필터 로딩 중...</div>
-      </div>
-    )
-  }
+  const filterCount = getFilterCount()
 
   return (
     <div className={`hidden lg:block bg-white border-r overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'w-12' : 'w-80'}`}>
@@ -182,10 +71,15 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
         <div className="h-full flex flex-col items-center py-4">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 rounded-lg transition relative"
             title="필터 열기"
           >
             <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+            {filterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                {filterCount}
+              </span>
+            )}
           </button>
         </div>
       ) : (
@@ -193,19 +87,14 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
         <div className="p-4 space-y-4">
           <div className="sticky top-0 bg-white pb-2 border-b z-10">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-bold text-gray-900">필터</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700">
-                  초기화
-                </button>
-                <button
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  className="p-1 hover:bg-gray-100 rounded transition"
-                  title="필터 접기"
-                >
-                  <XIcon className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
+              <h2 className="text-lg font-bold text-gray-900">필터 선택</h2>
+              <button
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="p-1 hover:bg-gray-100 rounded transition"
+                title="필터 접기"
+              >
+                <XIcon className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
             {!user && (
               <p className="text-xs text-gray-500">
@@ -214,214 +103,106 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
             )}
           </div>
 
-          {/* 직무 - 모달 버튼 */}
-          <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">직무</div>
-            <button
-              onClick={() => {
-                if (!user) {
-                  setShowLoginPrompt(true)
-                } else {
-                  setShowJobModal(true)
-                }
-              }}
-              className={`w-full px-3 py-2.5 rounded-lg border text-left text-sm transition ${selectedDepthTwos.length > 0
-                ? 'bg-purple-50 border-purple-300 text-purple-700'
-                : user
-                  ? 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                  : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              disabled={!user}
-            >
-              {selectedDepthTwos.length > 0 ? (
-                <span className="flex items-center justify-between">
-                  <span className="font-medium">{selectedDepthTwos.length}개 선택됨</span>
-                  <span className="text-xs text-purple-600">변경하기</span>
-                </span>
-              ) : (
-                <span className="text-gray-500">직무를 선택하세요</span>
-              )}
-            </button>
-            {selectedDepthTwos.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {selectedDepthTwos.slice(0, 3).map(job => (
-                  <span key={job} className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                    {job}
-                  </span>
-                ))}
-                {selectedDepthTwos.length > 3 && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                    +{selectedDepthTwos.length - 3}
-                  </span>
-                )}
+          {/* 필터 버튼 */}
+          <button
+            onClick={() => {
+              if (!user) {
+                setShowLoginPrompt(true)
+              } else {
+                onOpenModal()
+              }
+            }}
+            disabled={!user}
+            className={`w-full px-4 py-6 rounded-xl border-2 border-dashed text-center transition ${
+              user
+                ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+                : 'border-gray-200 bg-gray-50 cursor-not-allowed'
+            }`}
+          >
+            <SlidersHorizontal className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+            <div className="text-sm font-semibold text-gray-900 mb-1">
+              {filterCount > 0 ? '필터 변경하기' : '필터 설정하기'}
+            </div>
+            {filterCount > 0 && (
+              <div className="text-xs text-gray-600">
+                {filterCount}개 필터 적용 중
               </div>
             )}
-          </div>
-
-          {/* 경력 (다중 선택) */}
-          <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">경력 (여러 개 선택 가능)</div>
-            <div className="flex flex-wrap gap-1.5">
-              {CAREER_OPTIONS.map(o => (
-                <button
-                  key={o.value}
-                  onClick={() => toggle(careers, setCareers, o.value)}
-                  disabled={!user}
-                  className={`text-xs px-2.5 py-1.5 rounded-full border transition ${careers.includes(o.value)
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : user
-                      ? 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                    }`}
-                >{o.label}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* 지역 */}
-          <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">지역</div>
-            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-              {options.regions.map(r => (
-                <button
-                  key={r}
-                  onClick={() => toggle(regions, setRegions, r)}
-                  disabled={!user}
-                  className={`text-xs px-2.5 py-1.5 rounded-full border transition ${regions.includes(r)
-                    ? 'bg-green-600 text-white border-green-600'
-                    : user
-                      ? 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
-                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                    }`}
-                >{r}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* 고용형태 */}
-          <div>
-            <div className="text-sm font-semibold text-gray-700 mb-2">고용형태</div>
-            <div className="flex flex-wrap gap-1.5">
-              {options.employee_types.map(t => (
-                <button
-                  key={t}
-                  onClick={() => toggle(empTypes, setEmpTypes, t)}
-                  disabled={!user}
-                  className={`text-xs px-2.5 py-1.5 rounded-full border transition ${empTypes.includes(t)
-                    ? 'bg-purple-600 text-white border-purple-600'
-                    : user
-                      ? 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
-                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                    }`}
-                >{t}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* 적용 버튼 */}
-          <div className="pt-2 sticky bottom-0 bg-white">
-            <Button
-              onClick={handleApply}
-              disabled={!user || selectedDepthTwos.length === 0}
-              className="w-full"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              필터 적용
-            </Button>
             {!user && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                로그인 후 필터를 저장할 수 있습니다
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 직무 선택 모달 */}
-      {showJobModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowJobModal(false)}>
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">직무 선택</h3>
-              <button
-                onClick={() => setShowJobModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto max-h-[calc(80vh-140px)] p-6">
-              <div className="grid grid-cols-2 gap-3">
-                {options?.depth_ones.map(depthOne => {
-                  const isExpanded = expandedCategories.has(depthOne)
-                  const depthTwos = options.depth_twos_map[depthOne] || []
-                  const depthTwosWithAll = ['전체', ...depthTwos]
-                  const selectedCount = depthTwos.filter((dt: string) => selectedDepthTwos.includes(dt)).length
-
-                  return (
-                    <div key={depthOne} className={`border rounded-lg overflow-hidden ${isExpanded ? 'col-span-2' : ''}`}>
-                      <button
-                        onClick={() => toggleCategory(depthOne)}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition"
-                      >
-                        <span className="font-medium text-gray-900">{depthOne}</span>
-                        <div className="flex items-center gap-2">
-                          {selectedCount > 0 && (
-                            <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                              {selectedCount}개
-                            </span>
-                          )}
-                          <span className="text-gray-400">{isExpanded ? '▲' : '▼'}</span>
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="bg-white p-4 border-t">
-                          <div className="flex flex-wrap gap-2">
-                            {depthTwosWithAll.map(depthTwo => {
-                              const isAll = depthTwo === '전체'
-                              const realSubcategories = depthTwos.filter((dt: string) => dt !== '전체')
-                              const allSelected = isAll && realSubcategories.every((dt: string) => selectedDepthTwos.includes(dt))
-                              const isSelected = isAll ? allSelected : selectedDepthTwos.includes(depthTwo)
-
-                              return (
-                                <button
-                                  key={depthTwo}
-                                  onClick={() => handleDepthTwoToggle(depthOne, depthTwo)}
-                                  className={`px-3 py-1.5 rounded-full text-sm border transition ${isSelected
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
-                                    }`}
-                                >
-                                  {depthTwo}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+              <div className="text-xs text-gray-500 mt-1">
+                로그인이 필요합니다
               </div>
-            </div>
+            )}
+          </button>
 
-            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex gap-2">
-              <Button onClick={() => setShowJobModal(false)} variant="outline" className="flex-1">
-                취소
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowJobModal(false)
-                }}
-                className="flex-1"
-                disabled={selectedDepthTwos.length === 0}
-              >
-                선택 완료 ({selectedDepthTwos.length}개)
-              </Button>
+          {/* 현재 적용된 필터 표시 */}
+          {filterCount > 0 && (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-gray-500">현재 적용된 필터</div>
+
+              {filters?.preferred_job_types && filters.preferred_job_types.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">직무</div>
+                  <div className="flex flex-wrap gap-1">
+                    {filters.preferred_job_types.slice(0, 3).map(job => (
+                      <span key={job} className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                        {job.replace(/_/g, '·')}
+                      </span>
+                    ))}
+                    {filters.preferred_job_types.length > 3 && (
+                      <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                        +{filters.preferred_job_types.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {filters?.career_level && filters.career_level !== '경력무관' && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">경력</div>
+                  <div className="flex flex-wrap gap-1">
+                    {filters.career_level.split(',').map(c => (
+                      <span key={c} className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                        {CAREER_OPTIONS.find(o => o.value === c)?.label || c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filters?.preferred_locations && filters.preferred_locations.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">지역</div>
+                  <div className="flex flex-wrap gap-1">
+                    {filters.preferred_locations.slice(0, 3).map(loc => (
+                      <span key={loc} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                        {loc}
+                      </span>
+                    ))}
+                    {filters.preferred_locations.length > 3 && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                        +{filters.preferred_locations.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {filters?.work_style && filters.work_style.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">고용형태</div>
+                  <div className="flex flex-wrap gap-1">
+                    {filters.work_style.map(ws => (
+                      <span key={ws} className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
+                        {ws}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -470,6 +251,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])  // 초기값 고정 (hydration 에러 방지)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [showFilterModal, setShowFilterModal] = useState(false)
 
   // 클라이언트에서만 랜덤 메시지 선택 (hydration 에러 방지)
   useEffect(() => {
@@ -916,6 +698,7 @@ export default function Home() {
           user={user}
           isSidebarCollapsed={isSidebarCollapsed}
           setIsSidebarCollapsed={setIsSidebarCollapsed}
+          onOpenModal={() => setShowFilterModal(true)}
           onSave={async (newFilters) => {
             if (!user) return
 
@@ -1038,6 +821,33 @@ export default function Home() {
       <LoginPromptModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+      />
+
+      {/* 필터 모달 */}
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        filters={filters}
+        options={filterOptions}
+        onSave={async (newFilters) => {
+          if (!user) return
+
+          await supabase.from('user_preferences').upsert(
+            {
+              user_id: user.id,
+              preferred_job_types: newFilters.preferred_job_types,
+              preferred_locations: newFilters.preferred_locations,
+              career_level: newFilters.career_level,
+              work_style: newFilters.work_style,
+            },
+            { onConflict: 'user_id' }
+          )
+          setFilters(newFilters)
+          // 필터 변경 시 공고 새로 불러오기
+          offsetRef.current = 0
+          setAppliedJobs([])
+          fetchJobs()
+        }}
       />
     </div>
   )

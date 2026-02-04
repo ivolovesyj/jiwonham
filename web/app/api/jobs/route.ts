@@ -219,7 +219,7 @@ function scoreJob(
 
       if (exactMatchInDepthTwos) {
         score += 15
-        reasons.push(`✓ ${prefType}`)
+        reasons.push(`${prefType}`)
         jobMatched = true
         break
       }
@@ -227,7 +227,7 @@ function scoreJob(
       // 2단계: jobText에서 매칭 (의미적 연관성 - 10점)
       if (jobText.includes(prefLower)) {
         score += 10
-        reasons.push(`✓ ${prefType} (본문)`)
+        reasons.push(`${prefType} (본문)`)
         jobMatched = true
         break
       }
@@ -236,7 +236,7 @@ function scoreJob(
       const semanticMatchScore = checkSemanticMatch(prefType, jobDepthTwos)
       if (semanticMatchScore > 0) {
         score += 8
-        reasons.push(`✓ ${prefType} (연관)`)
+        reasons.push(`${prefType} (연관)`)
         jobMatched = true
         break
       }
@@ -269,14 +269,14 @@ function scoreJob(
     // 유사도 매칭 성공
     if (!jobMatched && bestMatchScore >= 0.85) {
       score += 12
-      reasons.push(`✓ ${bestMatchName} (유사)`)
+      reasons.push(`${bestMatchName} (유사)`)
       jobMatched = true
     }
 
     // 약한 매칭 (대분류만 일치)
     if (!jobMatched && matchType === 'depth_one') {
       score += 5
-      reasons.push(`✓ ${bestMatchName} (관련)`)
+      reasons.push(`${bestMatchName} (관련)`)
       jobMatched = true
     }
 
@@ -295,7 +295,7 @@ function scoreJob(
     )
     if (locationMatch) {
       score += 10
-      reasons.push('✓ 선호 지역')
+      // reasons.push('선호 지역') - 키워드 태그에서 제외
     } else {
       score -= 30
       warnings.push(`⚠️ ${job.location} (선호 지역 아님)`)
@@ -308,7 +308,7 @@ function scoreJob(
     if (isNewbie) {
       if (job.career_min === 0 || job.career_min === null) {
         score += 5
-        reasons.push('✓ 신입 가능')
+        reasons.push('신입 가능')
       } else if (job.career_min && job.career_min >= 3) {
         score -= 20
         warnings.push(`⚠️ 경력 ${job.career_min}년 이상`)
@@ -321,7 +321,7 @@ function scoreJob(
     const match = prefs.work_style.some(ws => job.employee_types!.includes(ws))
     if (match) {
       score += 5
-      reasons.push('✓ 희망 고용형태')
+      reasons.push('희망 고용형태')
     }
   }
 
@@ -360,7 +360,11 @@ function scoreJob(
   }
 
   score = Math.max(0, Math.min(100, score))
-  return { score, reasons, warnings, matchesFilter }
+
+  // 중복 키워드 제거 (순서 유지)
+  const uniqueReasons = Array.from(new Set(reasons))
+
+  return { score, reasons: uniqueReasons, warnings, matchesFilter }
 }
 
 // ============================================
