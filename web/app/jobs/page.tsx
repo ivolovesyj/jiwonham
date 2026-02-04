@@ -736,13 +736,17 @@ export default function Home() {
               return
             }
 
-            // 로컬 상태 업데이트
+            // 로컬 상태 업데이트 먼저
             setFilters(newFilters)
 
-            // 필터 변경 시 공고 새로 불러오기 (DB 저장 완료 후)
+            // 필터 변경 시 공고 새로 불러오기 (상태 업데이트 후 약간의 지연)
             offsetRef.current = 0
             setAppliedJobs([])
-            await fetchJobs()
+
+            // 상태 업데이트가 완료되도록 다음 틱에서 실행
+            setTimeout(() => {
+              fetchJobs()
+            }, 0)
           }}
         />
 
@@ -877,13 +881,17 @@ export default function Home() {
             return
           }
 
-          // 로컬 상태 업데이트
+          // 로컬 상태 업데이트 먼저
           setFilters(newFilters)
 
-          // 필터 변경 시 공고 새로 불러오기 (DB 저장 완료 후)
+          // 필터 변경 시 공고 새로 불러오기 (상태 업데이트 후 약간의 지연)
           offsetRef.current = 0
           setAppliedJobs([])
-          await fetchJobs()
+
+          // 상태 업데이트가 완료되도록 다음 틱에서 실행
+          setTimeout(() => {
+            fetchJobs()
+          }, 0)
         }}
       />
     </div>
