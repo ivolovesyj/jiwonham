@@ -40,7 +40,7 @@ const getRandomLoadingMessage = () => {
 // 왼쪽 사이드바 필터 (필터 버튼으로 변경)
 function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, setIsSidebarCollapsed, onOpenModal }: {
   filters: UserFilters | null
-  options: { depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null
+  options: { depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[], company_types: string[] } | null
   onSave: (f: UserFilters) => void
   user: any
   isSidebarCollapsed: boolean
@@ -59,6 +59,7 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
     }
     if (filters?.preferred_locations?.length) count += filters.preferred_locations.length
     if (filters?.work_style?.length) count += filters.work_style.length
+    if (filters?.preferred_company_types?.length) count += filters.preferred_company_types.length
     return count
   }
 
@@ -232,6 +233,7 @@ interface UserFilters {
   preferred_locations: string[]
   career_level: string
   work_style: string[]
+  preferred_company_types?: string[]
 }
 
 export default function Home() {
@@ -246,7 +248,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const offsetRef = useRef(0)
   const [filters, setFilters] = useState<UserFilters | null>(null)
-  const [filterOptions, setFilterOptions] = useState<{ depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null>(null)
+  const [filterOptions, setFilterOptions] = useState<{ depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[], company_types: string[] } | null>(null)
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])  // 초기값 고정 (hydration 에러 방지)
@@ -308,6 +310,7 @@ export default function Home() {
           preferred_locations: data.preferred_locations || [],
           career_level: data.career_level || '경력무관',
           work_style: data.work_style || [],
+          preferred_company_types: data.preferred_company_types || [],
         })
 
         // 필터가 있을 때만 공고 로드 (이미 로드된 공고가 없을 때만)
@@ -709,6 +712,7 @@ export default function Home() {
                 preferred_locations: newFilters.preferred_locations,
                 career_level: newFilters.career_level,
                 work_style: newFilters.work_style,
+                preferred_company_types: newFilters.preferred_company_types,
               },
               { onConflict: 'user_id' }
             )
@@ -839,6 +843,7 @@ export default function Home() {
               preferred_locations: newFilters.preferred_locations,
               career_level: newFilters.career_level,
               work_style: newFilters.work_style,
+              preferred_company_types: newFilters.preferred_company_types,
             },
             { onConflict: 'user_id' }
           )
