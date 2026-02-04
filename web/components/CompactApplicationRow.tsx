@@ -71,9 +71,9 @@ export function CompactApplicationRow({
         </div>
 
         {/* 적합도 */}
-        {saved_job.score && (
+        {saved_job.score && saved_job.score > 50 && (
           <span className="flex-shrink-0 text-xs font-medium text-blue-600 w-10 text-right">
-            {saved_job.score}점
+            {saved_job.score}%
           </span>
         )}
 

@@ -67,10 +67,17 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
       <div className="flex-1">
         <div className="px-4 pt-4">
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-              <span className="text-sm font-semibold">적합도 {matchPercent}%</span>
-            </div>
+            {matchPercent > 50 ? (
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <span className="text-sm font-semibold">적합도 {matchPercent}%</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <span className="text-sm font-medium">적합도 분석중</span>
+              </div>
+            )}
             {deadline && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
                 <Calendar className="w-3 h-3" />

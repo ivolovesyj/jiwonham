@@ -94,9 +94,9 @@ export function ApplicationCard({
         </div>
         <div className="flex flex-col items-end gap-2">
           <StatusBadge status={application.status} />
-          {saved_job.score && (
+          {saved_job.score && saved_job.score > 50 && (
             <div className="text-xs font-medium text-blue-600">
-              적합도 {saved_job.score}점
+              적합도 {saved_job.score}%
             </div>
           )}
         </div>
