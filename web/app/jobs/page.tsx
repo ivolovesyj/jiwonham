@@ -201,6 +201,19 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                   </div>
                 </div>
               )}
+
+              {filters?.preferred_company_types && filters.preferred_company_types.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">기업 유형</div>
+                  <div className="flex flex-wrap gap-1">
+                    {filters.preferred_company_types.map(ct => (
+                      <span key={ct} className="text-xs px-2 py-0.5 bg-teal-100 text-teal-700 rounded">
+                        {ct}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
