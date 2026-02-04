@@ -615,7 +615,7 @@ export async function GET(request: Request) {
 
     console.log('RPC params:', JSON.stringify(rpcParams, null, 2))
 
-    const { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
+    let { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
 
     console.log('[API /jobs] RPC returned:', jobs ? jobs.length : 0, 'jobs')
 
