@@ -39,78 +39,169 @@ const getRandomLoadingMessage = () => {
 // 왼쪽 사이드바 필터 (항상 표시)
 function FilterSidebar({ filters, options, onSave, user }: {
   filters: UserFilters | null
-  options: { depth_ones: string[], regions: string[], employee_types: string[] } | null
+  options: { depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null
   onSave: (f: UserFilters) => void
   user: any
 }) {
-  const [jobs, setJobs] = useState(filters?.preferred_job_types || [])
+  const [selectedDepthOnes, setSelectedDepthOnes] = useState<string[]>([])
+  const [selectedDepthTwos, setSelectedDepthTwos] = useState<string[]>([])
   const [regions, setRegions] = useState(filters?.preferred_locations || [])
-  const [career, setCareer] = useState(filters?.career_level || '경력무관')
+  const [careers, setCareers] = useState<string[]>(
+    filters?.career_level ? filters.career_level.split(',').filter(Boolean) : ['경력무관']
+  )
   const [empTypes, setEmpTypes] = useState(filters?.work_style || [])
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
   // filters 변경 시 로컬 상태 업데이트
   useEffect(() => {
-    if (filters) {
-      setJobs(filters.preferred_job_types)
+    if (filters && filters.preferred_job_types) {
+      // 저장된 필터가 대분류인지 소분류인지 구분
+      const depth1s: string[] = []
+      const depth2s: string[] = []
+
+      filters.preferred_job_types.forEach(job => {
+        if (options?.depth_ones.includes(job)) {
+          depth1s.push(job)
+        } else {
+          depth2s.push(job)
+        }
+      })
+
+      setSelectedDepthOnes(depth1s)
+      setSelectedDepthTwos(depth2s)
       setRegions(filters.preferred_locations)
-      setCareer(filters.career_level)
+      setCareers(filters.career_level ? filters.career_level.split(',').filter(Boolean) : ['경력무관'])
       setEmpTypes(filters.work_style)
     }
-  }, [filters])
+  }, [filters, options])
 
   const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item])
   }
 
+  const handleDepthOneToggle = (depthOne: string) => {
+    const isSelected = selectedDepthOnes.includes(depthOne)
+
+    if (isSelected) {
+      // 대분류 제거 시 해당 소분류도 제거
+      setSelectedDepthOnes(selectedDepthOnes.filter(d => d !== depthOne))
+      const twosToRemove = options?.depth_twos_map[depthOne] || []
+      setSelectedDepthTwos(selectedDepthTwos.filter(dt => !twosToRemove.includes(dt)))
+    } else {
+      // 대분류 추가 시 확장
+      setSelectedDepthOnes([...selectedDepthOnes, depthOne])
+      setExpandedCategories(prev => new Set(prev).add(depthOne))
+    }
+  }
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(category)) {
+        newSet.delete(category)
+      } else {
+        newSet.add(category)
+      }
+      return newSet
+    })
+  }
+
   const handleApply = () => {
-    const newFilters = { preferred_job_types: jobs, preferred_locations: regions, career_level: career, work_style: empTypes }
+    // 소분류 선택했으면 소분류만, 아니면 대분류
+    const finalJobTypes = selectedDepthTwos.length > 0 ? selectedDepthTwos : selectedDepthOnes
+    const newFilters = {
+      preferred_job_types: finalJobTypes,
+      preferred_locations: regions,
+      career_level: careers.join(','), // 다중 선택이므로 콤마로 연결
+      work_style: empTypes
+    }
     onSave(newFilters)
   }
 
   const handleReset = () => {
-    setJobs([])
+    setSelectedDepthOnes([])
+    setSelectedDepthTwos([])
     setRegions([])
-    setCareer('경력무관')
+    setCareers(['경력무관'])
     setEmpTypes([])
+    setExpandedCategories(new Set())
   }
 
   if (!options) {
     return (
-      <div className="hidden lg:block w-72 bg-white border-r p-4">
+      <div className="hidden lg:block w-80 bg-white border-r p-4">
         <div className="text-sm text-gray-400">필터 로딩 중...</div>
       </div>
     )
   }
 
   return (
-    <div className="hidden lg:block w-72 bg-white border-r overflow-y-auto">
-      <div className="p-4 space-y-4 sticky top-0">
-        <div className="flex items-center justify-between">
+    <div className="hidden lg:block w-80 bg-white border-r overflow-y-auto">
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between sticky top-0 bg-white pb-2 border-b z-10">
           <h2 className="text-lg font-bold text-gray-900">필터</h2>
           <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700">
             초기화
           </button>
         </div>
 
-        {/* 직무 */}
+        {/* 직무 - 계층 구조 */}
         <div>
           <div className="text-sm font-semibold text-gray-700 mb-2">직무</div>
-          <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
-            {options.depth_ones.map(d => (
-              <button key={d} onClick={() => toggle(jobs, setJobs, d)}
-                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${jobs.includes(d) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
-              >{d}</button>
-            ))}
+          <div className="space-y-1">
+            {options.depth_ones.map(depthOne => {
+              const isSelected = selectedDepthOnes.includes(depthOne)
+              const isExpanded = expandedCategories.has(depthOne)
+              const depthTwos = options.depth_twos_map[depthOne] || []
+
+              return (
+                <div key={depthOne} className="border rounded-lg overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDepthOneToggle(depthOne)}
+                      className={`flex-1 text-left text-sm px-3 py-2 transition ${isSelected ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      {isSelected && <Check className="w-3 h-3 inline mr-1" />}
+                      {depthOne}
+                    </button>
+                    {depthTwos.length > 0 && (
+                      <button
+                        onClick={() => toggleCategory(depthOne)}
+                        className={`px-2 py-2 ${isSelected ? 'text-white' : 'text-gray-400'}`}
+                      >
+                        {isExpanded ? '▲' : '▼'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isExpanded && depthTwos.length > 0 && (
+                    <div className="bg-gray-50 p-2 border-t">
+                      <div className="flex flex-wrap gap-1.5">
+                        {depthTwos.map(depthTwo => (
+                          <button
+                            key={depthTwo}
+                            onClick={() => toggle(selectedDepthTwos, setSelectedDepthTwos, depthTwo)}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition ${selectedDepthTwos.includes(depthTwo) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'}`}
+                          >
+                            {depthTwo}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* 경력 */}
+        {/* 경력 (다중 선택) */}
         <div>
-          <div className="text-sm font-semibold text-gray-700 mb-2">경력</div>
-          <div className="flex flex-col gap-1.5">
+          <div className="text-sm font-semibold text-gray-700 mb-2">경력 (여러 개 선택 가능)</div>
+          <div className="flex flex-wrap gap-1.5">
             {CAREER_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => setCareer(o.value)}
-                className={`text-sm px-3 py-2 rounded-lg border transition text-left ${career === o.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
+              <button key={o.value} onClick={() => toggle(careers, setCareers, o.value)}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition ${careers.includes(o.value) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
               >{o.label}</button>
             ))}
           </div>
@@ -141,10 +232,10 @@ function FilterSidebar({ filters, options, onSave, user }: {
         </div>
 
         {/* 적용 버튼 */}
-        <div className="pt-2">
+        <div className="pt-2 sticky bottom-0 bg-white">
           <Button
             onClick={handleApply}
-            disabled={!user || jobs.length === 0}
+            disabled={!user || (selectedDepthOnes.length === 0 && selectedDepthTwos.length === 0)}
             className="w-full"
           >
             <Check className="w-4 h-4 mr-2" />
@@ -180,7 +271,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const offsetRef = useRef(0)
   const [filters, setFilters] = useState<UserFilters | null>(null)
-  const [filterOptions, setFilterOptions] = useState<{ depth_ones: string[], regions: string[], employee_types: string[] } | null>(null)
+  const [filterOptions, setFilterOptions] = useState<{ depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null>(null)
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loadingMessage] = useState(() => getRandomLoadingMessage())

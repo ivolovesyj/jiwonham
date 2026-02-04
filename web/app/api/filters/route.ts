@@ -7,20 +7,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 // 직무 카테고리와 지역 옵션을 DB에서 가져오기
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    })
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-    if (!user || userError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // 비로그인 사용자도 필터 옵션을 볼 수 있도록 인증 체크 제거
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     // 활성 공고에서 고유한 depth_ones, depth_twos, regions 추출
     const { data: jobs } = await supabase
