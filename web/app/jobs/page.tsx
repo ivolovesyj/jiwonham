@@ -226,10 +226,10 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                 }
               }}
               className={`w-full px-3 py-2.5 rounded-lg border text-left text-sm transition ${selectedDepthTwos.length > 0
-                  ? 'bg-purple-50 border-purple-300 text-purple-700'
-                  : user
-                    ? 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                    : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-purple-50 border-purple-300 text-purple-700'
+                : user
+                  ? 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
+                  : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               disabled={!user}
             >
@@ -268,10 +268,10 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                   onClick={() => toggle(careers, setCareers, o.value)}
                   disabled={!user}
                   className={`text-xs px-2.5 py-1.5 rounded-full border transition ${careers.includes(o.value)
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : user
-                        ? 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                 >{o.label}</button>
               ))}
@@ -288,10 +288,10 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                   onClick={() => toggle(regions, setRegions, r)}
                   disabled={!user}
                   className={`text-xs px-2.5 py-1.5 rounded-full border transition ${regions.includes(r)
-                      ? 'bg-green-600 text-white border-green-600'
-                      : user
-                        ? 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    ? 'bg-green-600 text-white border-green-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                 >{r}</button>
               ))}
@@ -308,10 +308,10 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                   onClick={() => toggle(empTypes, setEmpTypes, t)}
                   disabled={!user}
                   className={`text-xs px-2.5 py-1.5 rounded-full border transition ${empTypes.includes(t)
-                      ? 'bg-purple-600 text-white border-purple-600'
-                      : user
-                        ? 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : user
+                      ? 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                 >{t}</button>
               ))}
@@ -390,8 +390,8 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
                                   key={depthTwo}
                                   onClick={() => handleDepthTwoToggle(depthOne, depthTwo)}
                                   className={`px-3 py-1.5 rounded-full text-sm border transition ${isSelected
-                                      ? 'bg-purple-600 text-white border-purple-600'
-                                      : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
+                                    ? 'bg-purple-600 text-white border-purple-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
                                     }`}
                                 >
                                   {depthTwo}
@@ -490,34 +490,19 @@ export default function Home() {
 
   const checkOnboarding = async () => {
     try {
-      // 먼저 user_profiles에서 onboarding_completed 확인
-      const { data: profile, error: profileError } = await supabase
+      // 먼저 user_profiles에서 onboarding_completed 확인 (선택적)
+      const { data: profile } = await supabase
         .from('user_profiles')
         .select('onboarding_completed')
         .eq('id', user!.id)
-        .single()
+        .maybeSingle()  // 행이 없어도 에러 안 남
 
-      if (profileError) {
-        console.error('user_profiles 조회 실패:', profileError)
-        // DB 에러 발생해도 일단 채용공고 로드 (온보딩 모달은 표시하지 않음)
-        setCheckingOnboarding(false)
-        setLoading(false)
-        return
-      }
-
-      if (!profile || !profile.onboarding_completed) {
-        // 온보딩 미완료 → 필터 설정 안내만 표시
-        setCheckingOnboarding(false)
-        setLoading(false)
-        return
-      }
-
-      // user_preferences에서 필터 로드 (있으면)
+      // user_preferences에서 필터 로드 (핵심 로직)
       const { data, error: prefError } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', user!.id)
-        .single()
+        .maybeSingle()  // 여기도 maybeSingle로 변경
 
       if (prefError) {
         console.error('user_preferences 조회 실패:', prefError)
