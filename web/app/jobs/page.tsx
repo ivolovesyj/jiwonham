@@ -37,11 +37,13 @@ const getRandomLoadingMessage = () => {
 }
 
 // 왼쪽 사이드바 필터 (항상 표시)
-function FilterSidebar({ filters, options, onSave, user }: {
+function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, setIsSidebarCollapsed }: {
   filters: UserFilters | null
   options: { depth_ones: string[], depth_twos_map: Record<string, string[]>, regions: string[], employee_types: string[] } | null
   onSave: (f: UserFilters) => void
   user: any
+  isSidebarCollapsed: boolean
+  setIsSidebarCollapsed: (collapsed: boolean) => void
 }) {
   const [selectedDepthOnes, setSelectedDepthOnes] = useState<string[]>([])
   const [selectedDepthTwos, setSelectedDepthTwos] = useState<string[]>([])
@@ -168,21 +170,43 @@ function FilterSidebar({ filters, options, onSave, user }: {
   }
 
   return (
-    <div className="hidden lg:block w-80 bg-white border-r overflow-y-auto">
-      <div className="p-4 space-y-4">
-        <div className="sticky top-0 bg-white pb-2 border-b z-10">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-lg font-bold text-gray-900">필터</h2>
-            <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700">
-              초기화
-            </button>
-          </div>
-          {!user && (
-            <p className="text-xs text-gray-500">
-              로그인 후 필터를 저장할 수 있습니다
-            </p>
-          )}
+    <div className={`hidden lg:block bg-white border-r overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'w-12' : 'w-80'}`}>
+      {isSidebarCollapsed ? (
+        // 접힌 상태
+        <div className="h-full flex flex-col items-center py-4">
+          <button
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            title="필터 열기"
+          >
+            <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
+      ) : (
+        // 펼친 상태
+        <div className="p-4 space-y-4">
+          <div className="sticky top-0 bg-white pb-2 border-b z-10">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-bold text-gray-900">필터</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700">
+                  초기화
+                </button>
+                <button
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                  title="필터 접기"
+                >
+                  <XIcon className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            {!user && (
+              <p className="text-xs text-gray-500">
+                로그인 후 필터를 저장할 수 있습니다
+              </p>
+            )}
+          </div>
 
         {/* 직무 - 모달 버튼 */}
         <div>
@@ -308,7 +332,8 @@ function FilterSidebar({ filters, options, onSave, user }: {
             </p>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* 직무 선택 모달 */}
       {showJobModal && (
@@ -443,6 +468,7 @@ export default function Home() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loadingMessage] = useState(() => getRandomLoadingMessage())
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   // 페이지 로드 시 필터 옵션 로드
   useEffect(() => {
@@ -888,6 +914,8 @@ export default function Home() {
           filters={filters}
           options={filterOptions}
           user={user}
+          isSidebarCollapsed={isSidebarCollapsed}
+          setIsSidebarCollapsed={setIsSidebarCollapsed}
           onSave={async (newFilters) => {
             if (!user) return
 
