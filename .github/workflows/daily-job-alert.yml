@@ -1,24 +1,24 @@
-name: Daily Job Alert
+name: Daily Job Crawler
 
 on:
   schedule:
-    # 매일 아침 8시 (KST) = UTC 23:00 (전날)
-    - cron: '0 23 * * *'
-  workflow_dispatch: # 수동 실행 가능
+    # 매일 아침 9시 (KST) = UTC 00:00
+    - cron: '0 0 * * *'
+  workflow_dispatch:
     inputs:
       full_crawl:
-        description: '전체 크롤링 (초기 수집 시에만 사용)'
+        description: '전체 크롤링 (초기 수집용)'
         required: false
         type: boolean
         default: false
 
 jobs:
-  crawl-and-notify:
+  crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 초기 전체 수집 시 최대 6시간
+    timeout-minutes: 120
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -30,11 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run job crawler
+      - name: Run crawler
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          KAKAO_ACCESS_TOKEN: ${{ secrets.KAKAO_ACCESS_TOKEN }}
         run: |
           if [ "${{ github.event.inputs.full_crawl }}" = "true" ]; then
             node src/index.js --full
@@ -42,8 +41,8 @@ jobs:
             node src/index.js
           fi
 
-      - name: Backfill detail sections
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node scripts/backfill-detail-sections.js
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🐕 크롤링 완료" >> $GITHUB_STEP_SUMMARY
+          echo "- 시간: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')" >> $GITHUB_STEP_SUMMARY

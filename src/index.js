@@ -13,26 +13,53 @@ if (!SUPABASE_SERVICE_KEY) {
 }
 
 /**
- * Supabase REST API로 upsert
+ * 재시도 헬퍼 (지수 백오프)
+ */
+async function withRetry(fn, maxRetries = 3, baseDelay = 1000) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isRetryable = error.message?.includes('500') ||
+                          error.message?.includes('502') ||
+                          error.message?.includes('503') ||
+                          error.message?.includes('504') ||
+                          error.message?.includes('ECONNRESET');
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`  ⚠️ 재시도 ${attempt + 1}/${maxRetries} (${delay}ms 후)...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+/**
+ * Supabase REST API로 upsert (재시도 포함)
  */
 async function supabaseUpsert(table, rows) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_SERVICE_KEY,
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates',
-    },
-    body: JSON.stringify(rows),
+  return withRetry(async () => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify(rows),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Supabase upsert 실패 (${table}): ${response.status} ${error}`);
+    }
+
+    return response;
   });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Supabase upsert 실패 (${table}): ${response.status} ${error}`);
-  }
-
-  return response;
 }
 
 /**
@@ -86,14 +113,17 @@ async function saveBatch(batch) {
 
   // 삭제된 공고 비활성화
   for (const id of deletedIds) {
-    await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ is_active: false }),
+    await withRetry(async () => {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: false }),
+      });
+      if (!res.ok) throw new Error(`PATCH 실패: ${res.status}`);
     });
   }
 
@@ -235,14 +265,17 @@ async function main() {
       const toDeactivate = dbJobs.filter(j => !result.allSitemapIds.has(j.id)).map(j => j.id);
 
       for (const id of toDeactivate) {
-        await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ is_active: false }),
+        await withRetry(async () => {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_active: false }),
+          });
+          if (!res.ok) throw new Error(`PATCH 실패: ${res.status}`);
         });
       }
       diffDeactivated += toDeactivate.length;
