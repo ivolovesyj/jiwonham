@@ -555,7 +555,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
               className="min-w-[120px]"
             >
               <Check className="w-4 h-4 mr-2" />
-              {selectedDepthTwos.length > 0 ? `${selectedDepthTwos.length}개 공고 보기` : '직무를 선택하세요'}
+              필터 적용
             </Button>
           </div>
         </div>

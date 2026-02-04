@@ -65,10 +65,19 @@ export async function GET(request: Request) {
       depthTwosObj[one] = Array.from(twosSet).sort()
     })
 
-    // contractor와 temporary 제외 (프리랜서, 계약직/일용직과 중복)
+    // 고용형태 순서 정의
+    const employeeTypeOrder = ['정규직', '인턴', '계약직', '프리랜서', '일용직', '병역특례'];
     const filteredEmployeeTypes = Array.from(employeeTypesSet)
       .filter(type => type !== 'contractor' && type !== 'temporary')
-      .sort()
+      .sort((a, b) => {
+        const indexA = employeeTypeOrder.indexOf(a);
+        const indexB = employeeTypeOrder.indexOf(b);
+        // 순서에 없는 항목은 뒤로
+        if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      })
 
     // 기업 유형에 "기타" 추가 (매칭 안 된 회사들)
     const companyTypesArray = Array.from(companyTypesSet).sort()
