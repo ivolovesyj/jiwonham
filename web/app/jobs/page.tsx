@@ -530,6 +530,25 @@ export default function Home() {
         pass_count: action === 'pass' ? 1 : 0,
       })
     }
+
+    // 3. 행동 기반 학습 트리거 (매 10개 액션마다)
+    const { count } = await supabase
+      .from('user_job_actions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if (count && count % 10 === 0) {
+      // 백그라운드로 학습 API 호출 (결과 대기 안 함)
+      const session = await supabase.auth.getSession()
+      if (session.data.session?.access_token) {
+        fetch('/api/learn', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.data.session.access_token}`,
+          },
+        }).catch(console.error)
+      }
+    }
   }
 
   const handleAction = async (action: 'pass' | 'hold' | 'apply') => {

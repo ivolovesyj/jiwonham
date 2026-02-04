@@ -106,6 +106,14 @@ interface CompanyPref {
   preference_score: number
 }
 
+// 행동 기반 학습 가중치
+interface LearnedWeight {
+  feature_type: string  // 'depth_two', 'keyword', 'region'
+  feature_value: string
+  weight: number        // -1.0 ~ 1.0
+  confidence: number    // 0 ~ 1.0 (노출 횟수 기반 신뢰도)
+}
+
 interface JobRow {
   id: string
   source: string
@@ -136,6 +144,7 @@ function scoreJob(
   prefs: UserPreferences | null,
   keywordWeights: KeywordWeight[],
   companyPrefs: CompanyPref[],
+  learnedWeights: LearnedWeight[] = [],  // 행동 기반 학습 가중치
   companyType: string | null = null,
   isInDB: boolean = false
 ): { score: number; reasons: string[]; warnings: string[]; matchesFilter: boolean } {
@@ -348,7 +357,50 @@ function scoreJob(
     else if (companyPref.preference_score <= -2) warnings.push('🏢 비선호 기업')
   }
 
-  // 6. 최신 공고 부스트
+  // 6. 행동 기반 학습 가중치 적용
+  if (learnedWeights.length > 0) {
+    let learnedBonus = 0
+    const learnedReasons: string[] = []
+
+    const jobDepthTwos = (job.depth_twos || []).map(d => d.toLowerCase())
+    const jobKeywords = (job.keywords || []).map(k => k.toLowerCase())
+    const jobRegions = (job.regions || []).map(r => r.toLowerCase())
+
+    for (const lw of learnedWeights) {
+      const featureLower = lw.feature_value.toLowerCase()
+      let matched = false
+
+      if (lw.feature_type === 'depth_two') {
+        matched = jobDepthTwos.some(d => d.includes(featureLower) || featureLower.includes(d))
+      } else if (lw.feature_type === 'keyword') {
+        matched = jobKeywords.some(k => k.includes(featureLower) || featureLower.includes(k))
+      } else if (lw.feature_type === 'region') {
+        matched = jobRegions.some(r => r.includes(featureLower) || featureLower.includes(r))
+      }
+
+      if (matched) {
+        // 가중치 * 신뢰도 * 최대 10점
+        const impact = Math.round(lw.weight * lw.confidence * 10)
+        learnedBonus += impact
+
+        // 영향력 있는 학습 결과만 표시
+        if (Math.abs(impact) >= 3) {
+          if (impact > 0) {
+            learnedReasons.push(`🧠 ${lw.feature_value}`)
+          }
+        }
+      }
+    }
+
+    // 학습 보너스 적용 (최대 ±15점)
+    const cappedBonus = Math.max(-15, Math.min(15, learnedBonus))
+    score += cappedBonus
+
+    // 상위 2개 학습 이유만 추가
+    reasons.push(...learnedReasons.slice(0, 2))
+  }
+
+  // 7. 최신 공고 부스트
   if (job.crawled_at) {
     const hoursSince = (Date.now() - new Date(job.crawled_at).getTime()) / (1000 * 60 * 60)
     if (hoursSince <= 24) {
@@ -476,14 +528,14 @@ export async function GET(request: Request) {
     console.log('[API /jobs] User authenticated:', user.id)
 
     // 병렬로 데이터 가져오기
-    const [prefsResult, keywordsResult, companiesResult, seenResult] = await Promise.all([
+    const [prefsResult, keywordsResult, companiesResult, seenResult, learnedResult] = await Promise.all([
       // 1. 사용자 선호도
       supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle(),
-      // 2. 학습된 키워드 가중치
+      // 2. 학습된 키워드 가중치 (수동 설정)
       supabase
         .from('keyword_weights')
         .select('keyword, weight')
@@ -500,6 +552,8 @@ export async function GET(request: Request) {
         .from('user_job_actions')
         .select('job_id')
         .eq('user_id', user.id),
+      // 5. 행동 기반 학습 가중치
+      supabase.rpc('get_user_learned_weights', { p_user_id: user.id }),
     ])
 
     console.log(`[API /jobs] +${Date.now() - startTime}ms - Parallel queries done`)
@@ -508,6 +562,9 @@ export async function GET(request: Request) {
     const keywordWeights: KeywordWeight[] = keywordsResult.data || []
     const companyPrefs: CompanyPref[] = companiesResult.data || []
     const seenJobIds = new Set(seenResult.data?.map(a => a.job_id) || [])
+    const learnedWeights: LearnedWeight[] = learnedResult.data || []
+
+    console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
     // 5. 활성 공고 가져오기 (RPC 함수로 직무/지역 필터링)
     const fetchLimit = Math.max(2000, (offset + limit) * 5)
@@ -569,7 +626,7 @@ export async function GET(request: Request) {
       .map((job: JobRow) => {
         const companyType = job.company_type || '기타'
         const isInDB = job.company_type !== null && job.company_type !== '기타'
-        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs, companyType, isInDB)
+        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs, learnedWeights, companyType, isInDB)
         const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
         return {
