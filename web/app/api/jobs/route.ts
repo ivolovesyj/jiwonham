@@ -126,10 +126,11 @@ function scoreJob(
     return { score: 50, reasons: ['기본 추천'], warnings: [], matchesFilter: true }
   }
 
-  // 1. 직무 매칭 (preferred_job_types vs depth_ones/depth_twos) - 필수 필터
-  // Jaro-Winkler 유사도 기반 매칭 (임계값 0.85)
+  // 1. 직무 매칭 (preferred_job_types vs depth_twos만) - 필수 필터
+  // 소분류(depth_twos)만 매칭 - Jaro-Winkler 유사도 기반 매칭 (임계값 0.85)
   if (prefs.preferred_job_types?.length) {
-    const jobTypes = [...(job.depth_ones || []), ...(job.depth_twos || [])]
+    // 공고의 소분류만 사용 (대분류는 제외)
+    const jobDepthTwos = job.depth_twos || []
     let jobMatched = false
     let bestMatchScore = 0
     let bestMatchName = ''
@@ -138,7 +139,7 @@ function scoreJob(
       const prefLower = prefType.toLowerCase()
 
       // 1) 정확히 일치 또는 부분 문자열 매칭 (가장 강력)
-      const exactMatch = jobTypes.some(t => {
+      const exactMatch = jobDepthTwos.some(t => {
         const jobTypeLower = t.toLowerCase()
         return jobTypeLower === prefLower ||
                jobTypeLower.includes(prefLower) ||
@@ -153,8 +154,8 @@ function scoreJob(
       }
 
       // 2) Jaro-Winkler 유사도 매칭 (임계값 0.85)
-      for (const jobType of jobTypes) {
-        const similarity = jaroWinklerDistance(prefLower, jobType.toLowerCase())
+      for (const jobDepthTwo of jobDepthTwos) {
+        const similarity = jaroWinklerDistance(prefLower, jobDepthTwo.toLowerCase())
         if (similarity >= 0.85 && similarity > bestMatchScore) {
           bestMatchScore = similarity
           bestMatchName = prefType
