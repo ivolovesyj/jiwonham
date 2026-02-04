@@ -180,6 +180,7 @@ interface JobRow {
   source: string
   company: string
   company_image: string | null
+  company_type: string | null  // 기업 유형 추가
   title: string
   regions: string[] | null
   location: string | null
@@ -616,46 +617,15 @@ export async function GET(request: Request) {
       })
     }
 
-    // 5.5 회사명으로 기업 유형 가져오기 (정규화된 이름으로 매칭)
-    const uniqueCompanyNames = [...new Set(jobs.map(j => j.company))]
-    const normalizedJobCompanies = uniqueCompanyNames.map(name => normalizeCompanyName(name))
-
-    const { data: companyTypes } = await supabase
-      .from('companies')
-      .select('normalized_name, company_type')
-      .in('normalized_name', normalizedJobCompanies)
-
-    // normalized_name → company_type 맵 생성
-    const normalizedCompanyTypeMap = new Map<string, string>()
-    companyTypes?.forEach(c => {
-      if (c.normalized_name && c.company_type) {
-        normalizedCompanyTypeMap.set(c.normalized_name, c.company_type)
-      }
-    })
-
-    // 원본 회사명 → company_type 맵 생성 (scoreJob에서 사용)
-    // 매칭 안 된 회사는 "기타"로 처리
-    const companyTypeMap = new Map<string, string>()
-    const companiesInDB = new Set<string>() // DB에 있는 회사 추적
-
-    uniqueCompanyNames.forEach(name => {
-      const normalized = normalizeCompanyName(name)
-      const type = normalizedCompanyTypeMap.get(normalized)
-      if (type) {
-        companyTypeMap.set(name, type)
-        companiesInDB.add(name)
-      } else {
-        companyTypeMap.set(name, '기타')
-      }
-    })
+    // company_type은 이미 jobs 테이블에 포함되어 있음 (별도 조회 불필요)
 
     // 6. 이미 본 공고 제외 + 점수 계산 + 필터링 + 정렬
     const now = Date.now()
     const scoredJobs = jobs
       .filter((job: JobRow) => !seenJobIds.has(job.id))
       .map((job: JobRow) => {
-        const companyType = companyTypeMap.get(job.company) || null
-        const isInDB = companiesInDB.has(job.company)
+        const companyType = job.company_type || '기타'
+        const isInDB = job.company_type !== null && job.company_type !== '기타'
         const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs, companyType, isInDB)
         const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
