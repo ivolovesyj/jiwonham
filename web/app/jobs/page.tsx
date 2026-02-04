@@ -484,12 +484,19 @@ export default function Home() {
   // 로그인된 경우에만 온보딩 체크
   useEffect(() => {
     if (user && !authLoading) {
+      // 이미 로드된 공고가 있으면 다시 로드하지 않음
+      if (jobs.length > 0) {
+        setCheckingOnboarding(false)
+        return
+      }
       setCheckingOnboarding(true)
       checkOnboarding()
     } else if (!authLoading) {
-      // 비로그인: 바로 공고 로드
+      // 비로그인: 이미 로드된 공고가 있으면 다시 로드하지 않음
       setCheckingOnboarding(false)
-      fetchJobs()
+      if (jobs.length === 0) {
+        fetchJobs()
+      }
     }
   }, [user, authLoading])
 
@@ -521,10 +528,12 @@ export default function Home() {
           work_style: data.work_style || [],
         })
 
-        // 필터가 있을 때만 공고 로드
+        // 필터가 있을 때만 공고 로드 (이미 로드된 공고가 없을 때만)
         if (data.preferred_job_types && data.preferred_job_types.length > 0) {
           setCheckingOnboarding(false)
-          fetchJobs()
+          if (jobs.length === 0) {
+            fetchJobs()
+          }
         } else {
           // 필터가 없으면 안내 메시지만 표시
           setCheckingOnboarding(false)
