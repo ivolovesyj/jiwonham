@@ -79,7 +79,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
 
     // 기업 유형
     setSelectedCompanyTypes(filters.preferred_company_types || [])
-  }, [isOpen]) // isOpen만 dependency로 설정
+  }, [isOpen, filters, options]) // isOpen, filters, options를 dependency로 설정
 
   const handleSave = () => {
     const finalJobTypes = selectedDepthTwos.map(job => job.replace(/·/g, '_'))

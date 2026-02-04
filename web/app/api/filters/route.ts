@@ -70,9 +70,11 @@ export async function GET(request: Request) {
         return indexA - indexB;
       })
 
-    // 기업 유형에 "기타" 추가 (매칭 안 된 회사들)
+    // 기업 유형에 "기타" 추가 (매칭 안 된 회사들) - 중복 방지
     const companyTypesArray = Array.from(companyTypesSet).sort()
-    companyTypesArray.push('기타')
+    if (!companyTypesArray.includes('기타')) {
+      companyTypesArray.push('기타')
+    }
 
     return NextResponse.json({
       depth_ones: Array.from(depthOnesSet).sort(),
