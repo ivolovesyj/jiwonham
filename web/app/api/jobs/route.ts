@@ -549,7 +549,7 @@ export async function GET(request: Request) {
         .from('user_preferences')
         .select('*')
         .eq('user_id', user.id)
-        .single(),
+        .maybeSingle(),
       // 2. 학습된 키워드 가중치
       supabase
         .from('keyword_weights')
