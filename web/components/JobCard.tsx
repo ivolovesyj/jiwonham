@@ -118,7 +118,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           <div className="flex flex-wrap gap-1.5">
             {tags.slice(0, 3).map((tag, i) => (
               <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
-                {tag}
+                {tag.replace(/_/g, ' ')}
               </span>
             ))}
             {job.employee_types?.slice(0, 1).map((type, i) => (
@@ -128,7 +128,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
             ))}
             {job.reasons?.filter(r => !r.includes('신규')).slice(0, 2).map((reason, i) => (
               <span key={`r-${i}`} className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md border border-gray-200">
-                ✓ {reason}
+                {reason.replace(/_/g, ' ')}
               </span>
             ))}
             {job.is_new && (
