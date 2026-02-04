@@ -860,7 +860,7 @@ export default function Home() {
   }, [currentIndex, jobs.length])
 
   // 로딩 화면 (의도적 지연 없음)
-  if (authLoading || checkingOnboarding || (loading && jobs.length === 0)) {
+  if (authLoading || checkingOnboarding) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
@@ -873,73 +873,9 @@ export default function Home() {
     )
   }
 
-  if (error && jobs.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl">😢</div>
-          <h1 className="text-2xl font-bold text-gray-900">앗!</h1>
-          <p className="text-gray-600">{error}</p>
-          <Button onClick={() => fetchJobs()}>다시 시도</Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (jobs.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl">📭</div>
-          <h1 className="text-2xl font-bold text-gray-900">공고가 없습니다</h1>
-          <p className="text-gray-600">
-            크롤러를 실행하여 공고 데이터를 수집해주세요.
-          </p>
-          <Button onClick={() => fetchJobs()}>새로고침</Button>
-        </div>
-      </div>
-    )
-  }
-
-  // 모든 공고를 다 봤을 때
-  if (currentIndex >= jobs.length) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-        <div className="text-center space-y-6 max-w-md mx-auto">
-          <div className="text-6xl">🎉</div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">모든 공고를 확인했어요!</h1>
-          {user && (
-            <p className="text-gray-600">
-              지원 예정 공고: <span className="font-semibold">{appliedJobs.length}개</span>
-            </p>
-          )}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={handleReset} variant="outline" className="w-full sm:w-auto">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              처음부터 다시 보기
-            </Button>
-            {hasMore && (
-              <Button onClick={handleLoadMore} className="w-full sm:w-auto">
-                공고 20개 더 볼게요 📬
-              </Button>
-            )}
-            {user && (
-              <Link href="/applications" className="w-full sm:w-auto">
-                <Button variant="secondary" className="w-full">
-                  <Briefcase className="mr-2 h-4 w-4" />
-                  지원 관리 보기
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // 필터 미설정 체크
-  const hasNoFilters = user && filters && (
-    !filters.preferred_job_types || filters.preferred_job_types.length === 0
+  // 필터 미설정 체크 (jobs.length 체크보다 먼저)
+  const hasNoFilters = user && (
+    !filters || !filters.preferred_job_types || filters.preferred_job_types.length === 0
   )
 
   return (
@@ -992,8 +928,72 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          ) : jobs.length > 0 ? (
-            // 필터 설정됨: 3D 캐러셀 표시
+          ) : loading ? (
+            // 로딩 중
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="w-24 h-24 mx-auto animate-bounce">
+                  <Image src="/logo-final.png" alt="지원함" width={96} height={96} className="w-full h-full object-contain" />
+                </div>
+                <p className="text-lg font-medium text-gray-700">{loadingMessage}</p>
+              </div>
+            </div>
+          ) : error ? (
+            // 에러
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center space-y-4 max-w-md">
+                <div className="text-6xl">😢</div>
+                <h1 className="text-2xl font-bold text-gray-900">앗!</h1>
+                <p className="text-gray-600">{error}</p>
+                <Button onClick={() => fetchJobs()}>다시 시도</Button>
+              </div>
+            </div>
+          ) : jobs.length === 0 ? (
+            // 공고 없음
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center space-y-4 max-w-md">
+                <div className="text-6xl">📭</div>
+                <h1 className="text-2xl font-bold text-gray-900">공고가 없습니다</h1>
+                <p className="text-gray-600">
+                  크롤러를 실행하여 공고 데이터를 수집해주세요.
+                </p>
+                <Button onClick={() => fetchJobs()}>새로고침</Button>
+              </div>
+            </div>
+          ) : currentIndex >= jobs.length ? (
+            // 모든 공고 확인 완료
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center space-y-6 max-w-md mx-auto">
+                <div className="text-6xl">🎉</div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">모든 공고를 확인했어요!</h1>
+                {user && (
+                  <p className="text-gray-600">
+                    지원 예정 공고: <span className="font-semibold">{appliedJobs.length}개</span>
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button onClick={handleReset} variant="outline" className="w-full sm:w-auto">
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    처음부터 다시 보기
+                  </Button>
+                  {hasMore && (
+                    <Button onClick={handleLoadMore} className="w-full sm:w-auto">
+                      공고 20개 더 볼게요 📬
+                    </Button>
+                  )}
+                  {user && (
+                    <Link href="/applications" className="w-full sm:w-auto">
+                      <Button variant="secondary" className="w-full">
+                        <Briefcase className="mr-2 h-4 w-4" />
+                        지원 관리 보기
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // 3D 캐러셀 표시
             <div className="w-full h-full flex items-start justify-center pt-8">
               <Carousel3D
                 jobs={jobs}
@@ -1002,7 +1002,7 @@ export default function Home() {
                 onIndexChange={setCurrentIndex}
               />
             </div>
-          ) : null}
+          )}
         </main>
       </div>
 
