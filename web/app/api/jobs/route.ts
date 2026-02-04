@@ -648,55 +648,55 @@ export async function GET(request: Request) {
           .order('crawled_at', { ascending: false })
           .limit(500)
 
-      if (fallbackError) {
-        console.error('Fallback query error:', fallbackError)
-        return NextResponse.json({ error: 'Failed to fetch jobs', details: fallbackError.message }, { status: 500 })
-      }
+        if (fallbackError) {
+          console.error('Fallback query error:', fallbackError)
+          return NextResponse.json({ error: 'Failed to fetch jobs', details: fallbackError.message }, { status: 500 })
+        }
 
-      // Fallback 결과 검증
-      if (!fallbackJobs || fallbackJobs.length === 0) {
-        console.log('No jobs found in fallback query')
-        return NextResponse.json({
-          jobs: [],
-          total: 0,
-          limit,
-          offset,
-          hasMore: false,
-          message: 'No jobs available matching your filters.',
-        })
-      }
+        // Fallback 결과 검증
+        if (!fallbackJobs || fallbackJobs.length === 0) {
+          console.log('No jobs found in fallback query')
+          return NextResponse.json({
+            jobs: [],
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+            message: 'No jobs available matching your filters.',
+          })
+        }
 
-      // Fallback 결과를 jobs 변수에 할당하여 계속 진행
-      const jobsResult = fallbackJobs as JobRow[]
+        // Fallback 결과를 jobs 변수에 할당하여 계속 진행
+        const jobsResult = fallbackJobs as JobRow[]
 
-      // 필터링 로직을 여기서 직접 수행
-      let filteredJobs = jobsResult
+        // 필터링 로직을 여기서 직접 수행
+        let filteredJobs = jobsResult
 
-      // 직무 필터링
-      if (expandedJobTypes.length > 0) {
-        filteredJobs = filteredJobs.filter(job => {
-          const jobTypes = [...(job.depth_ones || []), ...(job.depth_twos || [])]
-          return expandedJobTypes.some(pref =>
-            jobTypes.some(jt => jt.toLowerCase().includes(pref.toLowerCase()))
-          )
-        })
-      }
+        // 직무 필터링
+        if (expandedJobTypes.length > 0) {
+          filteredJobs = filteredJobs.filter(job => {
+            const jobTypes = [...(job.depth_ones || []), ...(job.depth_twos || [])]
+            return expandedJobTypes.some(pref =>
+              jobTypes.some(jt => jt.toLowerCase().includes(pref.toLowerCase()))
+            )
+          })
+        }
 
-      // 지역 필터링
-      if (preferences?.preferred_locations?.length) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.regions?.length) return false
-          return preferences.preferred_locations!.some(loc =>
-            job.regions!.some(r => r.includes(loc))
-          )
-        })
-      }
+        // 지역 필터링
+        if (preferences?.preferred_locations?.length) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.regions?.length) return false
+            return preferences.preferred_locations!.some(loc =>
+              job.regions!.some(r => r.includes(loc))
+            )
+          })
+        }
 
-      const now = Date.now()
-      let scoredJobs: any[] = []
+        const now = Date.now()
+        let scoredJobs: any[] = []
 
-      try {
-        scoredJobs = filteredJobs
+        try {
+          scoredJobs = filteredJobs
           .filter((job: JobRow) => !seenJobIds.has(job.id))
           .map((job: JobRow) => {
             try {
@@ -735,27 +735,28 @@ export async function GET(request: Request) {
               return null
             }
           })
-          .filter((job): job is NonNullable<typeof job> => job !== null)
-          .filter(j => j.matchesFilter)
-          .sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score
-            return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
-          })
-      } catch (scoringError) {
-        console.error('Error in fallback scoring:', scoringError)
-        return NextResponse.json({ error: 'Failed to process jobs', details: String(scoringError) }, { status: 500 })
+            .filter((job): job is NonNullable<typeof job> => job !== null)
+            .filter(j => j.matchesFilter)
+            .sort((a, b) => {
+              if (b.score !== a.score) return b.score - a.score
+              return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
+            })
+        } catch (scoringError) {
+          console.error('Error in fallback scoring:', scoringError)
+          return NextResponse.json({ error: 'Failed to process jobs', details: String(scoringError) }, { status: 500 })
+        }
+
+        const passedJobs = scoredJobs.filter(j => j.score >= 40)
+        const paginatedJobs = passedJobs.slice(offset, offset + limit)
+
+        return NextResponse.json({
+          jobs: paginatedJobs,
+          total: passedJobs.length,
+          limit,
+          offset,
+          hasMore: offset + limit < passedJobs.length,
+        })
       }
-
-      const passedJobs = scoredJobs.filter(j => j.score >= 40)
-      const paginatedJobs = passedJobs.slice(offset, offset + limit)
-
-      return NextResponse.json({
-        jobs: paginatedJobs,
-        total: passedJobs.length,
-        limit,
-        offset,
-        hasMore: offset + limit < passedJobs.length,
-      })
     }
 
     if (!jobs || jobs.length === 0) {
