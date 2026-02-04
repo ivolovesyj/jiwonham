@@ -615,9 +615,16 @@ export async function GET(request: Request) {
 
     console.log('RPC params:', JSON.stringify(rpcParams, null, 2))
 
-    let { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
+    // RPC 타임아웃 문제로 인해 직접 쿼리 사용 (임시)
+    console.log('[API /jobs] Using direct query instead of RPC due to timeout issues')
+    const { data: jobs, error: jobsError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('is_active', true)
+      .order('crawled_at', { ascending: false })
+      .limit(1000)
 
-    console.log('[API /jobs] RPC returned:', jobs ? jobs.length : 0, 'jobs')
+    console.log('[API /jobs] Direct query returned:', jobs ? jobs.length : 0, 'jobs')
 
     if (jobsError) {
       console.error('[API /jobs] RPC error details:', JSON.stringify(jobsError, null, 2))
