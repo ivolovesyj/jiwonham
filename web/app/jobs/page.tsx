@@ -60,11 +60,14 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
   // filters 변경 시 로컬 상태 업데이트
   useEffect(() => {
     if (filters && filters.preferred_job_types) {
+      // DB에 저장된 _ 를 화면 표시용 · 로 변환
+      const displayJobTypes = filters.preferred_job_types.map(job => job.replace(/_/g, '·'))
+
       // 저장된 필터가 대분류인지 소분류인지 구분
       const depth1s: string[] = []
       const depth2s: string[] = []
 
-      filters.preferred_job_types.forEach(job => {
+      displayJobTypes.forEach(job => {
         if (options?.depth_ones.includes(job)) {
           depth1s.push(job)
         } else {
@@ -137,8 +140,8 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
       return
     }
 
-    // 소분류만 사용
-    const finalJobTypes = selectedDepthTwos
+    // 소분류만 사용 - 화면에 표시된 · 를 DB 저장용 _ 로 다시 변환
+    const finalJobTypes = selectedDepthTwos.map(job => job.replace(/·/g, '_'))
     const newFilters = {
       preferred_job_types: finalJobTypes,
       preferred_locations: regions,
