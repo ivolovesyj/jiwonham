@@ -252,6 +252,7 @@ export async function fetchJobDetail(entry) {
         source: 'zighang',
 
         company: recruitment.company?.name || '',
+        company_id: recruitment.company?.id || null,
         company_image: recruitment.company?.image || null,
 
         title: recruitment.title || '',

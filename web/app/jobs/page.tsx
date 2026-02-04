@@ -114,11 +114,10 @@ function FilterSidebar({ filters, options, onSave, user, isSidebarCollapsed, set
               }
             }}
             disabled={!user}
-            className={`w-full px-4 py-6 rounded-xl border-2 border-dashed text-center transition ${
-              user
-                ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
-                : 'border-gray-200 bg-gray-50 cursor-not-allowed'
-            }`}
+            className={`w-full px-4 py-6 rounded-xl border-2 border-dashed text-center transition ${user
+              ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+              : 'border-gray-200 bg-gray-50 cursor-not-allowed'
+              }`}
           >
             <SlidersHorizontal className="w-8 h-8 mx-auto mb-2 text-blue-600" />
             <div className="text-sm font-semibold text-gray-900 mb-1">
@@ -705,7 +704,8 @@ export default function Home() {
           onSave={async (newFilters) => {
             if (!user) return
 
-            await supabase.from('user_preferences').upsert(
+            // DB에 필터 저장 완료를 기다림
+            const { error } = await supabase.from('user_preferences').upsert(
               {
                 user_id: user.id,
                 preferred_job_types: newFilters.preferred_job_types,
@@ -716,11 +716,20 @@ export default function Home() {
               },
               { onConflict: 'user_id' }
             )
+
+            if (error) {
+              console.error('Failed to save filters:', error)
+              alert('필터 저장에 실패했습니다.')
+              return
+            }
+
+            // 로컬 상태 업데이트
             setFilters(newFilters)
-            // 필터 변경 시 공고 새로 불러오기
+
+            // 필터 변경 시 공고 새로 불러오기 (DB 저장 완료 후)
             offsetRef.current = 0
             setAppliedJobs([])
-            fetchJobs()
+            await fetchJobs()
           }}
         />
 
@@ -836,7 +845,8 @@ export default function Home() {
         onSave={async (newFilters) => {
           if (!user) return
 
-          await supabase.from('user_preferences').upsert(
+          // DB에 필터 저장 완료를 기다림
+          const { error } = await supabase.from('user_preferences').upsert(
             {
               user_id: user.id,
               preferred_job_types: newFilters.preferred_job_types,
@@ -847,11 +857,20 @@ export default function Home() {
             },
             { onConflict: 'user_id' }
           )
+
+          if (error) {
+            console.error('Failed to save filters:', error)
+            alert('필터 저장에 실패했습니다.')
+            return
+          }
+
+          // 로컬 상태 업데이트
           setFilters(newFilters)
-          // 필터 변경 시 공고 새로 불러오기
+
+          // 필터 변경 시 공고 새로 불러오기 (DB 저장 완료 후)
           offsetRef.current = 0
           setAppliedJobs([])
-          fetchJobs()
+          await fetchJobs()
         }}
       />
     </div>
