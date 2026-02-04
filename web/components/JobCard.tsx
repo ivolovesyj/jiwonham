@@ -126,7 +126,16 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
                 {type}
               </span>
             ))}
-            {job.reasons?.filter(r => !r.includes('신규')).slice(0, 2).map((reason, i) => (
+            {job.reasons?.filter(r => {
+              // '신규' 제외
+              if (r.includes('신규')) return false
+              // '희망 고용형태' 제외 (파란색 고용형태 태그와 중복)
+              if (r === '희망 고용형태') return false
+              // 직무 태그와 중복되는 reasons 제외 (보라색 직무 태그와 중복)
+              const cleanReason = r.replace(/\s*\(본문\)|\(연관\)|\(유사\)|\(관련\)/g, '').trim()
+              if (tags.some(tag => tag.replace(/_/g, ' ') === cleanReason)) return false
+              return true
+            }).slice(0, 2).map((reason, i) => (
               <span key={`r-${i}`} className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md border border-gray-200">
                 {reason.replace(/_/g, ' ')}
               </span>

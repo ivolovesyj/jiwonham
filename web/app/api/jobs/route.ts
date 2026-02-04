@@ -62,6 +62,25 @@ function jaroWinklerDistance(s1: string, s2: string): number {
 }
 
 // ============================================
+// 회사명 정규화 함수
+// ============================================
+
+function normalizeCompanyName(name: string): string {
+  if (!name) return ''
+
+  return name
+    .replace(/\(주\)/g, '')           // (주) 제거
+    .replace(/\(유\)/g, '')           // (유) 제거
+    .replace(/㈜/g, '')                // ㈜ 제거
+    .replace(/주식회사/g, '')         // 주식회사 제거
+    .replace(/유한회사/g, '')         // 유한회사 제거
+    .replace(/유한책임회사/g, '')     // 유한책임회사 제거
+    .replace(/\s+/g, '')              // 모든 공백 제거
+    .toLowerCase()                    // 소문자로 변환
+    .trim()
+}
+
+// ============================================
 // 직무 동의어/관련어 매핑 (의미적 연관성 매칭용)
 // ============================================
 
@@ -143,6 +162,7 @@ interface UserPreferences {
   preferred_industries?: string[]
   min_salary?: number
   work_style?: string[]  // 고용형태 필터: 정규직, 계약직, 인턴 등
+  preferred_company_types?: string[]  // 기업 유형 필터: 대기업, 스타트업 등
 }
 
 interface KeywordWeight {
@@ -183,7 +203,9 @@ function scoreJob(
   job: JobRow,
   prefs: UserPreferences | null,
   keywordWeights: KeywordWeight[],
-  companyPrefs: CompanyPref[]
+  companyPrefs: CompanyPref[],
+  companyType: string | null = null,
+  isInDB: boolean = false
 ): { score: number; reasons: string[]; warnings: string[]; matchesFilter: boolean } {
   let score = 50
   const reasons: string[] = []
@@ -316,13 +338,37 @@ function scoreJob(
     }
   }
 
-  // 3.5 고용형태 매칭
+  // 3.5 고용형태 매칭 (contractor→프리랜서, temporary→계약직/일용직 매핑)
   if (prefs.work_style?.length && job.employee_types?.length) {
-    const match = prefs.work_style.some(ws => job.employee_types!.includes(ws))
+    const normalizedPrefs = prefs.work_style.map(ws => {
+      if (ws === 'contractor') return '프리랜서'
+      if (ws === 'temporary') return '계약직/일용직'
+      return ws
+    })
+    const match = normalizedPrefs.some(ws => job.employee_types!.includes(ws))
     if (match) {
       score += 5
       reasons.push('희망 고용형태')
     }
+  }
+
+  // 3.6 기업 유형 매칭
+  if (prefs.preferred_company_types?.length && companyType) {
+    const match = prefs.preferred_company_types.includes(companyType)
+    if (match) {
+      score += 10
+      reasons.push(`${companyType}`)
+    } else if (companyType !== '기타') {
+      // "기타"는 패널티 없음
+      score -= 10
+      warnings.push(`⚠️ ${companyType} (선호 유형 아님)`)
+    }
+  }
+
+  // 3.7 DB에 있는 회사 우선순위 (크롤링된 정보가 있는 회사)
+  if (isInDB) {
+    score += 5
+    // reasons에는 추가하지 않음 (UI에 표시 안 함, 내부 우선순위만)
   }
 
   // 4. 학습된 키워드 가중치
@@ -539,12 +585,47 @@ export async function GET(request: Request) {
       })
     }
 
+    // 5.5 회사명으로 기업 유형 가져오기 (정규화된 이름으로 매칭)
+    const uniqueCompanyNames = [...new Set(jobs.map(j => j.company))]
+    const normalizedJobCompanies = uniqueCompanyNames.map(name => normalizeCompanyName(name))
+
+    const { data: companyTypes } = await supabase
+      .from('companies')
+      .select('normalized_name, company_type')
+      .in('normalized_name', normalizedJobCompanies)
+
+    // normalized_name → company_type 맵 생성
+    const normalizedCompanyTypeMap = new Map<string, string>()
+    companyTypes?.forEach(c => {
+      if (c.normalized_name && c.company_type) {
+        normalizedCompanyTypeMap.set(c.normalized_name, c.company_type)
+      }
+    })
+
+    // 원본 회사명 → company_type 맵 생성 (scoreJob에서 사용)
+    // 매칭 안 된 회사는 "기타"로 처리
+    const companyTypeMap = new Map<string, string>()
+    const companiesInDB = new Set<string>() // DB에 있는 회사 추적
+
+    uniqueCompanyNames.forEach(name => {
+      const normalized = normalizeCompanyName(name)
+      const type = normalizedCompanyTypeMap.get(normalized)
+      if (type) {
+        companyTypeMap.set(name, type)
+        companiesInDB.add(name)
+      } else {
+        companyTypeMap.set(name, '기타')
+      }
+    })
+
     // 6. 이미 본 공고 제외 + 점수 계산 + 필터링 + 정렬
     const now = Date.now()
     const scoredJobs = jobs
       .filter((job: JobRow) => !seenJobIds.has(job.id))
       .map((job: JobRow) => {
-        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs)
+        const companyType = companyTypeMap.get(job.company) || null
+        const isInDB = companiesInDB.has(job.company)
+        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs, companyType, isInDB)
         const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
         return {

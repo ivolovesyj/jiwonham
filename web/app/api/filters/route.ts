@@ -16,10 +16,16 @@ export async function GET(request: Request) {
       .select('depth_ones, depth_twos, regions, employee_types')
       .eq('is_active', true)
 
+    // 기업 유형 가져오기
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('company_type')
+
     const depthOnesSet = new Set<string>()
     const depthTwosMap = new Map<string, Set<string>>() // depth_one → Set<depth_two>
     const regionsSet = new Set<string>()
     const employeeTypesSet = new Set<string>()
+    const companyTypesSet = new Set<string>()
 
     jobs?.forEach(job => {
       job.depth_ones?.forEach((d: string) => {
@@ -46,17 +52,34 @@ export async function GET(request: Request) {
       job.employee_types?.forEach((t: string) => employeeTypesSet.add(t))
     })
 
+    // 기업 유형 수집
+    companies?.forEach(company => {
+      if (company.company_type) {
+        companyTypesSet.add(company.company_type)
+      }
+    })
+
     // Map을 객체로 변환
     const depthTwosObj: Record<string, string[]> = {}
     depthTwosMap.forEach((twosSet, one) => {
       depthTwosObj[one] = Array.from(twosSet).sort()
     })
 
+    // contractor와 temporary 제외 (프리랜서, 계약직/일용직과 중복)
+    const filteredEmployeeTypes = Array.from(employeeTypesSet)
+      .filter(type => type !== 'contractor' && type !== 'temporary')
+      .sort()
+
+    // 기업 유형에 "기타" 추가 (매칭 안 된 회사들)
+    const companyTypesArray = Array.from(companyTypesSet).sort()
+    companyTypesArray.push('기타')
+
     return NextResponse.json({
       depth_ones: Array.from(depthOnesSet).sort(),
       depth_twos_map: depthTwosObj, // { "개발": ["프론트엔드", "백엔드"], ... }
       regions: Array.from(regionsSet).sort(),
-      employee_types: Array.from(employeeTypesSet).sort(),
+      employee_types: filteredEmployeeTypes,
+      company_types: companyTypesArray,
     })
   } catch (error) {
     console.error('Filters error:', error)

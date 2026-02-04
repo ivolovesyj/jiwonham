@@ -13,6 +13,7 @@ interface FilterModalProps {
     depth_twos_map: Record<string, string[]>
     regions: string[]
     employee_types: string[]
+    company_types: string[]
   } | null
   onSave: (filters: UserFilters) => void
 }
@@ -22,9 +23,10 @@ interface UserFilters {
   preferred_locations: string[]
   career_level: string
   work_style: string[]
+  preferred_company_types?: string[]
 }
 
-type FilterCategory = 'job' | 'career' | 'region' | 'employment'
+type FilterCategory = 'job' | 'career' | 'region' | 'employment' | 'company'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -47,6 +49,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
   const [selectedCareers, setSelectedCareers] = useState<string[]>(['경력무관'])
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([])
+  const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<string[]>([])
 
   // 검색
   const [searchQuery, setSearchQuery] = useState('')
@@ -73,6 +76,9 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
 
     // 고용형태
     setSelectedEmploymentTypes(filters.work_style || [])
+
+    // 기업 유형
+    setSelectedCompanyTypes(filters.preferred_company_types || [])
   }, [filters, options])
 
   const handleSave = () => {
@@ -82,6 +88,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
       preferred_locations: selectedRegions,
       career_level: selectedCareers.join(','),
       work_style: selectedEmploymentTypes,
+      preferred_company_types: selectedCompanyTypes,
     }
     onSave(newFilters)
     onClose()
@@ -92,6 +99,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
     setSelectedCareers(['경력무관'])
     setSelectedRegions([])
     setSelectedEmploymentTypes([])
+    setSelectedCompanyTypes([])
     setSelectedDepthOne(null)
     setSearchQuery('')
   }
@@ -120,6 +128,12 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
     )
   }
 
+  const toggleCompanyType = (type: string) => {
+    setSelectedCompanyTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    )
+  }
+
   if (!isOpen || !options) return null
 
   // 선택된 개수 계산
@@ -133,6 +147,8 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
         return selectedRegions.length
       case 'employment':
         return selectedEmploymentTypes.length
+      case 'company':
+        return selectedCompanyTypes.length
       default:
         return 0
     }
@@ -279,6 +295,33 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                       }`}
                     >
                       {getSelectionCount('employment')}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedCategory('company')
+                  setSelectedDepthOne(null)
+                }}
+                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${
+                  selectedCategory === 'company'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>기업 유형</span>
+                  {getSelectionCount('company') > 0 && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        selectedCategory === 'company'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-teal-100 text-teal-700'
+                      }`}
+                    >
+                      {getSelectionCount('company')}
                     </span>
                   )}
                 </div>
@@ -436,6 +479,27 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   </div>
                 </div>
               )}
+
+              {selectedCategory === 'company' && (
+                <div>
+                  <div className="text-[15px] font-semibold text-gray-700 mb-3">기업 유형 선택</div>
+                  <div className="flex flex-wrap gap-2">
+                    {options.company_types.map(type => (
+                      <button
+                        key={type}
+                        onClick={() => toggleCompanyType(type)}
+                        className={`px-4 py-2 rounded-full text-[15px] border transition ${
+                          selectedCompanyTypes.includes(type)
+                            ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-teal-400'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -448,7 +512,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                 직무 {selectedDepthTwos.length}개
               </span>
             )}
-            {selectedDepthTwos.length > 0 && (selectedCareers.length > 0 || selectedRegions.length > 0 || selectedEmploymentTypes.length > 0) && (
+            {selectedDepthTwos.length > 0 && (selectedCareers.length > 0 || selectedRegions.length > 0 || selectedEmploymentTypes.length > 0 || selectedCompanyTypes.length > 0) && (
               <span className="mx-2">·</span>
             )}
             {selectedCareers.length > 0 && (
@@ -456,7 +520,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                 경력 {selectedCareers.length}개
               </span>
             )}
-            {selectedCareers.length > 0 && (selectedRegions.length > 0 || selectedEmploymentTypes.length > 0) && (
+            {selectedCareers.length > 0 && (selectedRegions.length > 0 || selectedEmploymentTypes.length > 0 || selectedCompanyTypes.length > 0) && (
               <span className="mx-2">·</span>
             )}
             {selectedRegions.length > 0 && (
@@ -464,12 +528,20 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                 지역 {selectedRegions.length}개
               </span>
             )}
-            {selectedRegions.length > 0 && selectedEmploymentTypes.length > 0 && (
+            {selectedRegions.length > 0 && (selectedEmploymentTypes.length > 0 || selectedCompanyTypes.length > 0) && (
               <span className="mx-2">·</span>
             )}
             {selectedEmploymentTypes.length > 0 && (
               <span className="font-medium">
                 고용형태 {selectedEmploymentTypes.length}개
+              </span>
+            )}
+            {selectedEmploymentTypes.length > 0 && selectedCompanyTypes.length > 0 && (
+              <span className="mx-2">·</span>
+            )}
+            {selectedCompanyTypes.length > 0 && (
+              <span className="font-medium">
+                기업 유형 {selectedCompanyTypes.length}개
               </span>
             )}
           </div>
