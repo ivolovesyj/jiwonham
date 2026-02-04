@@ -615,19 +615,15 @@ export async function GET(request: Request) {
 
     console.log('RPC params:', JSON.stringify(rpcParams, null, 2))
 
-    // RPC 타임아웃 문제로 인해 직접 쿼리 사용 (임시)
-    console.log('[API /jobs] Using direct query instead of RPC due to timeout issues')
-    const { data: jobs, error: jobsError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('is_active', true)
-      .order('crawled_at', { ascending: false })
-      .limit(1000)
+    // 인덱스 추가 후 RPC 함수 사용
+    console.log('[API /jobs] Using RPC function with indexes')
+    const { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
 
-    console.log('[API /jobs] Direct query returned:', jobs ? jobs.length : 0, 'jobs')
+    console.log('[API /jobs] RPC returned:', jobs ? jobs.length : 0, 'jobs')
 
     if (jobsError) {
-      console.error('[API /jobs] Direct query error:', jobsError)
+      console.error('[API /jobs] RPC error:', jobsError)
+      console.error('[API /jobs] RPC may have timed out. Indexes may need time to build.')
       return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
     }
 
