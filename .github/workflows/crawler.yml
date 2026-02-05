@@ -8,10 +8,15 @@ on:
   # 수동 실행 가능
   workflow_dispatch:
     inputs:
-      resume:
-        description: 'Resume from last run (true/false)'
+      mode:
+        description: 'Crawl mode (full/incremental/resume)'
         required: false
-        default: 'false'
+        default: 'incremental'
+        type: choice
+        options:
+          - incremental
+          - full
+          - resume
 
 jobs:
   crawl:
@@ -37,20 +42,23 @@ jobs:
           echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> .env
       
       - name: Download previous crawl state (for resume)
-        if: github.event.inputs.resume == 'true'
+        if: github.event.inputs.mode == 'resume'
         uses: actions/download-artifact@v4
         with:
           name: crawl-state-latest
           path: .
         continue-on-error: true
       
-      - name: Run crawler with resume support
+      - name: Run crawler
         run: |
-          if [ "${{ github.event.inputs.resume }}" = "true" ]; then
+          if [ "${{ github.event.inputs.mode }}" = "resume" ]; then
             echo "Resuming from last run..."
             node src/index.js --resume
+          elif [ "${{ github.event.inputs.mode }}" = "full" ]; then
+            echo "Starting full crawl..."
+            node src/index.js --full
           else
-            echo "Starting fresh crawl..."
+            echo "Starting incremental crawl..."
             node src/index.js
           fi
         timeout-minutes: 350  # 워크플로우 타임아웃보다 약간 짧게
@@ -93,7 +101,7 @@ jobs:
               workflow_id: 'crawler.yml',
               ref: 'main',
               inputs: {
-                resume: 'true'
+                mode: 'resume'
               }
             });
             console.log('Auto-resume workflow triggered');
