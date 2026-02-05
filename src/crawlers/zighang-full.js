@@ -308,8 +308,11 @@ export async function fetchJobDetail(entry) {
     return {
       id: entry.id,
       source: 'zighang',
+
       company: jobPosting.hiringOrganization?.name || '',
+      company_id: null,
       company_image: null,
+
       title: jobPosting.title || '',
       regions: locations,
       location: locations[0] || '',
@@ -318,14 +321,19 @@ export async function fetchJobDetail(entry) {
       employee_types: employeeTypes,
       deadline_type: null,
       end_date: null,
+
       depth_ones: depthOnes,
       depth_twos: [],
       keywords: [],
+
       views: 0,
+
       detail: { intro: '', main_tasks: ogDesc || '', requirements: '', preferred_points: '', benefits: '', work_conditions: '' },
+
       original_created_at: jobPosting.datePosted || null,
       last_modified_at: entry.lastmod?.toISOString() || null,
       crawled_at: new Date().toISOString(),
+
       is_active: true,
     };
   } catch (error) {
