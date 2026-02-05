@@ -128,6 +128,86 @@ function prosemirrorToText(doc) {
 }
 
 /**
+ * 학력 정보 추출 헬퍼 함수
+ * RSC 객체 또는 requirements 텍스트에서 학력 추출
+ */
+function extractEducation(recruitment, requirementsText) {
+  // 1순위: RSC에 educations 배열이 있으면 직접 사용
+  if (recruitment.educations && Array.isArray(recruitment.educations) && recruitment.educations.length > 0) {
+    // 배열의 첫 번째 값 사용
+    return normalizeEducation(recruitment.educations[0]);
+  }
+  
+  // 2순위: RSC에 education 단수형 필드가 있으면 사용 (하위 호환성)
+  if (recruitment.education && typeof recruitment.education === 'string') {
+    return normalizeEducation(recruitment.education);
+  }
+
+  // 3순위: requirements 텍스트에서 학력 키워드 검색
+  if (requirementsText) {
+    const text = requirementsText.toLowerCase();
+    
+    // 학력무관
+    if (text.includes('학력무관') || text.includes('학력 무관')) {
+      return '무관';
+    }
+    
+    // 박사
+    if (text.includes('박사')) {
+      return '박사';
+    }
+    
+    // 석사
+    if (text.includes('석사')) {
+      return '석사';
+    }
+    
+    // 학사/대졸
+    if (text.includes('학사') || text.includes('대졸') || text.includes('대학교 졸업')) {
+      return '학사';
+    }
+    
+    // 전문대졸
+    if (text.includes('전문대') || text.includes('전문학사')) {
+      return '전문대졸';
+    }
+    
+    // 고졸
+    if (text.includes('고졸') || text.includes('고등학교')) {
+      return '고졸';
+    }
+  }
+  
+  // 기본값: null (정보 없음)
+  return null;
+}
+
+/**
+ * 학력 정보 정규화 (다양한 표현을 표준 형식으로 변환)
+ */
+function normalizeEducation(education) {
+  const normalized = education.trim();
+  
+  // 매핑 테이블
+  const eduMap = {
+    '무관': ['무관', '학력무관', '학력 무관', '제한없음'],
+    '고졸': ['고졸', '고등학교', '고등학교 졸업'],
+    '전문대졸': ['전문대졸', '전문대', '전문학사'],
+    '학사': ['학사', '대졸', '대학 졸업', '대학교 졸업', '4년제'],
+    '석사': ['석사', '석사 학위'],
+    '박사': ['박사', '박사 학위'],
+  };
+  
+  for (const [standard, variations] of Object.entries(eduMap)) {
+    if (variations.some(v => normalized.includes(v))) {
+      return standard;
+    }
+  }
+  
+  return normalized; // 매핑되지 않으면 원본 반환
+}
+
+/**
  * 평문 텍스트를 섹션 헤딩 기준으로 detail 필드로 분리
  */
 function parseDetailSections(text) {
@@ -180,6 +260,63 @@ function parseDetailSections(text) {
   result.raw_content = result.raw_content.replace(/\n{3,}/g, '\n\n').trim();
 
   return result;
+}
+
+/**
+ * 회사 상세 페이지에서 회사 유형 추출
+ * @param {string} companyId - 회사 ID
+ * @returns {Promise<{company_type: string}>}
+ */
+async function fetchCompanyDetail(companyId) {
+  try {
+    const companyUrl = `${BASE_URL}/company/${companyId}`;
+    const response = await axios.get(companyUrl, {
+      headers: {
+        ...HEADERS,
+        'Accept': 'text/html',
+      },
+      timeout: 10000,
+    });
+
+    const html = response.data;
+
+    // RSC에서 metadata 추출
+    const rscChunks = [];
+    const regex = /self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)/g;
+    let match;
+    
+    while ((match = regex.exec(html)) !== null) {
+      const decoded = match[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      rscChunks.push(decoded);
+    }
+    
+    const fullRsc = rscChunks.join('');
+
+    // 회사 유형 추출 (meta keywords에서)
+    let company_type = '중소기업'; // 기본값
+    const keywordsMatch = fullRsc.match(/\["\$","meta","3",\{"name":"keywords","content":"([^"]+)"\}\]/);
+    if (keywordsMatch) {
+      const keywords = keywordsMatch[1].split(',').map(k => k.trim());
+      // 뒤에서 두 번째 항목이 회사 유형
+      if (keywords.length >= 2) {
+        const potentialType = keywords[keywords.length - 2];
+        // 유효한 회사 유형인지 확인
+        const validTypes = ['대기업', '중견기업', '중소기업', '스타트업', '유니콘', '외국계', '공기업'];
+        if (validTypes.includes(potentialType)) {
+          company_type = potentialType;
+        }
+      }
+    }
+
+    return { company_type };
+  } catch (error) {
+    console.error(`회사 상세 정보 크롤링 실패 (${companyId}):`, error.message);
+    // Fallback 값 반환
+    return { company_type: '중소기업' };
+  }
 }
 
 /**
@@ -247,13 +384,37 @@ export async function fetchJobDetail(entry) {
     const recruitment = extractRecruitmentFromRsc(html);
 
     if (recruitment) {
+      // summary/content를 평문 변환 후 섹션 분리
+      const contentText = prosemirrorToText(recruitment.content) || prosemirrorToText(recruitment.summary) || $('meta[property="og:description"]').attr('content') || '';
+      const detail = parseDetailSections(contentText);
+      
+      // 학력 정보 추출 (RSC 또는 자격요건에서)
+      const education = extractEducation(recruitment, detail.requirements);
+      
+      // 회사 유형 추출 (hasDetailInfo 분기 처리)
+      let company_type = '중소기업'; // 기본값
+      
+      const companyId = recruitment.company?.id;
+      const hasDetailInfo = recruitment.company?.hasDetailInfo;
+      
+      if (companyId && hasDetailInfo === true) {
+        // hasDetailInfo가 true면 회사 상세 페이지 크롤링
+        console.log(`  ℹ️  회사 상세 정보 크롤링: ${recruitment.company?.name} (${companyId})`);
+        const companyDetail = await fetchCompanyDetail(companyId);
+        company_type = companyDetail.company_type;
+      } else {
+        // hasDetailInfo가 false이거나 없으면 fallback
+        console.log(`  ⚠️  회사 상세 정보 없음, 기본값 사용: ${recruitment.company?.name}`);
+      }
+      
       return {
         id: entry.id,
         source: 'zighang',
 
         company: recruitment.company?.name || '',
-        company_id: recruitment.company?.id || null,
+        company_id: companyId || null,
         company_image: recruitment.company?.image || null,
+        company_type,  // 추가: 회사 유형
 
         title: recruitment.title || '',
         regions: recruitment.regions || [],
@@ -269,11 +430,10 @@ export async function fetchJobDetail(entry) {
         keywords: recruitment.keywords || [],
 
         views: recruitment.views || 0,
-
-        // summary/content를 평문 변환 후 섹션 분리
-        detail: parseDetailSections(
-          prosemirrorToText(recruitment.content) || prosemirrorToText(recruitment.summary) || $('meta[property="og:description"]').attr('content') || ''
-        ),
+        detail,
+        
+        // 학력 정보 추가
+        education,
 
         original_created_at: recruitment.createdAt || null,
         last_modified_at: entry.lastmod?.toISOString() || null,
@@ -312,6 +472,7 @@ export async function fetchJobDetail(entry) {
       company: jobPosting.hiringOrganization?.name || '',
       company_id: null,
       company_image: null,
+      company_type: '중소기업',  // fallback 기본값
 
       title: jobPosting.title || '',
       regions: locations,
@@ -328,7 +489,9 @@ export async function fetchJobDetail(entry) {
 
       views: 0,
 
-      detail: { intro: '', main_tasks: ogDesc || '', requirements: '', preferred_points: '', benefits: '', work_conditions: '' },
+      detail: { intro: '', main_tasks: ogDesc || '', requirements: '', preferred_points: '', benefits: '', work_conditions: '', raw_content: ogDesc || '' },
+      
+      education: null,  // fallback에서는 학력 정보 없음
 
       original_created_at: jobPosting.datePosted || null,
       last_modified_at: entry.lastmod?.toISOString() || null,
@@ -351,9 +514,12 @@ export async function fetchJobDetail(entry) {
  *    - onBatch: 배치 콜백 (Supabase 저장용)
  *    - onProgress: 진행 상태 콜백
  */
-export async function crawlAll({ sinceDate = null, existingIds = null, onBatch = null, onProgress = null } = {}) {
+export async function crawlAll({ sinceDate = null, existingIds = null, resumeFrom = 0, onBatch = null, onProgress = null } = {}) {
   console.log('\n🚀 직항 전체 공고 크롤링 시작');
   console.log(`   모드: ${sinceDate ? `증분 (${sinceDate} 이후)` : '전체'}`);
+  if (resumeFrom > 0) {
+    console.log(`   재개: ${resumeFrom}번째부터 시작`);
+  }
   console.log(`   시간: ${new Date().toLocaleString('ko-KR')}\n`);
 
   // 1. 전체 URL 수집 (사이트맵 diff용으로 전체 ID도 확보)
@@ -389,7 +555,13 @@ export async function crawlAll({ sinceDate = null, existingIds = null, onBatch =
   let batch = [];
   let processed = 0;
 
-  for (let i = 0; i < entries.length; i += CONCURRENCY) {
+  // 재개 모드: 이미 처리된 부분 스킵
+  const startIndex = resumeFrom || 0;
+  if (startIndex > 0) {
+    console.log(`⏩ ${startIndex}개 스킵 (이미 처리됨)`);
+  }
+
+  for (let i = startIndex; i < entries.length; i += CONCURRENCY) {
     const chunk = entries.slice(i, i + CONCURRENCY);
     const jobs = await Promise.all(chunk.map(entry => fetchJobDetail(entry)));
 
@@ -414,12 +586,14 @@ export async function crawlAll({ sinceDate = null, existingIds = null, onBatch =
       batch = [];
     }
 
-    // 진행 상태 출력
-    if (processed % 100 < CONCURRENCY || i + CONCURRENCY >= entries.length) {
-      const progress = `${processed}/${entries.length}`;
+    // 진행 상태 출력 및 콜백
+    const totalProcessed = startIndex + processed;
+    if (totalProcessed % 100 < CONCURRENCY || i + CONCURRENCY >= entries.length) {
+      const progress = `${totalProcessed}/${entries.length}`;
+      const lastProcessedId = chunk[chunk.length - 1]?.id;
       const stats = `성공: ${success}, 실패: ${failed}, 삭제: ${deleted}`;
       console.log(`  📈 [${progress}] ${stats}`);
-      if (onProgress) onProgress({ current: processed, total: entries.length, success, failed, deleted });
+      if (onProgress) await onProgress({ current: totalProcessed, total: entries.length, success, failed, deleted, lastProcessedId });
     }
 
     await sleep(200); // 동시 요청 간 짧은 딜레이 (서버 부하 방지)

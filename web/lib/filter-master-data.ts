@@ -170,6 +170,16 @@ export const EMPLOYMENT_TYPES = [
   '병역특례',
 ] as const
 
+// 학력
+export const EDUCATION_LEVELS = [
+  '무관',
+  '고졸',
+  '전문대졸',
+  '학사',
+  '석사',
+  '박사',
+] as const
+
 // 기업 유형
 export const COMPANY_TYPES = [
   '대기업',

@@ -94,6 +94,7 @@ interface UserPreferences {
   min_salary?: number
   work_style?: string[]  // 고용형태 필터: 정규직, 계약직, 인턴 등
   preferred_company_types?: string[]  // 기업 유형 필터: 대기업, 스타트업 등
+  preferred_education?: string[]  // 학력 필터: 무관, 고졸, 전문대졸, 학사, 석사, 박사
 }
 
 interface KeywordWeight {
@@ -133,6 +134,7 @@ interface JobRow {
   keywords: string[] | null
   views: number | null
   detail: Record<string, string> | null
+  education: string | null  // 학력 추가
   original_created_at: string | null
   last_modified_at: string | null
   crawled_at: string
@@ -328,7 +330,21 @@ function scoreJob(
     }
   }
 
-  // 3.7 DB에 있는 회사 우선순위 (크롤링된 정보가 있는 회사)
+  // 3.7 학력 필터 (엄격한 필터링)
+  if (prefs.preferred_education?.length && job.education) {
+    // '무관'은 모든 학력에 매칭됨
+    const isFlexible = job.education === '무관' || prefs.preferred_education.includes('무관')
+    const match = isFlexible || prefs.preferred_education.includes(job.education)
+    
+    if (!match) {
+      matchesFilter = false
+      warnings.push(`⚠️ ${job.education} 요구 (학력 불일치)`)
+    } else if (!isFlexible) {
+      reasons.push(`학력 ${job.education}`)
+    }
+  }
+
+  // 3.8 DB에 있는 회사 우선순위 (크롤링된 정보가 있는 회사)
   if (isInDB) {
     score += 5
     // reasons에는 추가하지 않음 (UI에 표시 안 함, 내부 우선순위만)
@@ -475,6 +491,7 @@ export async function GET(request: Request) {
           id: job.id,
           company: job.company,
           company_image: job.company_image,
+          company_type: job.company_type,
           title: job.title,
           location: job.location || '위치 미정',
           score: 50,
@@ -633,6 +650,7 @@ export async function GET(request: Request) {
           id: job.id,
           company: job.company,
           company_image: job.company_image,
+          company_type: job.company_type,
           title: job.title,
           location: job.location || '위치 미정',
           score,

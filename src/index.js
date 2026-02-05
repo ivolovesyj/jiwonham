@@ -165,14 +165,41 @@ async function notifyNewJobs(newJobCount) {
 }
 
 /**
+ * 크롤링 상태 저장
+ */
+async function saveCrawlState(state) {
+  const fs = await import('fs/promises');
+  await fs.writeFile('crawl-state.json', JSON.stringify(state, null, 2));
+  console.log('💾 크롤링 상태 저장됨 (crawl-state.json)');
+}
+
+/**
+ * 크롤링 상태 로드
+ */
+async function loadCrawlState() {
+  try {
+    const fs = await import('fs/promises');
+    const data = await fs.readFile('crawl-state.json', 'utf-8');
+    const state = JSON.parse(data);
+    console.log('📂 이전 크롤링 상태 로드됨');
+    console.log(`   - 진행률: ${state.processed}/${state.total}개`);
+    console.log(`   - 마지막 ID: ${state.lastProcessedId}`);
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 메인 실행
  */
 async function main() {
   const isFullCrawl = process.argv.includes('--full');
+  const isResume = process.argv.includes('--resume');
 
   console.log('🐕 취업하개 - 채용공고 수집기');
   console.log(`시간: ${new Date().toLocaleString('ko-KR')}`);
-  console.log(`모드: ${isFullCrawl ? '전체 수집' : '증분 수집'}\n`);
+  console.log(`모드: ${isFullCrawl ? '전체 수집' : '증분 수집'}${isResume ? ' (재개)' : ''}\n`);
 
   // 증분 크롤링: 마지막 수집일 이후 수정된 공고만 상세 크롤링
   // (사이트맵 전체 URL은 항상 수집 → diff용)
@@ -186,9 +213,18 @@ async function main() {
     }
   }
 
+  // 재개 모드: 이전 상태 로드
+  let resumeState = null;
+  if (isResume) {
+    resumeState = await loadCrawlState();
+    if (!resumeState) {
+      console.log('⚠️  이전 상태 파일이 없습니다. 처음부터 시작합니다.');
+    }
+  }
+
   // full 크롤링 시 이미 수집된 ID 조회 → 스킵 (중단 후 재개)
   let existingIds = null;
-  if (isFullCrawl) {
+  if (isFullCrawl || isResume) {
     console.log('📦 DB에서 기존 공고 ID 조회...');
     existingIds = new Set();
     let offset = 0;
@@ -212,12 +248,28 @@ async function main() {
   }
 
   // 크롤링 실행 (sinceDate는 상세 크롤링 범위만 제한, 사이트맵은 항상 전체)
+  let lastProcessedIndex = resumeState?.processed || 0;
+  
   const result = await crawlAll({
     sinceDate,
     existingIds,
+    resumeFrom: lastProcessedIndex,
     onBatch: saveBatch,
-    onProgress: ({ current, total, success, failed }) => {
-      // GitHub Actions 로그용
+    onProgress: async ({ current, total, success, failed, lastProcessedId }) => {
+      // 진행 상황 출력 (GitHub Actions 로그용)
+      if (current % 100 === 0) {
+        console.log(`📊 진행: ${current}/${total} (${((current/total)*100).toFixed(1)}%)`);
+        
+        // 주기적으로 상태 저장 (100개마다)
+        await saveCrawlState({
+          processed: current,
+          total,
+          success,
+          failed,
+          lastProcessedId,
+          timestamp: new Date().toISOString(),
+        });
+      }
     },
   });
 
