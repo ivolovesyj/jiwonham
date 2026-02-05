@@ -73,7 +73,7 @@ export interface ApplicationStatusData {
   interview_dates?: InterviewDate[] | null
   required_documents?: RequiredDocuments | null
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 export interface ApplicationWithJob extends ApplicationStatusData {
