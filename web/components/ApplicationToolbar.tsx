@@ -1,19 +1,15 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Search, SortAsc, LayoutGrid, LayoutList, Plus } from 'lucide-react'
+import { Search, SortAsc, Plus } from 'lucide-react'
 import { Button } from './ui/button'
 
 export type SortKey = 'created_at' | 'deadline' | 'score' | 'company' | 'status'
-export type ViewMode = 'card' | 'compact'
 
 interface ApplicationToolbarProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   sortKey: SortKey
   onSortChange: (key: SortKey) => void
-  viewMode: ViewMode
-  onViewModeChange: (mode: ViewMode) => void
   onAddExternal?: () => void
 }
 
@@ -30,8 +26,6 @@ export function ApplicationToolbar({
   onSearchChange,
   sortKey,
   onSortChange,
-  viewMode,
-  onViewModeChange,
   onAddExternal,
 }: ApplicationToolbarProps) {
   return (
@@ -49,7 +43,7 @@ export function ApplicationToolbar({
           />
         </div>
 
-        {/* 정렬 + 뷰 + 추가 */}
+        {/* 정렬 + 추가 */}
         <div className="flex items-center gap-2">
           {/* 정렬 */}
           <div className="relative">
@@ -65,24 +59,6 @@ export function ApplicationToolbar({
               ))}
             </select>
             <SortAsc className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-
-          {/* 뷰 토글 */}
-          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-            <button
-              onClick={() => onViewModeChange('card')}
-              className={`p-2 ${viewMode === 'card' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              title="카드뷰"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onViewModeChange('compact')}
-              className={`p-2 ${viewMode === 'compact' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              title="리스트뷰"
-            >
-              <LayoutList className="w-4 h-4" />
-            </button>
           </div>
 
           {/* 외부 공고 추가 */}

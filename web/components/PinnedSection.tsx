@@ -19,10 +19,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
-import { ApplicationCard } from './ApplicationCard'
 import { CompactApplicationRow } from './CompactApplicationRow'
 import { GripVertical } from 'lucide-react'
-import { ViewMode } from './ApplicationToolbar'
 
 interface SortableItemProps {
   id: string
@@ -65,7 +63,6 @@ function SortableItem({ id, children }: SortableItemProps) {
 
 interface PinnedSectionProps {
   pinnedApps: ApplicationWithJob[]
-  viewMode: ViewMode
   pinnedIds: Set<string>
   onReorder: (newOrder: string[]) => void
   onStatusChange: (id: string, newStatus: ApplicationStatus) => void
@@ -78,7 +75,6 @@ interface PinnedSectionProps {
 
 export function PinnedSection({
   pinnedApps,
-  viewMode,
   pinnedIds,
   onReorder,
   onStatusChange,
@@ -122,32 +118,19 @@ export function PinnedSection({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {pinnedApps.map((application) => (
               <SortableItem key={application.saved_job.id} id={application.saved_job.id}>
-                {viewMode === 'card' ? (
-                  <ApplicationCard
-                    application={application}
-                    onStatusChange={onStatusChange}
-                    onUpdateNotes={onUpdateNotes}
-                    onUpdateDocuments={onUpdateDocuments}
-                    onUpdateDeadline={onUpdateDeadline}
-                    onDelete={onDelete}
-                    isPinned={true}
-                    onTogglePin={onTogglePin}
-                  />
-                ) : (
-                  <CompactApplicationRow
-                    application={application}
-                    onStatusChange={onStatusChange}
-                    onUpdateNotes={onUpdateNotes}
-                    onUpdateDocuments={onUpdateDocuments}
-                    onUpdateDeadline={onUpdateDeadline}
-                    onDelete={onDelete}
-                    isPinned={true}
-                    onTogglePin={onTogglePin}
-                  />
-                )}
+                <CompactApplicationRow
+                  application={application}
+                  onStatusChange={onStatusChange}
+                  onUpdateNotes={onUpdateNotes}
+                  onUpdateDocuments={onUpdateDocuments}
+                  onUpdateDeadline={onUpdateDeadline}
+                  onDelete={onDelete}
+                  isPinned={true}
+                  onTogglePin={onTogglePin}
+                />
               </SortableItem>
             ))}
           </div>

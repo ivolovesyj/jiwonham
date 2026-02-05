@@ -3,11 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
-import { ApplicationCard } from '@/components/ApplicationCard'
 import { CompactApplicationRow } from '@/components/CompactApplicationRow'
 import { PinnedSection } from '@/components/PinnedSection'
 import { AddExternalJobModal } from '@/components/AddExternalJobModal'
-import { ApplicationToolbar, SortKey, ViewMode } from '@/components/ApplicationToolbar'
+import { ApplicationToolbar, SortKey } from '@/components/ApplicationToolbar'
 import { getDeadlineSortValue } from '@/components/DeadlineBadge'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
@@ -68,10 +67,9 @@ export default function HomePage() {
   const dataLoadedRef = useRef(false)
   const lastUserIdRef = useRef<string | null>(null)
 
-  // Phase 1: 검색, 정렬, 뷰 모드
+  // Phase 1: 검색, 정렬
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
-  const [viewMode, setViewMode] = useState<ViewMode>('compact')
 
   // Phase 2: 핀 상태 + 순서
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
@@ -672,8 +670,6 @@ export default function HomePage() {
                 onSearchChange={setSearchQuery}
                 sortKey={sortKey}
                 onSortChange={setSortKey}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
                 onAddExternal={() => setShowExternalModal(true)}
               />
 
@@ -736,7 +732,6 @@ export default function HomePage() {
                   {/* 핀 고정 섹션 */}
                   <PinnedSection
                     pinnedApps={pinnedApplications}
-                    viewMode={viewMode}
                     pinnedIds={pinnedIds}
                     onReorder={handleReorderPins}
                     onStatusChange={handleStatusChange}
@@ -757,35 +752,20 @@ export default function HomePage() {
                   )}
 
                   {/* 일반 공고 목록 */}
-                  <div className="space-y-3">
-                    {viewMode === 'card'
-                      ? processedApplications.map((application) => (
-                          <ApplicationCard
-                            key={application.id}
-                            application={application}
-                            onStatusChange={handleStatusChange}
-                            onUpdateNotes={handleUpdateNotes}
-                            onUpdateDocuments={handleUpdateDocuments}
-                            onUpdateDeadline={handleUpdateDeadline}
-                            onDelete={handleDelete}
-                            isPinned={false}
-                            onTogglePin={handleTogglePin}
-                          />
-                        ))
-                      : processedApplications.map((application) => (
-                          <CompactApplicationRow
-                            key={application.id}
-                            application={application}
-                            onStatusChange={handleStatusChange}
-                            onUpdateNotes={handleUpdateNotes}
-                            onUpdateDocuments={handleUpdateDocuments}
-                            onUpdateDeadline={handleUpdateDeadline}
-                            onDelete={handleDelete}
-                            isPinned={false}
-                            onTogglePin={handleTogglePin}
-                          />
-                        ))
-                    }
+                  <div className="space-y-2">
+                    {processedApplications.map((application) => (
+                      <CompactApplicationRow
+                        key={application.id}
+                        application={application}
+                        onStatusChange={handleStatusChange}
+                        onUpdateNotes={handleUpdateNotes}
+                        onUpdateDocuments={handleUpdateDocuments}
+                        onUpdateDeadline={handleUpdateDeadline}
+                        onDelete={handleDelete}
+                        isPinned={false}
+                        onTogglePin={handleTogglePin}
+                      />
+                    ))}
                   </div>
                 </>
               )}
