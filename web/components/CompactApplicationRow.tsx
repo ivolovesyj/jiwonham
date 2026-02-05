@@ -85,18 +85,18 @@ export function CompactApplicationRow({
           {title}
         </span>
 
-        {/* 위치 */}
-        {location && (
-          <span className="hidden lg:block flex-shrink-0 text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-md">
-            {location}
-          </span>
-        )}
-
         {/* 메모 아이콘 */}
         {application.notes && (
           <div className="flex-shrink-0" title="메모 있음">
             <MessageSquare className="w-4 h-4 text-blue-500" />
           </div>
+        )}
+
+        {/* 위치 */}
+        {location && (
+          <span className="hidden lg:block flex-shrink-0 text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-md">
+            {location}
+          </span>
         )}
 
         {/* 상태 */}
