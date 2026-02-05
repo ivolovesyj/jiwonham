@@ -94,7 +94,9 @@ export function CompactApplicationRow({
 
         {/* 메모 아이콘 */}
         {application.notes && (
-          <MessageSquare className="w-4 h-4 text-blue-500 flex-shrink-0" title="메모 있음" />
+          <div className="flex-shrink-0" title="메모 있음">
+            <MessageSquare className="w-4 h-4 text-blue-500" />
+          </div>
         )}
 
         {/* 상태 */}
