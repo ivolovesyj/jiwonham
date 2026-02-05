@@ -105,11 +105,11 @@ export function CompactApplicationRow({
 
         {/* 마감일 */}
         <div className="flex-shrink-0">
-          {saved_job.deadline ? (
-            <DeadlineBadge deadline={saved_job.deadline} />
-          ) : (
-            <span className="text-xs text-gray-400">마감일 없음</span>
-          )}
+          <DeadlineBadge
+            deadline={saved_job.deadline}
+            editable
+            onDeadlineChange={(newDeadline) => onUpdateDeadline(saved_job.id, newDeadline)}
+          />
         </div>
 
         {/* 메모 아이콘 */}

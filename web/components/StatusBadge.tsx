@@ -81,13 +81,13 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
   const dropdownRef = useRef<HTMLDivElement>(null)
   const config = statusConfig[status]
 
-  // 드롭다운 위치 계산
+  // 드롭다운 위치 계산 (뷰포트 기준 fixed)
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 4,
+        left: rect.left,
       })
     }
   }, [isOpen])
