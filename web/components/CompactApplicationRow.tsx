@@ -36,9 +36,14 @@ export function CompactApplicationRow({
   // 외부 공고와 일반 공고 모두 지원
   const company = saved_job.external_company || saved_job.company || '회사명 없음'
   const title = saved_job.external_title || saved_job.title || '직무명 없음'
-  const location = saved_job.external_location || saved_job.location
+  const rawLocation = saved_job.external_location || saved_job.location
   const deadline = saved_job.external_deadline || saved_job.deadline
   const jobUrl = saved_job.external_url || saved_job.link
+
+  // 지역 간소화: "서울 강남구" → "서울", "경기 성남시 분당" → "경기"
+  const location = rawLocation
+    ? rawLocation.split(' ')[0]
+    : null
 
   const handleSaveNotes = () => {
     onUpdateNotes(application.id, notes)
@@ -46,10 +51,10 @@ export function CompactApplicationRow({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
       {/* 컴팩트 행 */}
       <div
-        className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         {/* 별표 고정 */}
@@ -59,7 +64,11 @@ export function CompactApplicationRow({
               e.stopPropagation()
               onTogglePin(saved_job.id)
             }}
-            className={`flex-shrink-0 p-0.5 rounded ${isPinned ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
+            className={`flex-shrink-0 p-1 rounded-md transition-all ${
+              isPinned
+                ? 'text-yellow-500 hover:bg-yellow-50'
+                : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-100'
+            }`}
             title={isPinned ? '고정 해제' : '상위 고정'}
           >
             <Star className="w-4 h-4" style={isPinned ? { fill: 'currentColor' } : {}} />
@@ -67,27 +76,29 @@ export function CompactApplicationRow({
         )}
 
         {/* 회사명 */}
-        <span className="flex-shrink-0 w-24 sm:w-32 text-sm font-semibold text-gray-900 truncate">
+        <span className="flex-shrink-0 w-20 sm:w-28 text-sm font-bold text-gray-900 truncate">
           {company}
         </span>
 
         {/* 공고명 */}
-        <span className="flex-1 text-sm text-gray-600 truncate min-w-0">
+        <span className="flex-1 text-sm text-gray-700 truncate min-w-0 font-medium">
           {title}
         </span>
 
-        {/* 메모 아이콘 */}
-        {application.notes && (
-          <MessageSquare className="w-4 h-4 text-blue-400 flex-shrink-0" />
+        {/* 위치 */}
+        {location && (
+          <span className="hidden lg:block flex-shrink-0 text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-md">
+            {location}
+          </span>
         )}
 
-        {/* 위치 - 고정 너비 */}
-        <span className="hidden md:block flex-shrink-0 text-xs text-gray-500 w-14 text-right">
-          {location || '-'}
-        </span>
+        {/* 메모 아이콘 */}
+        {application.notes && (
+          <MessageSquare className="w-4 h-4 text-blue-500 flex-shrink-0" title="메모 있음" />
+        )}
 
-        {/* 상태 - 고정 너비 */}
-        <div className="flex-shrink-0 w-[72px] flex justify-end">
+        {/* 상태 */}
+        <div className="flex-shrink-0 w-[78px] flex justify-end">
           <StatusBadge
             status={application.status}
             editable
@@ -95,8 +106,8 @@ export function CompactApplicationRow({
           />
         </div>
 
-        {/* 마감일 - 고정 너비 */}
-        <div className="hidden sm:flex flex-shrink-0 w-[88px] justify-end">
+        {/* 마감일 */}
+        <div className="hidden sm:flex flex-shrink-0 w-[92px] justify-end">
           <DeadlineBadge
             deadline={deadline}
             editable
@@ -105,24 +116,30 @@ export function CompactApplicationRow({
         </div>
 
         {/* 확장 아이콘 */}
-        <div className="flex-shrink-0 text-gray-400 ml-1">
+        <div className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </div>
       </div>
 
       {/* 확장 시 상세 정보 */}
       {expanded && (
-        <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-2">
-          {/* 액션 버튼 */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
+        <div className="border-t border-gray-100 px-4 py-3 bg-gradient-to-b from-gray-50 to-white space-y-3">
+          {/* 상세 정보 행 */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-4 text-gray-600">
+              {rawLocation && (
+                <span className="flex items-center gap-1">
+                  <span className="text-gray-400">📍</span>
+                  {rawLocation}
+                </span>
+              )}
               {jobUrl && (
                 <a
                   href={jobUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                  className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   원문 보기
@@ -134,28 +151,30 @@ export function CompactApplicationRow({
                 e.stopPropagation()
                 onDelete(application.id, saved_job.id)
               }}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+              className="inline-flex items-center gap-1 px-2 py-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
               title="삭제"
             >
               <Trash2 className="w-3.5 h-3.5" />
+              <span className="text-xs">삭제</span>
             </button>
           </div>
 
           {/* 메모 */}
           <div onClick={(e) => e.stopPropagation()}>
             {editingNotes ? (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="메모를 입력하세요..."
-                  className="w-full text-xs border border-gray-200 rounded px-2 py-1 min-h-[60px] resize-none"
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 min-h-[80px] resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
                 />
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleSaveNotes}>
+                <div className="flex gap-2">
+                  <Button size="sm" className="h-7 px-3 text-xs" onClick={handleSaveNotes}>
                     저장
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingNotes(false)}>
+                  <Button size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={() => setEditingNotes(false)}>
                     취소
                   </Button>
                 </div>
@@ -163,13 +182,13 @@ export function CompactApplicationRow({
             ) : (
               <button
                 onClick={() => setEditingNotes(true)}
-                className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1"
+                className="w-full text-left text-sm text-gray-600 hover:text-gray-900 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 transition-all flex items-start gap-2"
               >
-                <MessageSquare className="w-3 h-3" />
+                <MessageSquare className="w-4 h-4 mt-0.5 text-blue-500 flex-shrink-0" />
                 {application.notes ? (
-                  <span className="truncate max-w-[200px]">{application.notes}</span>
+                  <span className="flex-1">{application.notes}</span>
                 ) : (
-                  <span className="text-gray-400">메모 추가</span>
+                  <span className="text-gray-400">메모 추가하기...</span>
                 )}
               </button>
             )}
