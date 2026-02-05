@@ -100,7 +100,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     created_at: '2026-02-03T10:00:00Z',
     applied_date: '2026-02-06',
     notes: null,
-    required_documents: { resume: true, portfolio: true, cover_letter: false },
+    required_documents: { resume: 'ready', portfolio: 'ready' },
     saved_job: {
       id: 'demo-job-3',
       user_id: 'demo',
@@ -123,7 +123,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     created_at: '2026-02-04T10:00:00Z',
     applied_date: '2026-02-05',
     notes: '2차 면접 대기 중',
-    required_documents: { resume: true, portfolio: true, cover_letter: true },
+    required_documents: { resume: 'ready', portfolio: 'ready', cover_letter: 'ready' },
     saved_job: {
       id: 'demo-job-4',
       user_id: 'demo',
@@ -146,7 +146,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     created_at: '2026-01-25T10:00:00Z',
     applied_date: '2026-01-28',
     notes: '서류 합격! 면접 준비 중',
-    required_documents: { resume: true, portfolio: true, cover_letter: false },
+    required_documents: { resume: 'ready', portfolio: 'ready' },
     saved_job: {
       id: 'demo-job-5',
       user_id: 'demo',
@@ -238,7 +238,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     created_at: '2026-01-30T10:00:00Z',
     applied_date: '2026-02-03',
     notes: null,
-    required_documents: { resume: true, portfolio: false, cover_letter: true },
+    required_documents: { resume: 'ready', cover_letter: 'ready' },
     saved_job: {
       id: 'demo-job-9',
       user_id: 'demo',
