@@ -103,8 +103,8 @@ export default function ApplicationsPage() {
           *,
           application_status (
             status,
-            applied_at,
-            rejected_at
+            applied_date,
+            notes
           )
         `)
         .eq('user_id', user!.id)
