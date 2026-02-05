@@ -222,36 +222,21 @@ async function main() {
   });
 
   // === 마감 처리 ===
+  // 사이트맵 기준으로만 비활성화 (end_date 만료되어도 사이트맵에 있으면 유지)
+  // → 마감일 연장 케이스 대응
 
-  // ① end_date 지난 공고 자동 비활성화
-  console.log('\n🔒 마감일 지난 공고 비활성화...');
-  const today = new Date().toISOString().split('T')[0];
-  const expiredRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/jobs?is_active=eq.true&end_date=lt.${today}&end_date=neq.`,
-    {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=headers-only,count=exact',
-      },
-      body: JSON.stringify({ is_active: false }),
-    }
-  );
-  const expiredCount = expiredRes.headers.get('content-range')?.match(/\d+$/)?.[0] || '0';
-  console.log(`  📅 end_date 만료: ${expiredCount}건 비활성화`);
-
-  // ② 사이트맵 diff: DB에는 있지만 사이트맵에 없는 공고 비활성화
   if (result.allSitemapIds && result.allSitemapIds.size > 0) {
-    console.log('\n🔍 사이트맵 diff 비활성화...');
+    console.log('\n🔍 사이트맵 diff 비활성화 (사이트맵에 없는 공고만 비활성화)...');
     let diffOffset = 0;
     const DIFF_BATCH = 1000;
     let diffDeactivated = 0;
+    let expiredInSitemap = 0;
+
+    const today = new Date().toISOString().split('T')[0];
 
     while (true) {
       const dbRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/jobs?is_active=eq.true&select=id&order=id&limit=${DIFF_BATCH}&offset=${diffOffset}`,
+        `${SUPABASE_URL}/rest/v1/jobs?is_active=eq.true&select=id,end_date&order=id&limit=${DIFF_BATCH}&offset=${diffOffset}`,
         {
           headers: {
             'apikey': SUPABASE_SERVICE_KEY,
@@ -262,7 +247,16 @@ async function main() {
       const dbJobs = await dbRes.json();
       if (!dbJobs.length) break;
 
+      // 사이트맵에 없는 공고만 비활성화
       const toDeactivate = dbJobs.filter(j => !result.allSitemapIds.has(j.id)).map(j => j.id);
+
+      // 통계: end_date 지났지만 사이트맵에 있는 공고 (마감 연장 가능성)
+      const expiredButInSitemap = dbJobs.filter(j =>
+        result.allSitemapIds.has(j.id) &&
+        j.end_date &&
+        j.end_date < today
+      );
+      expiredInSitemap += expiredButInSitemap.length;
 
       for (const id of toDeactivate) {
         await withRetry(async () => {
@@ -282,6 +276,9 @@ async function main() {
       diffOffset += DIFF_BATCH;
     }
     console.log(`  🗑️ 사이트맵에서 제거됨: ${diffDeactivated}건 비활성화`);
+    if (expiredInSitemap > 0) {
+      console.log(`  📅 end_date 지났지만 사이트맵에 있음: ${expiredInSitemap}건 (마감 연장 가능성 → 유지)`);
+    }
   }
 
   // 메타데이터 업데이트
