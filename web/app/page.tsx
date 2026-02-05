@@ -339,7 +339,7 @@ export default function HomePage() {
   const { user, loading: authLoading } = useAuth()
   const [applications, setApplications] = useState<ApplicationWithJob[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<ApplicationStatus | 'all'>('all')
+  const [filter, setFilter] = useState<ApplicationStatus | 'all'>('pending')
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])
   const initialLoadStartRef = useRef<number | null>(null)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
