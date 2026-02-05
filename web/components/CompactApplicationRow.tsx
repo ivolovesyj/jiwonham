@@ -96,7 +96,11 @@ export function CompactApplicationRow({
 
         {/* 상태 */}
         <div className="flex-shrink-0">
-          <StatusBadge status={application.status} />
+          <StatusBadge
+            status={application.status}
+            editable
+            onStatusChange={(newStatus) => onStatusChange(application.id, newStatus)}
+          />
         </div>
 
         {/* 마감일 */}

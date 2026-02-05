@@ -1,7 +1,13 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
 import { ApplicationStatus } from '@/types/application'
+import { ChevronDown } from 'lucide-react'
 
 interface StatusBadgeProps {
   status: ApplicationStatus
+  editable?: boolean
+  onStatusChange?: (newStatus: ApplicationStatus) => void
 }
 
 const statusConfig: Record<
@@ -54,14 +60,88 @@ const statusConfig: Record<
   },
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+const STATUS_ORDER: ApplicationStatus[] = [
+  'pending',
+  'hold',
+  'applied',
+  'document_pass',
+  'interviewing',
+  'final',
+  'accepted',
+  'rejected',
+  'not_applying',
+  'passed',
+]
+
+export function StatusBadge({ status, editable, onStatusChange }: StatusBadgeProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const config = statusConfig[status]
 
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen])
+
+  // 편집 불가능한 경우 기존 배지만 표시
+  if (!editable || !onStatusChange) {
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}
+      >
+        {config.label}
+      </span>
+    )
+  }
+
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}
-    >
-      {config.label}
-    </span>
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${config.className}`}
+      >
+        {config.label}
+        <ChevronDown className="w-3 h-3" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px] py-1">
+          {STATUS_ORDER.map((s) => {
+            const cfg = statusConfig[s]
+            const isSelected = s === status
+            return (
+              <button
+                key={s}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (s !== status) {
+                    onStatusChange(s)
+                  }
+                  setIsOpen(false)
+                }}
+                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2 ${
+                  isSelected ? 'bg-gray-50 font-medium' : ''
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${cfg.className.split(' ')[0]}`} />
+                {cfg.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
