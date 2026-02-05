@@ -888,11 +888,16 @@ export default function HomePage() {
     // 검색
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
-      result = result.filter((app) =>
-        app.saved_job.company.toLowerCase().includes(q) ||
-        app.saved_job.title.toLowerCase().includes(q) ||
-        (app.saved_job.location || '').toLowerCase().includes(q)
-      )
+      result = result.filter((app) => {
+        const company = app.saved_job.external_company || app.saved_job.company || ''
+        const title = app.saved_job.external_title || app.saved_job.title || ''
+        const location = app.saved_job.external_location || app.saved_job.location || ''
+        return (
+          company.toLowerCase().includes(q) ||
+          title.toLowerCase().includes(q) ||
+          location.toLowerCase().includes(q)
+        )
+      })
     }
 
     // 정렬 (핀 제외 - 핀은 별도 섹션)
@@ -901,7 +906,9 @@ export default function HomePage() {
     unpinned.sort((a, b) => {
       switch (sortKey) {
         case 'deadline':
-          return getDeadlineSortValue(a.saved_job.deadline) - getDeadlineSortValue(b.saved_job.deadline)
+          const deadlineA = a.saved_job.external_deadline || a.saved_job.deadline
+          const deadlineB = b.saved_job.external_deadline || b.saved_job.deadline
+          return getDeadlineSortValue(deadlineA) - getDeadlineSortValue(deadlineB)
         case 'status':
           return (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
         case 'created_at':
@@ -921,11 +928,16 @@ export default function HomePage() {
 
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
-      result = result.filter((app) =>
-        app.saved_job.company.toLowerCase().includes(q) ||
-        app.saved_job.title.toLowerCase().includes(q) ||
-        (app.saved_job.location || '').toLowerCase().includes(q)
-      )
+      result = result.filter((app) => {
+        const company = app.saved_job.external_company || app.saved_job.company || ''
+        const title = app.saved_job.external_title || app.saved_job.title || ''
+        const location = app.saved_job.external_location || app.saved_job.location || ''
+        return (
+          company.toLowerCase().includes(q) ||
+          title.toLowerCase().includes(q) ||
+          location.toLowerCase().includes(q)
+        )
+      })
     }
 
     const pinned = result.filter((a) => pinnedIds.has(a.saved_job.id))
@@ -949,9 +961,10 @@ export default function HomePage() {
   // 마감 임박 알림
   const urgentCount = useMemo(() => {
     return applications.filter((app) => {
-      if (!app.saved_job.deadline) return false
+      const deadline = app.saved_job.external_deadline || app.saved_job.deadline
+      if (!deadline) return false
       if (app.status === 'rejected' || app.status === 'accepted' || app.status === 'declined' || app.status === 'passed') return false
-      const d = new Date(app.saved_job.deadline)
+      const d = new Date(deadline)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       d.setHours(0, 0, 0, 0)
