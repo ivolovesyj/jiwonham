@@ -304,7 +304,7 @@ async function fetchCompanyDetail(companyId) {
       if (keywords.length >= 2) {
         const potentialType = keywords[keywords.length - 2];
         // 유효한 회사 유형인지 확인
-        const validTypes = ['대기업', '중견기업', '중소기업', '스타트업', '유니콘', '외국계', '공기업'];
+        const validTypes = ['대기업', '중견기업', '중소기업', '스타트업', '유니콘', '외국계', '공공기관'];
         if (validTypes.includes(potentialType)) {
           company_type = potentialType;
         }

@@ -319,14 +319,19 @@ function scoreJob(
   }
 
   // 3.6 기업 유형 필터 (엄격한 필터링)
-  if (prefs.preferred_company_types?.length && companyType) {
-    const match = prefs.preferred_company_types.includes(companyType)
-    if (!match && companyType !== '기타') {
-      // "기타"는 필터에서 제외하지 않음 (회사 정보 없는 경우)
+  if (prefs.preferred_company_types?.length) {
+    if (!companyType || companyType === '기타') {
+      // company_type 정보가 없거나 '기타'인 공고는 필터링 제외
       matchesFilter = false
-      warnings.push(`⚠️ ${companyType} (선호 유형 불일치)`)
-    } else if (match) {
-      reasons.push(`${companyType}`)
+      warnings.push(`⚠️ 기업 유형 정보 없음`)
+    } else {
+      const match = prefs.preferred_company_types.includes(companyType)
+      if (!match) {
+        matchesFilter = false
+        warnings.push(`⚠️ ${companyType} (선호 유형 불일치)`)
+      } else {
+        reasons.push(`${companyType}`)
+      }
     }
   }
 

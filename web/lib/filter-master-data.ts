@@ -188,7 +188,7 @@ export const COMPANY_TYPES = [
   '스타트업',
   '유니콘',
   '외국계',
-  '공기업',
+  '공공기관',
   '기타',
 ] as const
 
