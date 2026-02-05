@@ -44,11 +44,14 @@ const STATUS_ORDER: Record<string, number> = {
   declined: 10,
 }
 
-// 비로그인 사용자를 위한 샘플 데이터
+// 비로그인 사용자를 위한 샘플 데이터 (다양한 상태 미리보기)
 const SAMPLE_APPLICATIONS = [
-  { id: 'sample-1', company: '토스', title: '프론트엔드 개발자', location: '서울', deadline: '2024-03-31', status: 'pending', link: '#' },
-  { id: 'sample-2', company: '카카오', title: 'React 개발자', location: '판교', deadline: '2024-03-25', status: 'hold', link: '#' },
-  { id: 'sample-3', company: '네이버', title: '웹 프론트엔드 개발', location: '성남', deadline: '2024-04-05', status: 'applied', link: '#' },
+  { id: 'sample-1', company: '토스', title: '프론트엔드 개발자', location: '서울', deadline: '2026-02-15', status: 'pending', link: '#', isPinned: true },
+  { id: 'sample-2', company: '카카오', title: 'React 개발자', location: '판교', deadline: '2026-02-20', status: 'hold', link: '#', isPinned: false },
+  { id: 'sample-3', company: '네이버', title: 'AI 엔지니어', location: '성남', deadline: '2026-02-25', status: 'applied', link: '#', isPinned: false },
+  { id: 'sample-4', company: '라인', title: '백엔드 개발자', location: '서울', deadline: '2026-03-01', status: 'interviewing', link: '#', isPinned: false },
+  { id: 'sample-5', company: '쿠팡', title: '데이터 분석가', location: '서울', deadline: '2026-03-05', status: 'document_pass', link: '#', isPinned: false },
+  { id: 'sample-6', company: '배달의민족', title: 'UX 디자이너', location: '송파', deadline: '2026-02-28', status: 'rejected', link: '#', isPinned: false },
 ]
 
 export default function HomePage() {
@@ -582,8 +585,8 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* 오버레이 */}
-              <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/50 backdrop-blur-[2px] flex items-center justify-center z-10">
+              {/* 오버레이 - 더 투명하게 수정 */}
+              <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/30 backdrop-blur-[1px] flex items-center justify-center z-10">
                 <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md mx-4 text-center">
                   <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <Briefcase className="w-8 h-8 text-white" />
