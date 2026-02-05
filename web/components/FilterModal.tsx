@@ -234,14 +234,14 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
         {/* 3단 레이아웃 */}
         <div className="flex flex-1 overflow-hidden">
           {/* 1단계: 대분류 (왼쪽) */}
-          <div className="w-48 border-r bg-gray-50 overflow-y-auto">
-            <div className="p-2 space-y-1">
+          <div className="w-28 sm:w-40 md:w-48 border-r bg-gray-50 overflow-y-auto">
+            <div className="p-1 sm:p-2 space-y-1">
               <button
                 onClick={() => {
                   setSelectedCategory('job')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'job'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'job'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -266,7 +266,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   setSelectedCategory('career')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'career'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'career'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -291,7 +291,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   setSelectedCategory('region')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'region'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'region'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -316,7 +316,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   setSelectedCategory('employment')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'employment'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'employment'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -341,7 +341,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   setSelectedCategory('company')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'company'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'company'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -366,7 +366,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   setSelectedCategory('education')
                   setSelectedDepthOne(null)
                 }}
-                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'education'
+                className={`w-full text-left px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg text-sm sm:text-[15px] font-medium transition ${selectedCategory === 'education'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -390,7 +390,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
 
           {/* 2단계: 중분류 (직무의 경우만 표시) */}
           {selectedCategory === 'job' && (
-            <div className="w-56 border-r bg-white overflow-hidden flex flex-col">
+            <div className="w-36 sm:w-44 md:w-56 border-r bg-white overflow-hidden flex flex-col">
               <div className="p-3 border-b">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -403,8 +403,8 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   />
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-3">
-                <div className="text-xs font-semibold text-gray-500 mb-2 px-2">하나를 선택하세요</div>
+              <div className="flex-1 overflow-y-auto p-2 sm:p-3">
+                <div className="text-xs font-semibold text-gray-500 mb-2 px-1 sm:px-2">하나를 선택하세요</div>
                 <div className="space-y-1">
                   {filteredDepthOnes.map(depthOne => {
                     const depthTwos = options.depth_twos_map[depthOne] || []
@@ -414,7 +414,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                       <button
                         key={depthOne}
                         onClick={() => setSelectedDepthOne(depthOne)}
-                        className={`w-full text-left px-3 py-2.5 rounded-lg text-[15px] transition ${selectedDepthOne === depthOne
+                        className={`w-full text-left px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-sm sm:text-[15px] transition ${selectedDepthOne === depthOne
                             ? 'bg-purple-50 text-purple-700 font-medium border border-purple-200'
                             : 'text-gray-700 hover:bg-gray-50'
                           }`}
