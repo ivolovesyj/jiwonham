@@ -1,0 +1,62 @@
+name: Full mode crawler
+
+on:
+  # 수동 실행 전용
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6시간 제한
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Create .env file
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> .env
+      
+      - name: Run full crawler
+        run: |
+          echo "Starting full crawl (all active jobs)..."
+          node src/index.js --full
+        timeout-minutes: 350
+        continue-on-error: true
+        id: crawler
+      
+      - name: Save crawl state (on timeout or error)
+        if: always()
+        run: |
+          if [ -f crawl-state.json ]; then
+            echo "Crawl state saved for resume"
+            echo "CRAWL_STATE_EXISTS=true" >> $GITHUB_ENV
+          fi
+      
+      - name: Upload crawl state artifact
+        if: always() && env.CRAWL_STATE_EXISTS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-state-full-${{ github.run_number }}
+          path: crawl-state.json
+          retention-days: 7
+      
+      - name: Notify on completion
+        if: always()
+        run: |
+          if [ "${{ steps.crawler.outcome }}" = "success" ]; then
+            echo "✅ Full crawler completed successfully"
+          else
+            echo "⚠️ Full crawler stopped (timeout or error)"
+            echo "💡 You can check the logs and resume if needed"
+          fi

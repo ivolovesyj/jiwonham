@@ -1,0 +1,13 @@
+feat: Add education and company_type fields with GitHub Actions crawler
+
+- Add education field extraction from RSC educations array
+- Add company_type field with real-time crawling from company page
+- Extract company type from meta keywords (7 types supported)
+- Add EDUCATION_LEVELS to filter master data (6 levels)
+- Update API to include education and company_type in responses
+- Add database migration scripts for new fields
+- Implement GitHub Actions workflow for automated crawling
+- Add resume functionality for interrupted crawls
+- Support crawl state persistence and recovery
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>

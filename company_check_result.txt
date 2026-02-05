@@ -1,0 +1,42 @@
+[인투셀]
+  - URL: https://zighang.com/company/ee20d9e9-7fe3-4495-8742-acd2fd8a621e
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+[LG전자]
+  - URL: https://zighang.com/company/0fdad416-a34d-4605-81cb-730c2c8dd614
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+[토스증권]
+  - URL: https://zighang.com/company/12800f2a-0724-4f5a-8950-9bdd214ddd47
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+[당근]
+  - URL: https://zighang.com/company/7c54bda8-09cf-4601-8809-59eb68cb067b
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+[한국콜마]
+  - URL: https://zighang.com/company/0f8deaa8-f6c9-4ba9-a73b-dbffd69c56f9
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+[엔씨소프트]
+  - URL: https://zighang.com/company/072d37ca-0991-4976-a62e-d5fb038cc9a0
+  - Has '주소' keyword?: YES (...)
+  - Has LD+JSON Locality?: YES
+  - Has Company Type info?: YES
+----------------------------------------
+  - Failed to fetch (주)영신팩: Request failed with status code 404
+----------------------------------------
+  - Failed to fetch 아산정밀: Request failed with status code 404
+----------------------------------------
+  - Failed to fetch 신대산신용협동조합: Request failed with status code 404
+----------------------------------------
