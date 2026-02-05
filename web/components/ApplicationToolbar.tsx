@@ -3,7 +3,7 @@
 import { Search, SortAsc, Plus } from 'lucide-react'
 import { Button } from './ui/button'
 
-export type SortKey = 'created_at' | 'deadline' | 'score' | 'company' | 'status'
+export type SortKey = 'created_at' | 'deadline' | 'status'
 
 interface ApplicationToolbarProps {
   searchQuery: string
@@ -16,8 +16,6 @@ interface ApplicationToolbarProps {
 const sortOptions: { key: SortKey; label: string }[] = [
   { key: 'created_at', label: '추가일순' },
   { key: 'deadline', label: '마감일순' },
-  { key: 'score', label: '적합도순' },
-  { key: 'company', label: '회사명순' },
   { key: 'status', label: '상태순' },
 ]
 

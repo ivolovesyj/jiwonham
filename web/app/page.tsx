@@ -421,10 +421,6 @@ export default function HomePage() {
       switch (sortKey) {
         case 'deadline':
           return getDeadlineSortValue(a.saved_job.deadline) - getDeadlineSortValue(b.saved_job.deadline)
-        case 'score':
-          return (b.saved_job.score || 0) - (a.saved_job.score || 0)
-        case 'company':
-          return (a.saved_job.company || '').localeCompare(b.saved_job.company || '', 'ko')
         case 'status':
           return (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
         case 'created_at':
