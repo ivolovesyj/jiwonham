@@ -14,6 +14,7 @@ interface FilterModalProps {
     regions: string[]
     employee_types: string[]
     company_types: string[]
+    education_levels: string[]
   } | null
   onSave: (filters: UserFilters) => void
 }
@@ -24,9 +25,10 @@ interface UserFilters {
   career_level: string
   work_style: string[]
   preferred_company_types?: string[]
+  preferred_education?: string[]
 }
 
-type FilterCategory = 'job' | 'career' | 'region' | 'employment' | 'company'
+type FilterCategory = 'job' | 'career' | 'region' | 'employment' | 'company' | 'education'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -50,6 +52,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([])
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<string[]>([])
+  const [selectedEducationLevels, setSelectedEducationLevels] = useState<string[]>([])
 
   // 검색
   const [searchQuery, setSearchQuery] = useState('')
@@ -82,6 +85,9 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
 
       // 기업 유형
       setSelectedCompanyTypes(filters.preferred_company_types || [])
+
+      // 학력
+      setSelectedEducationLevels(filters.preferred_education || [])
     }
 
     // 현재 isOpen 값을 저장
@@ -96,6 +102,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
       career_level: selectedCareers.join(','),
       work_style: selectedEmploymentTypes,
       preferred_company_types: selectedCompanyTypes,
+      preferred_education: selectedEducationLevels,
     }
     onSave(newFilters)
     onClose()
@@ -107,6 +114,7 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
     setSelectedRegions([])
     setSelectedEmploymentTypes([])
     setSelectedCompanyTypes([])
+    setSelectedEducationLevels([])
     setSelectedDepthOne(null)
     setSearchQuery('')
   }
@@ -141,6 +149,12 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
     )
   }
 
+  const toggleEducationLevel = (level: string) => {
+    setSelectedEducationLevels(prev =>
+      prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
+    )
+  }
+
   if (!isOpen || !options) return null
 
   // 선택된 개수 계산
@@ -156,6 +170,8 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
         return selectedEmploymentTypes.length
       case 'company':
         return selectedCompanyTypes.length
+      case 'education':
+        return selectedEducationLevels.length
       default:
         return 0
     }
@@ -319,6 +335,31 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                         }`}
                     >
                       {getSelectionCount('company')}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedCategory('education')
+                  setSelectedDepthOne(null)
+                }}
+                className={`w-full text-left px-4 py-3 rounded-lg text-[15px] font-medium transition ${selectedCategory === 'education'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>학력</span>
+                  {getSelectionCount('education') > 0 && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === 'education'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-indigo-100 text-indigo-700'
+                        }`}
+                    >
+                      {getSelectionCount('education')}
                     </span>
                   )}
                 </div>
@@ -491,6 +532,26 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                   </div>
                 </div>
               )}
+
+              {selectedCategory === 'education' && (
+                <div>
+                  <div className="text-[15px] font-semibold text-gray-700 mb-3">학력 선택</div>
+                  <div className="flex flex-wrap gap-2">
+                    {options.education_levels.map(level => (
+                      <button
+                        key={level}
+                        onClick={() => toggleEducationLevel(level)}
+                        className={`px-4 py-2 rounded-full text-[15px] border transition ${selectedEducationLevels.includes(level)
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                          }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -527,12 +588,20 @@ export function FilterModal({ isOpen, onClose, filters, options, onSave }: Filte
                 고용형태 {selectedEmploymentTypes.length}개
               </span>
             )}
-            {selectedEmploymentTypes.length > 0 && selectedCompanyTypes.length > 0 && (
+            {selectedEmploymentTypes.length > 0 && (selectedCompanyTypes.length > 0 || selectedEducationLevels.length > 0) && (
               <span className="mx-2">·</span>
             )}
             {selectedCompanyTypes.length > 0 && (
               <span className="font-medium">
                 기업 유형 {selectedCompanyTypes.length}개
+              </span>
+            )}
+            {selectedCompanyTypes.length > 0 && selectedEducationLevels.length > 0 && (
+              <span className="mx-2">·</span>
+            )}
+            {selectedEducationLevels.length > 0 && (
+              <span className="font-medium">
+                학력 {selectedEducationLevels.length}개
               </span>
             )}
           </div>
