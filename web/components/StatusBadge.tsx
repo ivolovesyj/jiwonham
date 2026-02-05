@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ApplicationStatus } from '@/types/application'
 import { ChevronDown } from 'lucide-react'
 
@@ -75,21 +76,44 @@ const STATUS_ORDER: ApplicationStatus[] = [
 
 export function StatusBadge({ status, editable, onStatusChange }: StatusBadgeProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const config = statusConfig[status]
+
+  // 드롭다운 위치 계산
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+      })
+    }
+  }, [isOpen])
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     if (!isOpen) return
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        buttonRef.current && !buttonRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
 
+    // 스크롤 시 닫기
+    const handleScroll = () => setIsOpen(false)
+
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
   }, [isOpen])
 
   // 편집 불가능한 경우 기존 배지만 표시
@@ -104,8 +128,9 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
@@ -116,8 +141,16 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
         <ChevronDown className="w-3 h-3" />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px] py-1">
+      {isOpen && typeof window !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            zIndex: 9999,
+          }}
+        >
           {STATUS_ORDER.map((s) => {
             const cfg = statusConfig[s]
             const isSelected = s === status
@@ -140,8 +173,9 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
               </button>
             )
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
