@@ -5,7 +5,7 @@ import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/type
 import { StatusBadge } from './StatusBadge'
 import { DeadlineBadge } from './DeadlineBadge'
 import { Button } from '@/components/ui/button'
-import { Pin, ChevronDown, ChevronUp, ExternalLink, Trash2, MessageSquare, Calendar } from 'lucide-react'
+import { Pin, ChevronDown, ChevronUp, ExternalLink, Trash2, MessageSquare } from 'lucide-react'
 
 interface CompactApplicationRowProps {
   application: ApplicationWithJob
@@ -17,19 +17,6 @@ interface CompactApplicationRowProps {
   isPinned?: boolean
   onTogglePin?: (savedJobId: string) => void
 }
-
-const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
-  { value: 'pending', label: '지원 예정' },
-  { value: 'hold', label: '보류' },
-  { value: 'applied', label: '지원 완료' },
-  { value: 'document_pass', label: '서류 합격' },
-  { value: 'interviewing', label: '면접 중' },
-  { value: 'final', label: '최종 면접' },
-  { value: 'accepted', label: '합격' },
-  { value: 'rejected', label: '불합격' },
-  { value: 'not_applying', label: '미지원' },
-  { value: 'passed', label: '지원안함' },
-]
 
 export function CompactApplicationRow({
   application,
@@ -44,18 +31,11 @@ export function CompactApplicationRow({
   const [expanded, setExpanded] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
   const [notes, setNotes] = useState(application.notes || '')
-  const [editingDeadline, setEditingDeadline] = useState(false)
-  const [deadline, setDeadline] = useState(application.saved_job.deadline || '')
   const { saved_job } = application
 
   const handleSaveNotes = () => {
     onUpdateNotes(application.id, notes)
     setEditingNotes(false)
-  }
-
-  const handleSaveDeadline = () => {
-    onUpdateDeadline(saved_job.id, deadline)
-    setEditingDeadline(false)
   }
 
   return (
@@ -126,22 +106,8 @@ export function CompactApplicationRow({
       {/* 확장 시 상세 정보 */}
       {expanded && (
         <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-2">
-          {/* 상단: 상태 변경 + 액션 버튼 */}
+          {/* 액션 버튼 */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">상태:</span>
-              <select
-                value={application.status}
-                onChange={(e) => onStatusChange(application.id, e.target.value as ApplicationStatus)}
-                className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex items-center gap-1">
               {saved_job.link && (
                 <a
@@ -149,54 +115,23 @@ export function CompactApplicationRow({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
-                  title="원문 보기"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
+                  원문 보기
                 </a>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(application.id, saved_job.id)
-                }}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
-                title="삭제"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
             </div>
-          </div>
-
-          {/* 마감일 편집 */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3 h-3 text-gray-400" />
-            {editingDeadline ? (
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="text-xs border border-gray-200 rounded px-2 py-0.5"
-                />
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleSaveDeadline}>
-                  저장
-                </Button>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingDeadline(false)}>
-                  취소
-                </Button>
-              </div>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setEditingDeadline(true)
-                }}
-                className="text-xs text-gray-600 hover:text-blue-600"
-              >
-                {saved_job.deadline ? new Date(saved_job.deadline).toLocaleDateString() : '마감일 설정'}
-              </button>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(application.id, saved_job.id)
+              }}
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+              title="삭제"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* 메모 */}
@@ -232,17 +167,6 @@ export function CompactApplicationRow({
               </button>
             )}
           </div>
-
-          {/* 추천 이유 */}
-          {saved_job.reasons && saved_job.reasons.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {saved_job.reasons.slice(0, 3).map((reason: string, i: number) => (
-                <span key={i} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
-                  {reason}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

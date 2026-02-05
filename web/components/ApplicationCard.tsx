@@ -388,17 +388,6 @@ export function ApplicationCard({
         )}
       </div>
 
-      {/* 삭제 버튼 */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onDelete(application.id, saved_job.id)}
-          className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          🗑️ 삭제
-        </Button>
-      </div>
     </div>
   )
 }
