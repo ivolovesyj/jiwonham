@@ -45,14 +45,294 @@ const STATUS_ORDER: Record<string, number> = {
 }
 
 // 비로그인 사용자를 위한 샘플 데이터 (다양한 상태 미리보기)
-const SAMPLE_APPLICATIONS = [
-  { id: 'sample-1', company: '토스', title: '프론트엔드 개발자', location: '서울', deadline: '2026-02-15', status: 'pending', link: '#', isPinned: true },
-  { id: 'sample-2', company: '카카오', title: 'React 개발자', location: '판교', deadline: '2026-02-20', status: 'hold', link: '#', isPinned: false },
-  { id: 'sample-3', company: '네이버', title: 'AI 엔지니어', location: '성남', deadline: '2026-02-25', status: 'applied', link: '#', isPinned: false },
-  { id: 'sample-4', company: '라인', title: '백엔드 개발자', location: '서울', deadline: '2026-03-01', status: 'interviewing', link: '#', isPinned: false },
-  { id: 'sample-5', company: '쿠팡', title: '데이터 분석가', location: '서울', deadline: '2026-03-05', status: 'document_pass', link: '#', isPinned: false },
-  { id: 'sample-6', company: '배달의민족', title: 'UX 디자이너', location: '송파', deadline: '2026-02-28', status: 'rejected', link: '#', isPinned: false },
+const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
+  {
+    id: 'demo-1',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-1',
+    status: 'pending',
+    created_at: '2026-02-01T10:00:00Z',
+    applied_date: null,
+    notes: null,
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-1',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '토스',
+      external_title: '프론트엔드 개발자',
+      external_url: 'https://toss.im/career',
+      external_location: '서울 강남구',
+      external_deadline: '2026-02-15',
+      created_at: '2026-02-01T10:00:00Z',
+      is_pinned: true,
+      pin_order: 0,
+    },
+  },
+  {
+    id: 'demo-2',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-2',
+    status: 'hold',
+    created_at: '2026-02-02T10:00:00Z',
+    applied_date: null,
+    notes: '추후 검토 필요',
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-2',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '카카오',
+      external_title: 'React 개발자',
+      external_url: 'https://careers.kakao.com',
+      external_location: '경기 성남시 판교',
+      external_deadline: '2026-02-20',
+      created_at: '2026-02-02T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-3',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-3',
+    status: 'applied',
+    created_at: '2026-02-03T10:00:00Z',
+    applied_date: '2026-02-06',
+    notes: null,
+    required_documents: { resume: true, portfolio: true, cover_letter: false },
+    saved_job: {
+      id: 'demo-job-3',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '네이버',
+      external_title: 'AI 엔지니어',
+      external_url: 'https://recruit.navercorp.com',
+      external_location: '경기 성남시 분당',
+      external_deadline: '2026-02-25',
+      created_at: '2026-02-03T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-4',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-4',
+    status: 'interviewing',
+    created_at: '2026-02-04T10:00:00Z',
+    applied_date: '2026-02-05',
+    notes: '2차 면접 대기 중',
+    required_documents: { resume: true, portfolio: true, cover_letter: true },
+    saved_job: {
+      id: 'demo-job-4',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '라인',
+      external_title: '백엔드 개발자',
+      external_url: 'https://careers.linecorp.com',
+      external_location: '서울 강남구',
+      external_deadline: '2026-03-01',
+      created_at: '2026-02-04T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-5',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-5',
+    status: 'document_pass',
+    created_at: '2026-01-25T10:00:00Z',
+    applied_date: '2026-01-28',
+    notes: '서류 합격! 면접 준비 중',
+    required_documents: { resume: true, portfolio: true, cover_letter: false },
+    saved_job: {
+      id: 'demo-job-5',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '쿠팡',
+      external_title: '데이터 분석가',
+      external_url: 'https://www.coupang.jobs',
+      external_location: '서울 송파구',
+      external_deadline: '2026-03-05',
+      created_at: '2026-01-25T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-6',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-6',
+    status: 'rejected',
+    created_at: '2026-01-20T10:00:00Z',
+    applied_date: '2026-01-22',
+    notes: '불합격 - 다음 기회에 재도전',
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-6',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '배달의민족',
+      external_title: 'UX 디자이너',
+      external_url: 'https://career.woowahan.com',
+      external_location: '서울 송파구',
+      external_deadline: '2026-02-10',
+      created_at: '2026-01-20T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-7',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-7',
+    status: 'pending',
+    created_at: '2026-02-05T10:00:00Z',
+    applied_date: null,
+    notes: null,
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-7',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '당근마켓',
+      external_title: 'Product Designer',
+      external_url: 'https://about.daangn.com/jobs',
+      external_location: '서울 구로구',
+      external_deadline: '2026-02-18',
+      created_at: '2026-02-05T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-8',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-8',
+    status: 'pending',
+    created_at: '2026-02-06T10:00:00Z',
+    applied_date: null,
+    notes: '이력서 업데이트 필요',
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-8',
+      user_id: 'demo',
+      job_id: null,
+      external_company: '넥슨',
+      external_title: '게임 클라이언트 개발',
+      external_url: 'https://career.nexon.com',
+      external_location: '경기 성남시 분당',
+      external_deadline: '2026-02-22',
+      created_at: '2026-02-06T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-9',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-9',
+    status: 'applied',
+    created_at: '2026-01-30T10:00:00Z',
+    applied_date: '2026-02-03',
+    notes: null,
+    required_documents: { resume: true, portfolio: false, cover_letter: true },
+    saved_job: {
+      id: 'demo-job-9',
+      user_id: 'demo',
+      job_id: null,
+      external_company: 'SK텔레콤',
+      external_title: 'DevOps 엔지니어',
+      external_url: 'https://www.sktelecom.com/recruit',
+      external_location: '서울 중구',
+      external_deadline: '2026-03-10',
+      created_at: '2026-01-30T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
+  {
+    id: 'demo-10',
+    user_id: 'demo',
+    saved_job_id: 'demo-job-10',
+    status: 'not_applying',
+    created_at: '2026-01-28T10:00:00Z',
+    applied_date: null,
+    notes: '조건이 맞지 않아 지원 안 함',
+    required_documents: null,
+    saved_job: {
+      id: 'demo-job-10',
+      user_id: 'demo',
+      job_id: null,
+      external_company: 'LG전자',
+      external_title: '임베디드 SW 개발',
+      external_url: 'https://www.lge.co.kr/career',
+      external_location: '서울 영등포구',
+      external_deadline: '2026-02-28',
+      created_at: '2026-01-28T10:00:00Z',
+      is_pinned: false,
+      pin_order: null,
+    },
+  },
 ]
+
+// localStorage 키
+const DEMO_DATA_KEY = 'jiwonbox_demo_data'
+const DEMO_INTERACTION_KEY = 'jiwonbox_demo_interactions'
+
+// localStorage 헬퍼 함수
+const getDemoData = (): ApplicationWithJob[] => {
+  if (typeof window === 'undefined') return INITIAL_DEMO_APPLICATIONS
+  try {
+    const stored = localStorage.getItem(DEMO_DATA_KEY)
+    if (!stored) return INITIAL_DEMO_APPLICATIONS
+    return JSON.parse(stored)
+  } catch {
+    return INITIAL_DEMO_APPLICATIONS
+  }
+}
+
+const saveDemoData = (data: ApplicationWithJob[]) => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(data))
+  } catch (error) {
+    console.error('Failed to save demo data:', error)
+  }
+}
+
+const getDemoInteractionCount = (): number => {
+  if (typeof window === 'undefined') return 0
+  try {
+    const count = localStorage.getItem(DEMO_INTERACTION_KEY)
+    return count ? parseInt(count, 10) : 0
+  } catch {
+    return 0
+  }
+}
+
+const incrementDemoInteraction = (): number => {
+  if (typeof window === 'undefined') return 0
+  try {
+    const count = getDemoInteractionCount() + 1
+    localStorage.setItem(DEMO_INTERACTION_KEY, count.toString())
+    return count
+  } catch {
+    return 0
+  }
+}
+
+const resetDemoData = () => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(DEMO_DATA_KEY)
+    localStorage.removeItem(DEMO_INTERACTION_KEY)
+  } catch (error) {
+    console.error('Failed to reset demo data:', error)
+  }
+}
 
 export default function HomePage() {
   const router = useRouter()
@@ -80,6 +360,12 @@ export default function HomePage() {
 
   // Phase 3: 외부 공고 모달
   const [showExternalModal, setShowExternalModal] = useState(false)
+
+  // Demo Mode (비로그인 사용자용)
+  const [demoApplications, setDemoApplications] = useState<ApplicationWithJob[]>([])
+  const [showSignupModal, setShowSignupModal] = useState(false)
+  const [demoPinnedIds, setDemoPinnedIds] = useState<Set<string>>(new Set())
+  const [demoPinOrder, setDemoPinOrder] = useState<string[]>([])
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -115,6 +401,25 @@ export default function HomePage() {
     } else if (!authLoading && !user) {
       dataLoadedRef.current = false
       lastUserIdRef.current = null
+      // 비로그인 상태: 데모 데이터 로드
+      const demoData = getDemoData()
+      setDemoApplications(demoData)
+      
+      // 핀 상태 초기화
+      const pinned = new Set<string>()
+      const pinnedJobs: { id: string; pin_order: number }[] = []
+      for (const app of demoData) {
+        if (app.saved_job.is_pinned) {
+          pinned.add(app.saved_job.id)
+          pinnedJobs.push({ 
+            id: app.saved_job.id, 
+            pin_order: app.saved_job.pin_order || 0 
+          })
+        }
+      }
+      setDemoPinnedIds(pinned)
+      setDemoPinOrder(pinnedJobs.sort((a, b) => a.pin_order - b.pin_order).map((j) => j.id))
+      
       setLoading(false)
     }
   }, [user, authLoading])
@@ -401,6 +706,179 @@ export default function HomePage() {
     }
   }
 
+  // ========== DEMO MODE HANDLERS (비로그인 사용자용) ==========
+  
+  const trackDemoInteraction = () => {
+    const count = incrementDemoInteraction()
+    if (count % 5 === 0) {
+      setShowSignupModal(true)
+    }
+  }
+
+  const handleDemoStatusChange = (applicationId: string, newStatus: ApplicationStatus) => {
+    trackDemoInteraction()
+    
+    const updateData: Partial<ApplicationWithJob> = { status: newStatus }
+    if (newStatus === 'applied' && !demoApplications.find((a) => a.id === applicationId)?.applied_date) {
+      updateData.applied_date = new Date().toISOString().split('T')[0]
+    }
+
+    const updated = demoApplications.map((app) =>
+      app.id === applicationId
+        ? { ...app, ...updateData }
+        : app
+    )
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoUpdateNotes = (applicationId: string, notes: string) => {
+    trackDemoInteraction()
+    
+    const updated = demoApplications.map((app) =>
+      app.id === applicationId ? { ...app, notes } : app
+    )
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoUpdateDocuments = (applicationId: string, documents: RequiredDocuments) => {
+    trackDemoInteraction()
+    
+    const updated = demoApplications.map((app) =>
+      app.id === applicationId ? { ...app, required_documents: documents } : app
+    )
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoUpdateDeadline = (savedJobId: string, deadline: string) => {
+    trackDemoInteraction()
+    
+    const updated = demoApplications.map((app) =>
+      app.saved_job.id === savedJobId
+        ? { ...app, saved_job: { ...app.saved_job, external_deadline: deadline || null } }
+        : app
+    )
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoDelete = (applicationId: string, savedJobId: string) => {
+    if (!confirm('정말 삭제하시겠습니까? (데모 모드)')) return
+    trackDemoInteraction()
+    
+    const updated = demoApplications.filter((app) => app.id !== applicationId)
+    setDemoApplications(updated)
+    saveDemoData(updated)
+    
+    setDemoPinnedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(savedJobId)
+      return next
+    })
+  }
+
+  const handleDemoTogglePin = (savedJobId: string) => {
+    trackDemoInteraction()
+    
+    const newPinned = new Set(demoPinnedIds)
+    const isPinning = !newPinned.has(savedJobId)
+
+    if (isPinning) {
+      newPinned.add(savedJobId)
+      setDemoPinOrder((prev) => [...prev, savedJobId])
+    } else {
+      newPinned.delete(savedJobId)
+      setDemoPinOrder((prev) => prev.filter((id) => id !== savedJobId))
+    }
+    setDemoPinnedIds(newPinned)
+
+    // localStorage에 핀 상태 저장
+    const updated = demoApplications.map((app) =>
+      app.saved_job.id === savedJobId
+        ? { ...app, saved_job: { ...app.saved_job, is_pinned: isPinning, pin_order: isPinning ? demoPinOrder.length : null } }
+        : app
+    )
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoReorderPins = (newOrder: string[]) => {
+    trackDemoInteraction()
+    setDemoPinOrder(newOrder)
+
+    // localStorage에 순서 저장
+    const updated = demoApplications.map((app) => {
+      const index = newOrder.indexOf(app.saved_job.id)
+      if (index !== -1) {
+        return { ...app, saved_job: { ...app.saved_job, pin_order: index } }
+      }
+      return app
+    })
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleDemoSaveExternal = (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
+    trackDemoInteraction()
+    
+    const newId = `demo-${Date.now()}`
+    const newJobId = `demo-job-${Date.now()}`
+    
+    const newApp: ApplicationWithJob = {
+      id: newId,
+      user_id: 'demo',
+      saved_job_id: newJobId,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      applied_date: null,
+      notes: data.notes || null,
+      required_documents: null,
+      saved_job: {
+        id: newJobId,
+        user_id: 'demo',
+        job_id: null,
+        external_company: data.company,
+        external_title: data.title,
+        external_url: data.link,
+        external_location: data.location,
+        external_deadline: data.deadline || null,
+        created_at: new Date().toISOString(),
+        is_pinned: false,
+        pin_order: null,
+      },
+    }
+    
+    const updated = [newApp, ...demoApplications]
+    setDemoApplications(updated)
+    saveDemoData(updated)
+  }
+
+  const handleResetDemo = () => {
+    if (!confirm('데모 데이터를 초기화하시겠습니까?')) return
+    resetDemoData()
+    const initial = getDemoData()
+    setDemoApplications(initial)
+    
+    // 핀 상태 초기화
+    const pinned = new Set<string>()
+    const pinnedJobs: { id: string; pin_order: number }[] = []
+    for (const app of initial) {
+      if (app.saved_job.is_pinned) {
+        pinned.add(app.saved_job.id)
+        pinnedJobs.push({ 
+          id: app.saved_job.id, 
+          pin_order: app.saved_job.pin_order || 0 
+        })
+      }
+    }
+    setDemoPinnedIds(pinned)
+    setDemoPinOrder(pinnedJobs.sort((a, b) => a.pin_order - b.pin_order).map((j) => j.id))
+  }
+
+  // ========== END DEMO MODE HANDLERS ==========
+
   // 필터 → 검색 → 정렬
   const processedApplications = useMemo(() => {
     let result = filter === 'all'
@@ -482,6 +960,87 @@ export default function HomePage() {
     }).length
   }, [applications])
 
+  // ========== DEMO MODE COMPUTED VALUES ==========
+  
+  const demoProcessedApplications = useMemo(() => {
+    let result = filter === 'all'
+      ? demoApplications
+      : demoApplications.filter((app) => app.status === filter)
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      result = result.filter((app) =>
+        (app.saved_job.external_company || app.saved_job.company || '').toLowerCase().includes(q) ||
+        (app.saved_job.external_title || app.saved_job.title || '').toLowerCase().includes(q) ||
+        (app.saved_job.external_location || app.saved_job.location || '').toLowerCase().includes(q)
+      )
+    }
+
+    const unpinned = result.filter((a) => !demoPinnedIds.has(a.saved_job.id))
+
+    unpinned.sort((a, b) => {
+      switch (sortKey) {
+        case 'deadline':
+          const deadlineA = a.saved_job.external_deadline || a.saved_job.deadline
+          const deadlineB = b.saved_job.external_deadline || b.saved_job.deadline
+          return getDeadlineSortValue(deadlineA) - getDeadlineSortValue(deadlineB)
+        case 'status':
+          return (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
+        case 'created_at':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+    })
+
+    return unpinned
+  }, [demoApplications, filter, searchQuery, sortKey, demoPinnedIds])
+
+  const demoPinnedApplications = useMemo(() => {
+    let result = filter === 'all'
+      ? demoApplications
+      : demoApplications.filter((app) => app.status === filter)
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      result = result.filter((app) =>
+        (app.saved_job.external_company || app.saved_job.company || '').toLowerCase().includes(q) ||
+        (app.saved_job.external_title || app.saved_job.title || '').toLowerCase().includes(q) ||
+        (app.saved_job.external_location || app.saved_job.location || '').toLowerCase().includes(q)
+      )
+    }
+
+    const pinned = result.filter((a) => demoPinnedIds.has(a.saved_job.id))
+    return pinned.sort((a, b) => {
+      const aIdx = demoPinOrder.indexOf(a.saved_job.id)
+      const bIdx = demoPinOrder.indexOf(b.saved_job.id)
+      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx)
+    })
+  }, [demoApplications, filter, searchQuery, demoPinnedIds, demoPinOrder])
+
+  const demoStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: demoApplications.length }
+    for (const app of demoApplications) {
+      counts[app.status] = (counts[app.status] || 0) + 1
+    }
+    return counts
+  }, [demoApplications])
+
+  const demoUrgentCount = useMemo(() => {
+    return demoApplications.filter((app) => {
+      const deadline = app.saved_job.external_deadline || app.saved_job.deadline
+      if (!deadline) return false
+      if (app.status === 'rejected' || app.status === 'accepted' || app.status === 'declined' || app.status === 'passed') return false
+      const d = new Date(deadline)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      d.setHours(0, 0, 0, 0)
+      const diff = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      return diff >= 0 && diff <= 3
+    }).length
+  }, [demoApplications])
+
+  // ========== END DEMO MODE COMPUTED VALUES ==========
+
   const filterButtons: { key: ApplicationStatus | 'all'; label: string }[] = [
     { key: 'all', label: '전체' },
     { key: 'pending', label: '지원 예정' },
@@ -548,71 +1107,158 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-900">지원 관리</h2>
             <div className="text-sm text-gray-600">
-              총 {applications.length}개
+              총 {!user ? demoApplications.length : applications.length}개
             </div>
           </div>
 
           {!user ? (
-            // 비로그인 상태 - 샘플 데이터로 구조 미리보기
-            <div className="relative min-h-[500px]">
-              <div className="grid gap-4">
-                {SAMPLE_APPLICATIONS.map((app) => (
-                  <div key={app.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition opacity-60">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-900">{app.company}</h3>
-                        <p className="text-gray-700 mt-1">{app.title}</p>
-                        <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                          <span>{app.location}</span>
-                          {app.deadline && <span>마감: {new Date(app.deadline).toLocaleDateString()}</span>}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          app.status === 'pending' ? 'bg-blue-100 text-blue-700' :
-                          app.status === 'passed' ? 'bg-red-100 text-red-700' :
-                          app.status === 'hold' ? 'bg-gray-100 text-gray-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {app.status === 'pending' ? '지원 예정' :
-                           app.status === 'passed' ? '지원 안 함' :
-                           app.status === 'hold' ? '보류' : '지원 완료'}
-                        </span>
-                        <Button variant="outline" size="sm">원문 보기</Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            // 비로그인 상태 - 전체 인터랙티브 데모 모드
+            <>
+              {/* 데모 모드 안내 배너 */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-blue-800">
+                    <strong>데모 모드:</strong> 모든 기능을 자유롭게 체험해보세요! 
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleResetDemo}
+                  className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                >
+                  초기화
+                </Button>
               </div>
 
-              {/* 오버레이 - 더 투명하게 수정 */}
-              <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/30 backdrop-blur-[1px] flex items-center justify-center z-10">
-                <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md mx-4 text-center">
-                  <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                    <Briefcase className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    지원 관리를 시작하세요
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    채용 공고를 둘러보거나, 다른 사이트에서 지원한 내역을 추가해보세요
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <Link href="/jobs" className="w-full">
-                      <Button size="lg" className="w-full flex items-center justify-center gap-2">
-                        <Search className="w-5 h-5" />
-                        채용공고 보러가기
+              {/* 마감 임박 알림 */}
+              {demoUrgentCount > 0 && (
+                <div
+                  className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+                  onClick={() => {
+                    setFilter('all')
+                    setSortKey('deadline')
+                    trackDemoInteraction()
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <span className="text-sm font-medium text-red-700">
+                    3일 내 마감 {demoUrgentCount}건
+                  </span>
+                  <span className="text-xs text-red-500">클릭하면 마감일순 정렬</span>
+                </div>
+              )}
+
+              {/* 툴바 */}
+              <ApplicationToolbar
+                searchQuery={searchQuery}
+                onSearchChange={(q) => {
+                  setSearchQuery(q)
+                  if (q) trackDemoInteraction()
+                }}
+                sortKey={sortKey}
+                onSortChange={(key) => {
+                  setSortKey(key)
+                  trackDemoInteraction()
+                }}
+                onAddExternal={() => {
+                  setShowExternalModal(true)
+                  trackDemoInteraction()
+                }}
+              />
+
+              {/* 필터 탭 */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                <div className="flex flex-wrap gap-2">
+                  {filterButtons.map(({ key, label }) => {
+                    const count = demoStatusCounts[key] || 0
+                    const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
+                    if (!alwaysShow && count === 0) return null
+                    return (
+                      <Button
+                        key={key}
+                        size="sm"
+                        variant={filter === key ? 'default' : 'outline'}
+                        onClick={() => {
+                          setFilter(key)
+                          trackDemoInteraction()
+                        }}
+                        className={count === 0 ? 'opacity-50' : ''}
+                      >
+                        {label} ({count})
                       </Button>
-                    </Link>
-                    <Link href="/login" className="w-full">
-                      <Button size="lg" variant="outline" className="w-full flex items-center justify-center gap-2">
-                        지원 내역 추가하기
-                      </Button>
-                    </Link>
-                  </div>
+                    )
+                  })}
                 </div>
               </div>
-            </div>
+
+              {/* 공고 목록 */}
+              {demoProcessedApplications.length === 0 && demoPinnedApplications.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {searchQuery
+                      ? `"${searchQuery}" 검색 결과가 없습니다`
+                      : filter === 'all'
+                        ? '데모 데이터를 추가해보세요'
+                        : '해당 상태의 공고가 없습니다'}
+                  </h3>
+                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                    외부 공고 추가 기능을 사용해 새 항목을 추가하거나,<br/>
+                    초기화 버튼으로 샘플 데이터를 복원하세요
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setShowExternalModal(true)}
+                    className="gap-2"
+                  >
+                    데모 공고 추가하기
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* 핀 고정 섹션 */}
+                  <PinnedSection
+                    pinnedApps={demoPinnedApplications}
+                    pinnedIds={demoPinnedIds}
+                    onReorder={handleDemoReorderPins}
+                    onStatusChange={handleDemoStatusChange}
+                    onUpdateNotes={handleDemoUpdateNotes}
+                    onUpdateDocuments={handleDemoUpdateDocuments}
+                    onUpdateDeadline={handleDemoUpdateDeadline}
+                    onDelete={handleDemoDelete}
+                    onTogglePin={handleDemoTogglePin}
+                  />
+
+                  {/* 구분선 */}
+                  {demoPinnedApplications.length > 0 && demoProcessedApplications.length > 0 && (
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <div className="flex-1 border-t border-gray-200" />
+                      <span className="text-xs text-gray-400">일반</span>
+                      <div className="flex-1 border-t border-gray-200" />
+                    </div>
+                  )}
+
+                  {/* 일반 공고 목록 */}
+                  <div className="space-y-2">
+                    {demoProcessedApplications.map((application) => (
+                      <CompactApplicationRow
+                        key={application.id}
+                        application={application}
+                        onStatusChange={handleDemoStatusChange}
+                        onUpdateNotes={handleDemoUpdateNotes}
+                        onUpdateDocuments={handleDemoUpdateDocuments}
+                        onUpdateDeadline={handleDemoUpdateDeadline}
+                        onDelete={handleDemoDelete}
+                        isPinned={false}
+                        onTogglePin={handleDemoTogglePin}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : applications.length === 0 ? (
             // 로그인했지만 지원 내역 없음
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -777,8 +1423,46 @@ export default function HomePage() {
       <AddExternalJobModal
         isOpen={showExternalModal}
         onClose={() => setShowExternalModal(false)}
-        onSave={handleSaveExternal}
+        onSave={!user ? handleDemoSaveExternal : handleSaveExternal}
       />
+
+      {/* 회원가입 권유 모달 (데모 모드용) */}
+      {!user && showSignupModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+            <div className="text-center">
+              <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                <Briefcase className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                마음에 드시나요?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                회원가입하고 실제 지원 내역을 관리해보세요!<br/>
+                모든 데이터가 안전하게 저장됩니다.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link href="/login" className="w-full">
+                  <Button size="lg" className="w-full flex items-center justify-center gap-2">
+                    회원가입하고 시작하기
+                  </Button>
+                </Link>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setShowSignupModal(false)}
+                  className="w-full"
+                >
+                  계속 둘러보기
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-4">
+                💡 데모 데이터는 브라우저에만 저장되며 언제든지 초기화할 수 있습니다
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
