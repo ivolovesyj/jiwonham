@@ -1115,11 +1115,11 @@ export default function HomePage() {
         </div>
       )}
 
-      <main className="flex-1 p-4 md:p-6">
+      <main className="flex-1 p-3 sm:p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">지원 관리</h2>
-            <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">지원 관리</h2>
+            <div className="text-xs sm:text-sm text-gray-600">
               총 {!user ? demoApplications.length : applications.length}개
             </div>
           </div>
@@ -1128,18 +1128,18 @@ export default function HomePage() {
             // 비로그인 상태 - 전체 인터랙티브 데모 모드
             <>
               {/* 데모 모드 안내 배너 */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  <span className="text-sm text-blue-800">
-                    <strong>데모 모드:</strong> 모든 기능을 자유롭게 체험해보세요! 
+              <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-blue-800 truncate">
+                    <strong>데모 모드:</strong> <span className="hidden sm:inline">모든 기능을 자유롭게 체험해보세요!</span><span className="sm:hidden">체험 중</span>
                   </span>
                 </div>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleResetDemo}
-                  className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                  className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 flex-shrink-0 px-2 sm:px-3"
                 >
                   초기화
                 </Button>
@@ -1182,8 +1182,8 @@ export default function HomePage() {
               />
 
               {/* 필터 탭 */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-wrap gap-2">
+              <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {filterButtons.map(({ key, label }) => {
                     const count = demoStatusCounts[key] || 0
                     const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
@@ -1197,7 +1197,7 @@ export default function HomePage() {
                           setFilter(key)
                           trackDemoInteraction()
                         }}
-                        className={count === 0 ? 'opacity-50' : ''}
+                        className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
                       >
                         {label} ({count})
                       </Button>
@@ -1332,8 +1332,8 @@ export default function HomePage() {
               />
 
               {/* 필터 탭 */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-wrap gap-2">
+              <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {filterButtons.map(({ key, label }) => {
                     const count = statusCounts[key] || 0
                     const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
@@ -1344,7 +1344,7 @@ export default function HomePage() {
                         size="sm"
                         variant={filter === key ? 'default' : 'outline'}
                         onClick={() => setFilter(key)}
-                        className={count === 0 ? 'opacity-50' : ''}
+                        className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
                       >
                         {label} ({count})
                       </Button>
