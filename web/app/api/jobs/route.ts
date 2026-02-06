@@ -303,18 +303,24 @@ function scoreJob(
   }
 
   // 3.5 고용형태 필터 (엄격한 필터링)
-  if (prefs.work_style?.length && job.employee_types?.length) {
-    const normalizedPrefs = prefs.work_style.map(ws => {
-      if (ws === 'contractor') return '프리랜서'
-      if (ws === 'temporary') return '계약직/일용직'
-      return ws
-    })
-    const match = normalizedPrefs.some(ws => job.employee_types!.includes(ws))
-    if (!match) {
+  if (prefs.work_style?.length) {
+    if (!job.employee_types || job.employee_types.length === 0) {
+      // employee_types 정보가 없는 공고는 필터링 제외
       matchesFilter = false
-      warnings.push(`⚠️ 고용형태 불일치`)
+      warnings.push(`⚠️ 고용형태 정보 없음`)
     } else {
-      reasons.push('희망 고용형태')
+      const normalizedPrefs = prefs.work_style.map(ws => {
+        if (ws === 'contractor') return '프리랜서'
+        if (ws === 'temporary') return '계약직/일용직'
+        return ws
+      })
+      const match = normalizedPrefs.some(ws => job.employee_types!.includes(ws))
+      if (!match) {
+        matchesFilter = false
+        warnings.push(`⚠️ 고용형태 불일치`)
+      } else {
+        reasons.push('희망 고용형태')
+      }
     }
   }
 
