@@ -309,9 +309,20 @@ function scoreJob(
       matchesFilter = false
       warnings.push(`⚠️ 고용형태 정보 없음`)
     } else {
+      // DB 값 정규화 매핑 (크롤러에서 영문으로 저장된 값 처리)
+      // DB 실제 값: CONTRACTOR, TEMPORARY, 계약직, 계약직/일용직, 병역특례, 인턴, 일용직, 전환형인턴, 정규직, 체험형인턴, 프리랜서
+      const normalizeEmployeeType = (type: string): string => {
+        const upper = type.toUpperCase()
+        if (upper === 'CONTRACTOR') return '프리랜서'
+        if (upper === 'TEMPORARY') return '계약직'
+        return type
+      }
+
+      const normalizedJobTypes = job.employee_types.map(normalizeEmployeeType)
+
       // 부분 문자열 매칭: '인턴'이 '전환형인턴', '체험형인턴' 등도 매칭
       const match = prefs.work_style.some(pref =>
-        job.employee_types!.some(jobType =>
+        normalizedJobTypes.some(jobType =>
           jobType.includes(pref) || pref.includes(jobType)
         )
       )
@@ -326,11 +337,16 @@ function scoreJob(
   }
 
   // 3.6 기업 유형 필터 (엄격한 필터링)
+  // DB 현황: 기타(50,228), 중소기업(21,381), 스타트업(6,032), 대기업(3,183), 유니콘(2,589), null(1,756), 외국계(934), 중견기업(882), 공공기관(166)
   if (prefs.preferred_company_types?.length) {
-    if (!companyType || companyType === '기타') {
-      // company_type 정보가 없거나 '기타'인 공고는 필터링 제외
+    if (!companyType) {
+      // company_type null인 공고는 필터링 제외 (1,756개)
       matchesFilter = false
       warnings.push(`⚠️ 기업 유형 정보 없음`)
+    } else if (companyType === '기타') {
+      // '기타'는 정보가 부족하므로 필터링 제외 (50,228개)
+      matchesFilter = false
+      warnings.push(`⚠️ 기업 유형 미분류`)
     } else {
       const match = prefs.preferred_company_types.includes(companyType)
       if (!match) {
@@ -343,14 +359,16 @@ function scoreJob(
   }
 
   // 3.7 학력 필터 (엄격한 필터링 - 정확히 일치만)
+  // DB 현황: 총 87,151개 중 16,397개만 학력 데이터 있음 (18.8%)
+  // 분포: 무관(13,869), 학사(848), 전문대졸(787), 고졸(764), 석사(120), 박사(9)
   if (prefs.preferred_education?.length) {
     if (!job.education) {
-      // education 정보가 없는 공고는 필터링 제외
+      // education 정보가 없는 공고는 필터링 제외 (70,754개 = 81.2%)
       matchesFilter = false
       warnings.push(`⚠️ 학력 정보 없음`)
     } else {
       const match = prefs.preferred_education.includes(job.education)
-      
+
       if (!match) {
         matchesFilter = false
         warnings.push(`⚠️ ${job.education} 요구 (학력 불일치)`)
