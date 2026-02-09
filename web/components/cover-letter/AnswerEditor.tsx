@@ -1,16 +1,25 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { User } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { CoverLetterQuestionWithJob, QUESTION_TYPE_OPTIONS, CHAR_LIMIT_OPTIONS, countChars, getCharCountStatus } from '@/types/cover-letter'
-import { Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Save, Trash2, ChevronDown, ChevronUp, Building2 } from 'lucide-react'
+
+interface SavedJobOption {
+  id: string
+  company: string
+  title: string
+}
 
 interface Props {
   question: CoverLetterQuestionWithJob
   onUpdate: (id: string, data: Partial<CoverLetterQuestionWithJob>) => void
   onDelete: (id: string) => void
+  user: User
 }
 
-export function AnswerEditor({ question, onUpdate, onDelete }: Props) {
+export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const [questionText, setQuestionText] = useState(question.question)
   const [questionType, setQuestionType] = useState(question.question_type)
   const [customType, setCustomType] = useState('')
@@ -20,8 +29,37 @@ export function AnswerEditor({ question, onUpdate, onDelete }: Props) {
   const [jdInfo, setJdInfo] = useState(question.jd_info || '')
   const [showJdInfo, setShowJdInfo] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState<string>(question.saved_job_id || '')
+  const [savedJobs, setSavedJobs] = useState<SavedJobOption[]>([])
+  const [showJobSelect, setShowJobSelect] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isCustomType = !QUESTION_TYPE_OPTIONS.includes(questionType as any)
+
+  // 공고 목록 fetch
+  useEffect(() => {
+    if (showJobSelect && savedJobs.length === 0) {
+      fetchSavedJobs()
+    }
+  }, [showJobSelect])
+
+  const fetchSavedJobs = async () => {
+    try {
+      const { data } = await supabase
+        .from('saved_jobs')
+        .select('id, company, title')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (data) {
+        setSavedJobs(data.map(j => ({
+          id: j.id,
+          company: j.company || '회사명 없음',
+          title: j.title || '공고명 없음',
+        })))
+      }
+    } catch (error) {
+      console.error('Failed to fetch saved jobs:', error)
+    }
+  }
 
   // textarea auto-resize
   const autoResize = useCallback(() => {
@@ -50,6 +88,7 @@ export function AnswerEditor({ question, onUpdate, onDelete }: Props) {
         include_space: includeSpace,
         answer: answer || null,
         jd_info: jdInfo || null,
+        saved_job_id: selectedJobId || null,
       })
     } finally {
       setSaving(false)
@@ -64,6 +103,35 @@ export function AnswerEditor({ question, onUpdate, onDelete }: Props) {
 
   return (
     <div className="p-4 space-y-4 bg-gray-50/50">
+      {/* 연결 공고 변경 */}
+      <div className="flex items-center gap-2">
+        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+        {showJobSelect ? (
+          <select
+            value={selectedJobId}
+            onChange={(e) => setSelectedJobId(e.target.value)}
+            className="flex-1 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">공고 미연결</option>
+            {savedJobs.map(job => (
+              <option key={job.id} value={job.id}>
+                {job.company} - {job.title}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <button
+            onClick={() => setShowJobSelect(true)}
+            className="text-xs text-blue-600 hover:text-blue-800 hover:underline transition"
+          >
+            {question.saved_job
+              ? `${question.saved_job.company || '회사명 없음'} - ${question.saved_job.title || '공고명 없음'}`
+              : '공고 미연결'}
+            <span className="ml-1 text-gray-400">(변경)</span>
+          </button>
+        )}
+      </div>
+
       {/* 질문 유형 + 질문 텍스트 */}
       <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-3">
         <div>

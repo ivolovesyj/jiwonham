@@ -71,6 +71,7 @@ interface PinnedSectionProps {
   onUpdateDeadline: (savedJobId: string, deadline: string) => void
   onDelete: (applicationId: string, savedJobId: string) => void
   onTogglePin: (savedJobId: string) => void
+  onAddCoverLetterQuestion?: (savedJobId: string) => void
 }
 
 export function PinnedSection({
@@ -83,6 +84,7 @@ export function PinnedSection({
   onUpdateDeadline,
   onDelete,
   onTogglePin,
+  onAddCoverLetterQuestion,
 }: PinnedSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -130,6 +132,7 @@ export function PinnedSection({
                   onDelete={onDelete}
                   isPinned={true}
                   onTogglePin={onTogglePin}
+                  onAddCoverLetterQuestion={onAddCoverLetterQuestion}
                 />
               </SortableItem>
             ))}

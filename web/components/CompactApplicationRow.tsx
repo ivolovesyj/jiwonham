@@ -5,7 +5,7 @@ import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/type
 import { StatusBadge } from './StatusBadge'
 import { DeadlineBadge } from './DeadlineBadge'
 import { Button } from '@/components/ui/button'
-import { Star, ChevronDown, ChevronUp, ExternalLink, Trash2, MessageSquare } from 'lucide-react'
+import { Star, ChevronDown, ChevronUp, ExternalLink, Trash2, MessageSquare, FileText } from 'lucide-react'
 
 interface CompactApplicationRowProps {
   application: ApplicationWithJob
@@ -16,6 +16,7 @@ interface CompactApplicationRowProps {
   onDelete: (applicationId: string, savedJobId: string) => void
   isPinned?: boolean
   onTogglePin?: (savedJobId: string) => void
+  onAddCoverLetterQuestion?: (savedJobId: string) => void
 }
 
 export function CompactApplicationRow({
@@ -27,6 +28,7 @@ export function CompactApplicationRow({
   onDelete,
   isPinned,
   onTogglePin,
+  onAddCoverLetterQuestion,
 }: CompactApplicationRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -195,6 +197,19 @@ export function CompactApplicationRow({
               </button>
             )}
           </div>
+
+          {/* 자소서 질문 추가 */}
+          {onAddCoverLetterQuestion && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => onAddCoverLetterQuestion(saved_job.id)}
+                className="w-full text-left text-sm text-gray-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg px-3 py-2 transition-all flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <span>자소서 질문 추가하기</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

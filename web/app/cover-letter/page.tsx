@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Navigation } from '@/components/Navigation'
 import { ExperienceMaterialsTab } from '@/components/cover-letter/ExperienceMaterialsTab'
@@ -9,10 +9,15 @@ import { CoverLetterQuestionsTab } from '@/components/cover-letter/CoverLetterQu
 import { Lightbulb, PenTool } from 'lucide-react'
 import Image from 'next/image'
 
-export default function CoverLetterPage() {
+function CoverLetterContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, loading } = useAuth()
-  const [activeTab, setActiveTab] = useState<'materials' | 'questions'>('materials')
+  const tabParam = searchParams.get('tab')
+  const jobIdParam = searchParams.get('job_id')
+  const [activeTab, setActiveTab] = useState<'materials' | 'questions'>(
+    tabParam === 'questions' ? 'questions' : 'materials'
+  )
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,10 +82,27 @@ export default function CoverLetterPage() {
           {activeTab === 'materials' ? (
             <ExperienceMaterialsTab user={user} />
           ) : (
-            <CoverLetterQuestionsTab user={user} />
+            <CoverLetterQuestionsTab user={user} initialJobId={jobIdParam} />
           )}
         </div>
       </main>
     </div>
+  )
+}
+
+export default function CoverLetterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4">
+          <div className="w-24 h-24 mx-auto animate-bounce">
+            <Image src="/logo-final.png" alt="지원함" width={96} height={96} className="w-full h-full object-contain" />
+          </div>
+          <p className="text-lg font-medium text-gray-700">자기소개서를 준비하는 중...</p>
+        </div>
+      </div>
+    }>
+      <CoverLetterContent />
+    </Suspense>
   )
 }

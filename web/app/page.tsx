@@ -658,6 +658,10 @@ export default function HomePage() {
     }
   }
 
+  const handleAddCoverLetterQuestion = (savedJobId: string) => {
+    router.push(`/cover-letter?tab=questions&job_id=${savedJobId}`)
+  }
+
   const handleSaveExternal = async (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
     if (!user) return
     try {
@@ -1242,6 +1246,7 @@ export default function HomePage() {
                     onUpdateDeadline={handleDemoUpdateDeadline}
                     onDelete={handleDemoDelete}
                     onTogglePin={handleDemoTogglePin}
+                    onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
                   />
 
                   {/* 구분선 */}
@@ -1266,6 +1271,7 @@ export default function HomePage() {
                         onDelete={handleDemoDelete}
                         isPinned={false}
                         onTogglePin={handleDemoTogglePin}
+                        onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
                       />
                     ))}
                   </div>
@@ -1398,6 +1404,7 @@ export default function HomePage() {
                     onUpdateDeadline={handleUpdateDeadline}
                     onDelete={handleDelete}
                     onTogglePin={handleTogglePin}
+                    onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
                   />
 
                   {/* 구분선 */}
@@ -1422,6 +1429,7 @@ export default function HomePage() {
                         onDelete={handleDelete}
                         isPinned={false}
                         onTogglePin={handleTogglePin}
+                        onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
                       />
                     ))}
                   </div>

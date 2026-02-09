@@ -22,9 +22,10 @@ interface Props {
     char_limit: number | null
   }) => void
   user: User
+  initialJobId?: string | null
 }
 
-export function AddQuestionModal({ isOpen, onClose, onSave, user }: Props) {
+export function AddQuestionModal({ isOpen, onClose, onSave, user, initialJobId }: Props) {
   const [savedJobs, setSavedJobs] = useState<SavedJobOption[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string>('')
   const [questionType, setQuestionType] = useState<string>(QUESTION_TYPE_OPTIONS[0])
@@ -43,16 +44,20 @@ export function AddQuestionModal({ isOpen, onClose, onSave, user }: Props) {
     try {
       const { data } = await supabase
         .from('saved_jobs')
-        .select('id, company, title, external_company, external_title')
+        .select('id, company, title')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (data) {
         setSavedJobs(data.map(j => ({
           id: j.id,
-          company: j.external_company || j.company || '회사명 없음',
-          title: j.external_title || j.title || '공고명 없음',
+          company: j.company || '회사명 없음',
+          title: j.title || '공고명 없음',
         })))
+        // initialJobId가 있으면 자동 선택
+        if (initialJobId && data.some(j => j.id === initialJobId)) {
+          setSelectedJobId(initialJobId)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch saved jobs:', error)

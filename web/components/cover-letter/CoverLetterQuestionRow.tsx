@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { User } from '@supabase/supabase-js'
 import { CoverLetterQuestionWithJob, getCharCountStatus, countChars } from '@/types/cover-letter'
 import { AnswerEditor } from './AnswerEditor'
 import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
@@ -9,9 +10,10 @@ interface Props {
   question: CoverLetterQuestionWithJob
   onUpdate: (id: string, data: Partial<CoverLetterQuestionWithJob>) => void
   onDelete: (id: string) => void
+  user: User
 }
 
-export function CoverLetterQuestionRow({ question, onUpdate, onDelete }: Props) {
+export function CoverLetterQuestionRow({ question, onUpdate, onDelete, user }: Props) {
   const [expanded, setExpanded] = useState(false)
 
   const charCount = countChars(question.answer, question.include_space)
@@ -75,6 +77,7 @@ export function CoverLetterQuestionRow({ question, onUpdate, onDelete }: Props) 
             question={question}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            user={user}
           />
         </div>
       )}

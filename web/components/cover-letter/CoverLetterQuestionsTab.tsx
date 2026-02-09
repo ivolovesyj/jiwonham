@@ -10,6 +10,7 @@ import { Plus, FileText, Building2, Unlink } from 'lucide-react'
 
 interface Props {
   user: User
+  initialJobId?: string | null
 }
 
 interface GroupedQuestions {
@@ -18,7 +19,7 @@ interface GroupedQuestions {
   questions: CoverLetterQuestionWithJob[]
 }
 
-export function CoverLetterQuestionsTab({ user }: Props) {
+export function CoverLetterQuestionsTab({ user, initialJobId }: Props) {
   const [questions, setQuestions] = useState<CoverLetterQuestionWithJob[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -26,6 +27,13 @@ export function CoverLetterQuestionsTab({ user }: Props) {
   useEffect(() => {
     fetchQuestions()
   }, [user.id])
+
+  // 지원관리에서 넘어온 경우 자동으로 모달 열기
+  useEffect(() => {
+    if (initialJobId && !loading) {
+      setShowAddModal(true)
+    }
+  }, [initialJobId, loading])
 
   const fetchQuestions = async () => {
     try {
@@ -45,7 +53,7 @@ export function CoverLetterQuestionsTab({ user }: Props) {
       if (jobIds.length > 0) {
         const { data: jobs } = await supabase
           .from('saved_jobs')
-          .select('id, company, title, external_company, external_title')
+          .select('id, company, title')
           .in('id', jobIds)
 
         if (jobs) {
@@ -76,8 +84,8 @@ export function CoverLetterQuestionsTab({ user }: Props) {
       if (!groups.has(jobId)) {
         let jobLabel = '공고 미연결'
         if (q.saved_job) {
-          const company = q.saved_job.external_company || q.saved_job.company || '회사명 없음'
-          const title = q.saved_job.external_title || q.saved_job.title || '공고명 없음'
+          const company = q.saved_job.company || '회사명 없음'
+          const title = q.saved_job.title || '공고명 없음'
           jobLabel = `${company} - ${title}`
         }
         groups.set(jobId, {
@@ -127,7 +135,7 @@ export function CoverLetterQuestionsTab({ user }: Props) {
       if (created.saved_job_id) {
         const { data: jobData } = await supabase
           .from('saved_jobs')
-          .select('id, company, title, external_company, external_title')
+          .select('id, company, title')
           .eq('id', created.saved_job_id)
           .single()
         savedJob = jobData
@@ -241,6 +249,7 @@ export function CoverLetterQuestionsTab({ user }: Props) {
                   question={question}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  user={user}
                 />
               ))}
             </div>
@@ -254,6 +263,7 @@ export function CoverLetterQuestionsTab({ user }: Props) {
         onClose={() => setShowAddModal(false)}
         onSave={handleCreate}
         user={user}
+        initialJobId={initialJobId}
       />
     </div>
   )
