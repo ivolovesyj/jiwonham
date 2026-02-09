@@ -33,6 +33,7 @@ export function AddQuestionModal({ isOpen, onClose, onSave, user, initialJobId }
   const [isCustomType, setIsCustomType] = useState(false)
   const [question, setQuestion] = useState('')
   const [charLimit, setCharLimit] = useState<number | null>(null)
+  const [addedCount, setAddedCount] = useState(0)
 
   useEffect(() => {
     if (isOpen) {
@@ -79,8 +80,6 @@ export function AddQuestionModal({ isOpen, onClose, onSave, user, initialJobId }
   }
 
   if (!isOpen) return null
-
-  const [addedCount, setAddedCount] = useState(0)
 
   const handleSave = () => {
     if (!question.trim()) return
