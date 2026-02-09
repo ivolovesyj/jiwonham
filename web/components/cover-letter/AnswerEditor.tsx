@@ -44,11 +44,26 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
 
   const fetchSavedJobs = async () => {
     try {
+      // "지원 예정" 상태인 공고만 가져오기
+      const { data: statusData } = await supabase
+        .from('application_status')
+        .select('saved_job_id')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+
+      const pendingJobIds = (statusData || []).map(s => s.saved_job_id).filter(Boolean)
+
+      if (pendingJobIds.length === 0) {
+        setSavedJobs([])
+        return
+      }
+
       const { data } = await supabase
         .from('saved_jobs')
         .select('id, company, title')
-        .eq('user_id', user.id)
+        .in('id', pendingJobIds)
         .order('created_at', { ascending: false })
+
       if (data) {
         setSavedJobs(data.map(j => ({
           id: j.id,

@@ -11,6 +11,7 @@ import { getDeadlineSortValue } from '@/components/DeadlineBadge'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { AddQuestionModal } from '@/components/cover-letter/AddQuestionModal'
 import { Briefcase, Search, AlertTriangle, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -361,6 +362,10 @@ export default function HomePage() {
   // Phase 3: 외부 공고 모달
   const [showExternalModal, setShowExternalModal] = useState(false)
 
+  // 자소서 질문 추가 모달
+  const [showCoverLetterModal, setShowCoverLetterModal] = useState(false)
+  const [coverLetterJobId, setCoverLetterJobId] = useState<string | null>(null)
+
   // Demo Mode (비로그인 사용자용)
   const [demoApplications, setDemoApplications] = useState<ApplicationWithJob[]>([])
   const [showSignupModal, setShowSignupModal] = useState(false)
@@ -659,7 +664,32 @@ export default function HomePage() {
   }
 
   const handleAddCoverLetterQuestion = (savedJobId: string) => {
-    router.push(`/cover-letter?tab=questions&job_id=${savedJobId}`)
+    setCoverLetterJobId(savedJobId)
+    setShowCoverLetterModal(true)
+  }
+
+  const handleSaveCoverLetterQuestion = async (data: {
+    saved_job_id: string | null
+    question_type: string
+    question: string
+    char_limit: number | null
+  }) => {
+    if (!user) return
+    try {
+      const { error } = await supabase
+        .from('cover_letter_questions')
+        .insert({
+          user_id: user.id,
+          ...data,
+          include_space: true,
+          answer: null,
+          jd_info: null,
+        })
+      if (error) throw error
+    } catch (error) {
+      console.error('Failed to create question:', error)
+      alert('질문 추가에 실패했습니다.')
+    }
   }
 
   const handleSaveExternal = async (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
@@ -1446,6 +1476,17 @@ export default function HomePage() {
         onClose={() => setShowExternalModal(false)}
         onSave={!user ? handleDemoSaveExternal : handleSaveExternal}
       />
+
+      {/* 자소서 질문 추가 모달 */}
+      {user && (
+        <AddQuestionModal
+          isOpen={showCoverLetterModal}
+          onClose={() => { setShowCoverLetterModal(false); setCoverLetterJobId(null) }}
+          onSave={handleSaveCoverLetterQuestion}
+          user={user}
+          initialJobId={coverLetterJobId}
+        />
+      )}
 
       {/* 회원가입 권유 모달 (데모 모드용) */}
       {!user && showSignupModal && (
