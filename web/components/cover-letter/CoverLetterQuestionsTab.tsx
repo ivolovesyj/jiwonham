@@ -29,17 +29,36 @@ export function CoverLetterQuestionsTab({ user }: Props) {
 
   const fetchQuestions = async () => {
     try {
+      // 질문 목록 fetch
       const { data, error } = await supabase
         .from('cover_letter_questions')
-        .select(`
-          *,
-          saved_job:saved_jobs(id, company, title, external_company, external_title)
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setQuestions(data || [])
+
+      // saved_job 정보 별도 fetch
+      const jobIds = [...new Set((data || []).map(q => q.saved_job_id).filter(Boolean))]
+      let jobMap: Record<string, any> = {}
+
+      if (jobIds.length > 0) {
+        const { data: jobs } = await supabase
+          .from('saved_jobs')
+          .select('id, company, title, external_company, external_title')
+          .in('id', jobIds)
+
+        if (jobs) {
+          jobMap = Object.fromEntries(jobs.map(j => [j.id, j]))
+        }
+      }
+
+      const questionsWithJobs = (data || []).map(q => ({
+        ...q,
+        saved_job: q.saved_job_id ? jobMap[q.saved_job_id] || null : null,
+      }))
+
+      setQuestions(questionsWithJobs)
     } catch (error) {
       console.error('Failed to fetch questions:', error)
     } finally {
@@ -88,6 +107,7 @@ export function CoverLetterQuestionsTab({ user }: Props) {
     char_limit: number | null
   }) => {
     try {
+      // 1) insert
       const { data: created, error } = await supabase
         .from('cover_letter_questions')
         .insert({
@@ -97,14 +117,23 @@ export function CoverLetterQuestionsTab({ user }: Props) {
           answer: null,
           jd_info: null,
         })
-        .select(`
-          *,
-          saved_job:saved_jobs(id, company, title, external_company, external_title)
-        `)
+        .select('*')
         .single()
 
       if (error) throw error
-      setQuestions(prev => [created, ...prev])
+
+      // 2) saved_job 정보 별도 fetch
+      let savedJob = null
+      if (created.saved_job_id) {
+        const { data: jobData } = await supabase
+          .from('saved_jobs')
+          .select('id, company, title, external_company, external_title')
+          .eq('id', created.saved_job_id)
+          .single()
+        savedJob = jobData
+      }
+
+      setQuestions(prev => [{ ...created, saved_job: savedJob }, ...prev])
     } catch (error) {
       console.error('Failed to create question:', error)
       alert('질문 추가에 실패했습니다.')
