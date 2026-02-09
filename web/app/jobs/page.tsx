@@ -599,7 +599,7 @@ export default function Home() {
         location: targetJob.location,
         link: targetJob.link,
         deadline: targetJob.end_date || null,
-        score: targetJob.score,
+        score: Math.round(targetJob.score),
         reason: targetJob.reason,
         reasons: targetJob.reasons || [],
         warnings: targetJob.warnings || [],
