@@ -2,10 +2,12 @@
 
 import { useState, useMemo } from 'react'
 import { Job } from '@/types/job'
-import { Search, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
+import { Search, ExternalLink, ChevronUp, ChevronDown, X, Clock, Check } from 'lucide-react'
 
 interface JobListViewProps {
   jobs: Job[]
+  onAction?: (job: Job, action: 'pass' | 'hold' | 'apply') => void
+  isLoggedIn?: boolean
 }
 
 function formatCareer(job: Job): string {
@@ -19,10 +21,12 @@ function formatCareer(job: Job): string {
 type SortKey = 'company' | 'title' | 'career' | 'company_type' | 'employee_types' | 'score'
 type SortDir = 'asc' | 'desc'
 
-export function JobListView({ jobs }: JobListViewProps) {
+export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('score')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [actedJobIds, setActedJobIds] = useState<Set<string>>(new Set())
+  const [loadingJobId, setLoadingJobId] = useState<string | null>(null)
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -33,12 +37,19 @@ export function JobListView({ jobs }: JobListViewProps) {
     }
   }
 
+  const handleAction = (job: Job, action: 'pass' | 'hold' | 'apply') => {
+    setLoadingJobId(job.id)
+    setActedJobIds(prev => new Set(prev).add(job.id))
+    setLoadingJobId(null)
+    onAction?.(job, action)
+  }
+
   const filteredAndSorted = useMemo(() => {
     const query = searchQuery.toLowerCase().trim()
 
-    let filtered = jobs
+    let filtered = jobs.filter(job => !actedJobIds.has(job.id))
     if (query) {
-      filtered = jobs.filter(job =>
+      filtered = filtered.filter(job =>
         job.company.toLowerCase().includes(query) ||
         job.title.toLowerCase().includes(query) ||
         (job.company_type && job.company_type.toLowerCase().includes(query)) ||
@@ -72,7 +83,7 @@ export function JobListView({ jobs }: JobListViewProps) {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [jobs, searchQuery, sortKey, sortDir])
+  }, [jobs, searchQuery, sortKey, sortDir, actedJobIds])
 
   const SortIcon = ({ column }: { column: SortKey }) => {
     if (sortKey !== column) return <ChevronUp className="w-3 h-3 text-gray-300" />
@@ -123,6 +134,11 @@ export function JobListView({ jobs }: JobListViewProps) {
                 <ThButton column="company_type" label="회사유형" className="min-w-[90px]" />
                 <ThButton column="employee_types" label="채용유형" className="min-w-[90px]" />
                 <ThButton column="score" label="적합도" className="min-w-[70px]" />
+                {onAction && (
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[160px]">
+                    액션
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[50px]">
                   링크
                 </th>
@@ -131,13 +147,13 @@ export function JobListView({ jobs }: JobListViewProps) {
             <tbody className="divide-y divide-gray-100">
               {filteredAndSorted.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={onAction ? 8 : 7} className="px-4 py-12 text-center text-gray-500">
                     {searchQuery ? `"${searchQuery}"에 대한 검색 결과가 없습니다.` : '표시할 공고가 없습니다.'}
                   </td>
                 </tr>
               ) : (
                 filteredAndSorted.map((job) => (
-                  <tr key={job.id} className="hover:bg-blue-50/50 transition-colors">
+                  <tr key={job.id} className={`hover:bg-blue-50/50 transition-colors ${loadingJobId === job.id ? 'opacity-50' : ''}`}>
                     {/* 회사명 */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -203,6 +219,37 @@ export function JobListView({ jobs }: JobListViewProps) {
                         {job.score}%
                       </span>
                     </td>
+                    {/* 액션 버튼 */}
+                    {onAction && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleAction(job, 'pass')}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                            title="지원 안 함"
+                          >
+                            <X className="w-3 h-3" />
+                            패스
+                          </button>
+                          <button
+                            onClick={() => handleAction(job, 'hold')}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-amber-600 hover:bg-amber-50 border border-amber-200 hover:border-amber-300 transition-colors"
+                            title="보류"
+                          >
+                            <Clock className="w-3 h-3" />
+                            보류
+                          </button>
+                          <button
+                            onClick={() => handleAction(job, 'apply')}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-green-600 hover:bg-green-50 border border-green-200 hover:border-green-300 transition-colors"
+                            title="지원 예정"
+                          >
+                            <Check className="w-3 h-3" />
+                            지원
+                          </button>
+                        </div>
+                      </td>
+                    )}
                     {/* 링크 */}
                     <td className="px-4 py-3">
                       <a
@@ -225,7 +272,8 @@ export function JobListView({ jobs }: JobListViewProps) {
         {filteredAndSorted.length > 0 && (
           <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
             총 {filteredAndSorted.length}건
-            {searchQuery && ` (전체 ${jobs.length}건 중)`}
+            {searchQuery && ` (전체 ${jobs.filter(j => !actedJobIds.has(j.id)).length}건 중)`}
+            {actedJobIds.size > 0 && ` · ${actedJobIds.size}건 처리됨`}
           </div>
         )}
       </div>

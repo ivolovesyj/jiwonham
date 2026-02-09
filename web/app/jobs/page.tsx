@@ -571,49 +571,40 @@ export default function Home() {
     }
   }
 
-  const handleAction = async (action: 'pass' | 'hold' | 'apply') => {
-    const currentJob = jobs[currentIndex]
-
-    // 비로그인 사용자: 로그인 유도
-    if (!user) {
-      setShowLoginModal(true)
-      return
-    }
-
-    // 즉시 다음 카드로 이동
-    const newIndex = currentIndex + 1
-    setCurrentIndex(newIndex)
+  // 공통 액션 처리 (DB 저장 + 학습)
+  const saveJobAction = async (targetJob: Job, action: 'pass' | 'hold' | 'apply') => {
+    if (!user) return
 
     try {
       // user_job_actions 테이블에 선택 기록
       await supabase.from('user_job_actions').upsert({
         user_id: user.id,
-        job_id: currentJob.id,
+        job_id: targetJob.id,
         action: action,
       })
 
       // 모든 액션을 saved_jobs에 저장 (pass 포함 - 지원관리에서 조회 가능)
       if (action === 'hold' || action === 'apply') {
-        setAppliedJobs([...appliedJobs, currentJob])
+        setAppliedJobs(prev => [...prev, targetJob])
       }
 
       const statusMap = { pass: 'passed', hold: 'hold', apply: 'pending' } as const
 
       const savedJobData = {
         user_id: user.id,
-        job_id: currentJob.id,
-        source: currentJob.source,
-        company: currentJob.company,
-        title: currentJob.title,
-        location: currentJob.location,
-        link: currentJob.link,
-        deadline: currentJob.end_date || null,
-        score: currentJob.score,
-        reason: currentJob.reason,
-        reasons: currentJob.reasons || [],
-        warnings: currentJob.warnings || [],
-        description: currentJob.description,
-        detail: currentJob.detail || null,
+        job_id: targetJob.id,
+        source: targetJob.source,
+        company: targetJob.company,
+        title: targetJob.title,
+        location: targetJob.location,
+        link: targetJob.link,
+        deadline: targetJob.end_date || null,
+        score: targetJob.score,
+        reason: targetJob.reason,
+        reasons: targetJob.reasons || [],
+        warnings: targetJob.warnings || [],
+        description: targetJob.description,
+        detail: targetJob.detail || null,
       }
 
       // 기존 saved_job 확인
@@ -621,14 +612,13 @@ export default function Home() {
         .from('saved_jobs')
         .select('id')
         .eq('user_id', user.id)
-        .eq('job_id', currentJob.id)
+        .eq('job_id', targetJob.id)
         .single()
 
       let savedJob
       let savedJobError
 
       if (existingSavedJob) {
-        // 기존 데이터 있으면 update
         const result = await supabase
           .from('saved_jobs')
           .update(savedJobData)
@@ -638,7 +628,6 @@ export default function Home() {
         savedJob = result.data
         savedJobError = result.error
       } else {
-        // 없으면 insert
         const result = await supabase
           .from('saved_jobs')
           .insert(savedJobData)
@@ -658,7 +647,6 @@ export default function Home() {
 
       // application_status 생성/업데이트
       if (savedJob) {
-        // 기존 status 확인
         const { data: existingStatus } = await supabase
           .from('application_status')
           .select('id')
@@ -686,14 +674,39 @@ export default function Home() {
         }
       }
 
-      // === 실시간 학습: keyword_weights + company_preference 업데이트 ===
-      // 백그라운드로 실행 (UI 블로킹 안 함)
-      updateLearningData(user.id, currentJob, action).catch(console.error)
+      // 실시간 학습 (백그라운드)
+      updateLearningData(user.id, targetJob, action).catch(console.error)
 
     } catch (error) {
       console.error('Failed to save action:', error)
       alert(`저장 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     }
+  }
+
+  // 카드뷰용 액션 핸들러
+  const handleAction = async (action: 'pass' | 'hold' | 'apply') => {
+    const currentJob = jobs[currentIndex]
+
+    if (!user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    // 즉시 다음 카드로 이동
+    const newIndex = currentIndex + 1
+    setCurrentIndex(newIndex)
+
+    await saveJobAction(currentJob, action)
+  }
+
+  // 리스트뷰용 액션 핸들러
+  const handleListAction = async (job: Job, action: 'pass' | 'hold' | 'apply') => {
+    if (!user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    await saveJobAction(job, action)
   }
 
   const handleReset = () => {
@@ -907,7 +920,7 @@ export default function Home() {
           ) : viewMode === 'list' ? (
             // 리스트 뷰
             <div className="w-full pb-8">
-              <JobListView jobs={jobs} />
+              <JobListView jobs={jobs} onAction={handleListAction} isLoggedIn={!!user} />
               {hasMore && (
                 <div className="flex justify-center mt-6">
                   <Button onClick={handleLoadMore} variant="outline">
