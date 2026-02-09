@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Carousel3D } from '@/components/Carousel3D'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check, Package } from 'lucide-react'
+import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check, Package, LayoutGrid, List } from 'lucide-react'
 import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
@@ -13,6 +13,7 @@ import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
 import { Navigation } from '@/components/Navigation'
 import { FilterModal } from '@/components/FilterModal'
+import { JobListView } from '@/components/JobListView'
 
 const CAREER_OPTIONS = [
   { value: '신입', label: '신입' },
@@ -281,6 +282,7 @@ export default function Home() {
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])  // 초기값 고정 (hydration 에러 방지)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [showFilterModal, setShowFilterModal] = useState(false)
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
   // 클라이언트에서만 랜덤 메시지 선택 (hydration 에러 방지)
   useEffect(() => {
@@ -410,6 +412,7 @@ export default function Home() {
               if (data.jobs?.length > 0) {
                 const newJobs: Job[] = data.jobs.map((job: any) => ({
                   id: job.id, company: job.company, company_image: job.company_image,
+                  company_type: job.company_type,
                   title: job.title, location: job.location || '위치 미정',
                   score: job.score || 0, reason: job.reason || '추천 공고',
                   reasons: job.reasons || [], warnings: job.warnings || [],
@@ -443,6 +446,7 @@ export default function Home() {
           id: job.id,
           company: job.company,
           company_image: job.company_image,
+          company_type: job.company_type,
           title: job.title,
           location: job.location || '위치 미정',
           score: job.score || 0,
@@ -785,8 +789,35 @@ export default function Home() {
           }}
         />
 
-        {/* 메인 컨텐츠: 3D 캐러셀 또는 필터 설정 안내 */}
-        <main className="flex-1 flex flex-col items-start justify-start p-4 pt-12 relative overflow-hidden">
+        {/* 메인 컨텐츠: 3D 캐러셀 또는 리스트 뷰 */}
+        <main className={`flex-1 flex flex-col items-start justify-start p-4 pt-4 relative ${viewMode === 'list' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+          {/* 뷰 토글 + 모바일 필터 버튼 */}
+          <div className="w-full flex items-center justify-between mb-2 z-10">
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
+              <button
+                onClick={() => setViewMode('card')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'card' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                카드
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'list' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                리스트
+              </button>
+            </div>
+            {jobs.length > 0 && (
+              <span className="text-xs text-gray-500">{jobs.length}건</span>
+            )}
+          </div>
+
           {/* 모바일 전용 플로팅 필터 버튼 */}
           <button
             onClick={() => setShowFilterModal(true)}
@@ -872,6 +903,18 @@ export default function Home() {
                 </p>
                 <Button onClick={() => fetchJobs()}>새로고침</Button>
               </div>
+            </div>
+          ) : viewMode === 'list' ? (
+            // 리스트 뷰
+            <div className="w-full pb-8">
+              <JobListView jobs={jobs} />
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <Button onClick={handleLoadMore} variant="outline">
+                    공고 20개 더 불러오기
+                  </Button>
+                </div>
+              )}
             </div>
           ) : currentIndex >= jobs.length ? (
             // 모든 공고 확인 완료
