@@ -441,9 +441,13 @@ export async function fetchJobDetail(entry) {
 
         views: recruitment.views || 0,
         detail,
-        
+
         // 학력 정보 추가
         education,
+
+        // 원문 링크 (타 플랫폼 원본 URL) + 출처 정보
+        redirect_url: recruitment.redirectUrl || null,
+        affiliate: recruitment.affiliate || null,
 
         original_created_at: recruitment.createdAt || null,
         last_modified_at: entry.lastmod?.toISOString() || null,
@@ -500,8 +504,12 @@ export async function fetchJobDetail(entry) {
       views: 0,
 
       detail: { intro: '', main_tasks: ogDesc || '', requirements: '', preferred_points: '', benefits: '', work_conditions: '', raw_content: ogDesc || '' },
-      
+
       education: null,  // fallback에서는 학력 정보 없음
+
+      // 원문 링크 (fallback에서는 정보 없음)
+      redirect_url: null,
+      affiliate: null,
 
       original_created_at: jobPosting.datePosted || null,
       last_modified_at: entry.lastmod?.toISOString() || null,

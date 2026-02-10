@@ -36,6 +36,8 @@ export interface Job {
   deadline_type?: string
   end_date?: string | null
   is_new?: boolean  // 24시간 이내 크롤링된 공고
+  redirect_url?: string | null  // 원문 링크 (타 플랫폼 URL)
+  affiliate?: string | null     // 출처 플랫폼명 (잡알리오 등)
 }
 
 export interface JobFeedback {

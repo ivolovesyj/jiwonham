@@ -135,6 +135,8 @@ interface JobRow {
   views: number | null
   detail: Record<string, string> | null
   education: string | null  // 학력 추가
+  redirect_url: string | null  // 원문 링크 (타 플랫폼 URL)
+  affiliate: string | null     // 출처 플랫폼명
   original_created_at: string | null
   last_modified_at: string | null
   crawled_at: string
@@ -533,6 +535,8 @@ export async function GET(request: Request) {
           reasons: isNew ? ['🆕 신규'] : ['최신 공고'],
           warnings: [],
           link: `https://zighang.com/recruitment/${job.id}`,
+          redirect_url: job.redirect_url,
+          affiliate: job.affiliate,
           source: job.source,
           crawledAt: job.crawled_at,
           detail: job.detail,
@@ -692,6 +696,8 @@ export async function GET(request: Request) {
           reasons,
           warnings,
           link: `https://zighang.com/recruitment/${job.id}`,
+          redirect_url: job.redirect_url,
+          affiliate: job.affiliate,
           source: job.source,
           crawledAt: job.crawled_at,
           detail: job.detail,

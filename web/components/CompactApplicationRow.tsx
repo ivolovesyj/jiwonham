@@ -42,7 +42,9 @@ export function CompactApplicationRow({
   const title = saved_job.external_title || saved_job.title || '직무명 없음'
   const rawLocation = saved_job.external_location || saved_job.location
   const deadline = saved_job.external_deadline || saved_job.deadline
-  const jobUrl = saved_job.external_url || saved_job.link
+  // 원문 링크 우선순위: 외부 URL > redirect_url(타 플랫폼 원문) > 직행 링크
+  const jobUrl = saved_job.external_url || saved_job.redirect_url || saved_job.link
+  const jobSource = saved_job.affiliate || (saved_job.external_url ? '외부' : '직행')
 
   // 지역 간소화: "서울 강남구" → "서울", "경기 성남시 분당" → "경기"
   const location = rawLocation
@@ -149,6 +151,9 @@ export function CompactApplicationRow({
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   원문 보기
+                  {jobSource !== '직행' && (
+                    <span className="text-[10px] text-gray-400 font-normal">({jobSource})</span>
+                  )}
                 </a>
               )}
             </div>

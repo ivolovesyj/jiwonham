@@ -75,12 +75,13 @@ function TestJobCard({ job, onLike, onPass }: { job: Job, onLike: () => void, on
           <button onClick={() => setExpanded(!expanded)} className="text-xs text-blue-600 hover:underline">
             {expanded ? '접기' : '상세보기'}
           </button>
-          {job.link && (
-            <a href={job.link} target="_blank" rel="noopener noreferrer"
+          {(job.redirect_url || job.link) && (
+            <a href={job.redirect_url || job.link} target="_blank" rel="noopener noreferrer"
               className="text-xs text-blue-600 hover:underline flex items-center gap-0.5"
               onClick={e => e.stopPropagation()}
             >
               <ExternalLink className="w-3 h-3" />원문
+              {job.affiliate && <span className="text-gray-400 ml-0.5">({job.affiliate})</span>}
             </a>
           )}
           <div className="flex-1" />

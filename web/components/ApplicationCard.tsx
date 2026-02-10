@@ -360,15 +360,18 @@ export function ApplicationCard({
               )}
             </div>
 
-            {/* 공고 링크 */}
+            {/* 공고 링크 - 원문 URL 우선 */}
             <a
-              href={saved_job.link}
+              href={saved_job.external_url || saved_job.redirect_url || saved_job.link}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 hover:underline"
             >
               <ExternalLink className="w-4 h-4" />
               공고 페이지 보기
+              {saved_job.affiliate && (
+                <span className="text-[10px] text-gray-400 font-normal">({saved_job.affiliate})</span>
+              )}
             </a>
 
             {/* 주의사항 */}
