@@ -63,6 +63,45 @@ export interface CoverLetterQuestionWithJob extends CoverLetterQuestion {
   } | null
 }
 
+// 답변 버전
+export interface CoverLetterAnswerVersion {
+  id: string
+  user_id: string
+  question_id: string
+  version_number: number
+  answer: string
+  created_at: string
+}
+
+// AI 소재 추천 결과
+export interface MaterialRecommendation {
+  material_id: string
+  reason: string
+  usage_suggestion: string
+  priority: number
+}
+
+export interface AIRecommendationResponse {
+  recommendations: MaterialRecommendation[]
+  total_recommended: number
+  reasoning: string
+}
+
+// AI 작성 응답
+export interface AIWritingResponse {
+  answer: string
+  char_count: number
+  within_limit: boolean
+}
+
+// AI 피드백 응답
+export interface AIFeedbackResponse {
+  revised_answer: string
+  changes_explanation: string
+  char_count: number
+  within_limit: boolean
+}
+
 // 글자수 세기 유틸
 export function countChars(text: string | null, includeSpace: boolean): number {
   if (!text) return 0

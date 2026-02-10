@@ -3,8 +3,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { CoverLetterQuestionWithJob, QUESTION_TYPE_OPTIONS, CHAR_LIMIT_OPTIONS, countChars, getCharCountStatus } from '@/types/cover-letter'
-import { Save, Trash2, ChevronDown, ChevronUp, Building2 } from 'lucide-react'
+import {
+  CoverLetterQuestionWithJob,
+  CoverLetterAnswerVersion,
+  MaterialRecommendation,
+  QUESTION_TYPE_OPTIONS,
+  CHAR_LIMIT_OPTIONS,
+  countChars,
+  getCharCountStatus,
+} from '@/types/cover-letter'
+import {
+  Save, Trash2, ChevronDown, ChevronUp, Building2,
+  Sparkles, Wand2, Loader2, MessageSquare, Info,
+  Clock, Eye, CheckCircle2,
+} from 'lucide-react'
 
 interface SavedJobOption {
   id: string
@@ -20,6 +32,7 @@ interface Props {
 }
 
 export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
+  // 기존 상태
   const [questionText, setQuestionText] = useState(question.question)
   const [questionType, setQuestionType] = useState(question.question_type)
   const [customType, setCustomType] = useState('')
@@ -27,13 +40,32 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const [includeSpace, setIncludeSpace] = useState(question.include_space)
   const [answer, setAnswer] = useState(question.answer || '')
   const [jdInfo, setJdInfo] = useState(question.jd_info || '')
-  const [showJdInfo, setShowJdInfo] = useState(false)
+  const [showJdInfo, setShowJdInfo] = useState(!question.jd_info)
   const [saving, setSaving] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string>(question.saved_job_id || '')
   const [savedJobs, setSavedJobs] = useState<SavedJobOption[]>([])
   const [showJobSelect, setShowJobSelect] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const isCustomType = !QUESTION_TYPE_OPTIONS.includes(questionType as any)
+  const isCustomType = !QUESTION_TYPE_OPTIONS.includes(questionType as typeof QUESTION_TYPE_OPTIONS[number])
+
+  // AI 소재 추천 상태
+  const [recommendations, setRecommendations] = useState<MaterialRecommendation[]>([])
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<Set<string>>(new Set())
+  const [aiReasoning, setAiReasoning] = useState('')
+  const [recommendLoading, setRecommendLoading] = useState(false)
+
+  // AI 작성 상태
+  const [writeLoading, setWriteLoading] = useState(false)
+
+  // AI 피드백 상태
+  const [feedback, setFeedback] = useState('')
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [changesExplanation, setChangesExplanation] = useState('')
+
+  // 버전 관리 상태
+  const [versions, setVersions] = useState<CoverLetterAnswerVersion[]>([])
+  const [showVersions, setShowVersions] = useState(false)
+  const [versionSaving, setVersionSaving] = useState(false)
 
   // 공고 목록 fetch
   useEffect(() => {
@@ -44,7 +76,6 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
 
   const fetchSavedJobs = async () => {
     try {
-      // "지원 예정" 상태인 공고만 가져오기
       const { data: statusData } = await supabase
         .from('application_status')
         .select('saved_job_id')
@@ -92,6 +123,8 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const charCount = countChars(answer, includeSpace)
   const status = getCharCountStatus(charCount, charLimit)
 
+  // ============ 기존 핸들러 ============
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -115,6 +148,240 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
       onDelete(question.id)
     }
   }
+
+  // ============ AI 헬퍼: 세션 토큰 가져오기 ============
+
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token
+  }
+
+  // ============ AI 소재 추천 ============
+
+  const handleRecommend = async () => {
+    setRecommendLoading(true)
+    setChangesExplanation('')
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await fetch('/api/ai/recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question_id: question.id }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || '추천을 가져오는데 실패했습니다.')
+      }
+
+      const result = await response.json()
+      const recs = result.data?.recommendations || []
+      setRecommendations(recs)
+      setAiReasoning(result.data?.reasoning || '')
+      setSelectedMaterialIds(new Set(recs.map((r: MaterialRecommendation) => r.material_id)))
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '추천을 가져오는데 실패했습니다.'
+      alert(message)
+    } finally {
+      setRecommendLoading(false)
+    }
+  }
+
+  const toggleMaterial = (materialId: string) => {
+    setSelectedMaterialIds(prev => {
+      const next = new Set(prev)
+      if (next.has(materialId)) {
+        next.delete(materialId)
+      } else {
+        next.add(materialId)
+      }
+      return next
+    })
+  }
+
+  // ============ AI 자소서 작성 ============
+
+  const handleAIWrite = async () => {
+    if (selectedMaterialIds.size === 0) {
+      alert('먼저 경험 소재를 선택해주세요.')
+      return
+    }
+
+    setWriteLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await fetch('/api/ai/write', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          question_id: question.id,
+          selected_material_ids: Array.from(selectedMaterialIds),
+          char_limit: charLimit,
+          include_space: includeSpace,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || '답변 생성에 실패했습니다.')
+      }
+
+      const result = await response.json()
+      setAnswer(result.data.answer || '')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '답변 생성에 실패했습니다.'
+      alert(message)
+    } finally {
+      setWriteLoading(false)
+    }
+  }
+
+  // ============ AI 피드백 재작성 ============
+
+  const handleFeedback = async () => {
+    if (!feedback.trim()) {
+      alert('피드백을 입력해주세요.')
+      return
+    }
+    if (!answer.trim()) {
+      alert('수정할 답변이 없습니다.')
+      return
+    }
+
+    setFeedbackLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await fetch('/api/ai/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          previous_answer: answer,
+          user_feedback: feedback,
+          char_limit: charLimit,
+          include_space: includeSpace,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || '답변 수정에 실패했습니다.')
+      }
+
+      const result = await response.json()
+      setAnswer(result.data.revised_answer || '')
+      setChangesExplanation(result.data.changes_explanation || '')
+      setFeedback('')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '답변 수정에 실패했습니다.'
+      alert(message)
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
+  // ============ 버전 관리 ============
+
+  const fetchVersions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cover_letter_answer_versions')
+        .select('*')
+        .eq('question_id', question.id)
+        .eq('user_id', user.id)
+        .order('version_number', { ascending: false })
+
+      if (!error && data) {
+        setVersions(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch versions:', error)
+    }
+  }
+
+  const handleSaveVersion = async () => {
+    if (!answer.trim()) {
+      alert('저장할 답변이 없습니다.')
+      return
+    }
+
+    setVersionSaving(true)
+    try {
+      // 다음 버전 번호 계산
+      const { data: existing } = await supabase
+        .from('cover_letter_answer_versions')
+        .select('version_number')
+        .eq('question_id', question.id)
+        .eq('user_id', user.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+
+      const nextVersion = existing && existing.length > 0 ? existing[0].version_number + 1 : 1
+
+      const { error } = await supabase
+        .from('cover_letter_answer_versions')
+        .insert({
+          user_id: user.id,
+          question_id: question.id,
+          answer: answer,
+          version_number: nextVersion,
+        })
+
+      if (error) throw error
+
+      await fetchVersions()
+      setShowVersions(true)
+    } catch (error) {
+      console.error('Failed to save version:', error)
+      alert('버전 저장에 실패했습니다.')
+    } finally {
+      setVersionSaving(false)
+    }
+  }
+
+  const handleLoadVersion = (versionAnswer: string) => {
+    if (answer.trim() && !confirm('현재 답변이 이 버전으로 교체됩니다. 계속하시겠습니까?')) return
+    setAnswer(versionAnswer)
+  }
+
+  const handleDeleteVersion = async (versionId: string) => {
+    if (!confirm('이 버전을 삭제하시겠습니까?')) return
+
+    try {
+      const { error } = await supabase
+        .from('cover_letter_answer_versions')
+        .delete()
+        .eq('id', versionId)
+        .eq('user_id', user.id)
+
+      if (!error) {
+        setVersions(prev => prev.filter(v => v.id !== versionId))
+      }
+    } catch (error) {
+      console.error('Failed to delete version:', error)
+    }
+  }
+
+  // 버전 목록 토글 시 fetch
+  useEffect(() => {
+    if (showVersions && versions.length === 0) {
+      fetchVersions()
+    }
+  }, [showVersions])
 
   return (
     <div className="p-4 space-y-4 bg-gray-50/50">
@@ -215,7 +482,6 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
           <span className="text-xs text-gray-600">공백 포함</span>
         </label>
 
-        {/* 글자수 카운터 */}
         <div className={`text-sm font-semibold tabular-nums ${
           status === 'over' ? 'text-red-600' :
           status === 'warning' ? 'text-yellow-600' :
@@ -228,6 +494,144 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
           )}
         </div>
       </div>
+
+      {/* JD 정보 (접이식) */}
+      <div className="border border-gray-200 rounded-md overflow-hidden">
+        <button
+          onClick={() => setShowJdInfo(!showJdInfo)}
+          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+        >
+          <span>JD 및 회사정보 {jdInfo ? '(입력됨)' : '(AI 작성에 필요)'}</span>
+          {showJdInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        {showJdInfo && (
+          <div className="p-3 pt-0">
+            <textarea
+              value={jdInfo}
+              onChange={(e) => setJdInfo(e.target.value)}
+              placeholder="채용공고의 직무 설명, 자격요건, 우대사항, 회사 소개 등을 붙여넣으세요. AI가 자소서 작성 시 참고합니다."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-600"
+            />
+            {!jdInfo && (
+              <p className="text-xs text-amber-600 mt-1">JD 정보를 입력하면 AI가 더 정확한 소재 추천과 답변 작성을 할 수 있습니다.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ============ AI 소재 추천 ============ */}
+      <div className="border border-purple-200 rounded-lg overflow-hidden bg-white">
+        <div className="px-4 py-3 bg-purple-50 border-b border-purple-100">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" />
+              AI 소재 추천
+            </h4>
+            {recommendations.length > 0 && (
+              <button
+                onClick={handleRecommend}
+                disabled={recommendLoading}
+                className="text-xs text-purple-600 hover:text-purple-800 hover:underline"
+              >
+                다시 추천받기
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="p-4">
+          {recommendations.length === 0 ? (
+            <button
+              onClick={handleRecommend}
+              disabled={recommendLoading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {recommendLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  AI가 소재를 분석하는 중...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  AI 소재 추천받기
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="space-y-3">
+              {aiReasoning && (
+                <p className="text-xs text-purple-700 bg-purple-50 p-2.5 rounded-md border border-purple-100">
+                  {aiReasoning}
+                </p>
+              )}
+
+              <div className="space-y-2">
+                {recommendations.map((rec) => (
+                  <div
+                    key={rec.material_id}
+                    onClick={() => toggleMaterial(rec.material_id)}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedMaterialIds.has(rec.material_id)
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        selectedMaterialIds.has(rec.material_id)
+                          ? 'border-purple-500 bg-purple-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedMaterialIds.has(rec.material_id) && (
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded mb-1">
+                          우선순위 {rec.priority}
+                        </span>
+                        <p className="text-sm text-gray-700 mb-1">
+                          <strong>추천 이유:</strong> {rec.reason}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          <strong>활용 방안:</strong> {rec.usage_suggestion}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-gray-500 text-center">
+                {selectedMaterialIds.size}개 소재 선택됨
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ============ AI 자소서 작성 버튼 ============ */}
+      {recommendations.length > 0 && (
+        <button
+          onClick={handleAIWrite}
+          disabled={writeLoading || selectedMaterialIds.size === 0}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {writeLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              AI가 자소서를 작성하는 중...
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-5 h-5" />
+              AI 자소서 작성하기 ({selectedMaterialIds.size}개 소재 활용)
+            </>
+          )}
+        </button>
+      )}
 
       {/* 답변 */}
       <div>
@@ -242,24 +646,121 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
         />
       </div>
 
-      {/* JD 정보 (접이식) */}
-      <div className="border border-gray-200 rounded-md overflow-hidden">
-        <button
-          onClick={() => setShowJdInfo(!showJdInfo)}
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
-        >
-          <span>JD 및 회사정보 {jdInfo && '(입력됨)'}</span>
-          {showJdInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-        {showJdInfo && (
-          <div className="p-3 pt-0">
+      {/* ============ AI 피드백 수정 ============ */}
+      {answer.trim() && (
+        <div className="border border-blue-200 rounded-lg overflow-hidden bg-white">
+          <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4" />
+              AI 피드백 수정
+            </h4>
+          </div>
+
+          <div className="p-4 space-y-3">
             <textarea
-              value={jdInfo}
-              onChange={(e) => setJdInfo(e.target.value)}
-              placeholder="채용공고, 회사 소개 등을 붙여넣으세요. AI가 자소서 작성 시 참고합니다."
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-600"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder='예: "좀 더 구체적인 수치를 넣어줘", "톤이 너무 딱딱해", "두 번째 문단을 줄여줘"'
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+
+            <button
+              onClick={handleFeedback}
+              disabled={feedbackLoading || !feedback.trim()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {feedbackLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  수정하는 중...
+                </>
+              ) : (
+                '피드백 반영하기'
+              )}
+            </button>
+
+            {changesExplanation && (
+              <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-blue-900 mb-0.5">수정 내용</p>
+                  <p className="text-xs text-blue-700">{changesExplanation}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ 버전 관리 ============ */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <button
+          onClick={() => setShowVersions(!showVersions)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+        >
+          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+            <Clock className="w-4 h-4" />
+            버전 관리
+            {versions.length > 0 && (
+              <span className="text-xs font-normal text-gray-500">({versions.length}개)</span>
+            )}
+          </h4>
+          {showVersions ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+
+        {showVersions && (
+          <div className="p-4 pt-0 space-y-3">
+            <button
+              onClick={handleSaveVersion}
+              disabled={versionSaving || !answer.trim()}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-md transition disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {versionSaving ? '저장 중...' : '새 버전 저장하기'}
+            </button>
+
+            {versions.length === 0 ? (
+              <p className="text-xs text-gray-500 text-center py-3">
+                저장된 버전이 없습니다.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {versions.map((version) => (
+                  <div key={version.id} className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                          v{version.version_number}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(version.created_at).toLocaleString('ko-KR', {
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleLoadVersion(version.answer)}
+                          className="p-1 hover:bg-gray-200 rounded transition"
+                          title="이 버전 불러오기"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteVersion(version.id)}
+                          className="p-1 hover:bg-red-100 rounded transition"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 line-clamp-2">{version.answer}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

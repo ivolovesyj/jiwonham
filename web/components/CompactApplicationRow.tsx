@@ -17,6 +17,7 @@ interface CompactApplicationRowProps {
   isPinned?: boolean
   onTogglePin?: (savedJobId: string) => void
   onAddCoverLetterQuestion?: (savedJobId: string) => void
+  onViewCoverLetter?: (savedJobId: string, jobLabel: string) => void
 }
 
 export function CompactApplicationRow({
@@ -29,6 +30,7 @@ export function CompactApplicationRow({
   isPinned,
   onTogglePin,
   onAddCoverLetterQuestion,
+  onViewCoverLetter,
 }: CompactApplicationRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -198,16 +200,27 @@ export function CompactApplicationRow({
             )}
           </div>
 
-          {/* 자소서 질문 추가 */}
-          {onAddCoverLetterQuestion && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => onAddCoverLetterQuestion(saved_job.id)}
-                className="w-full text-left text-sm text-gray-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg px-3 py-2 transition-all flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <span>자소서 질문 추가하기</span>
-              </button>
+          {/* 자소서 액션 */}
+          {(onAddCoverLetterQuestion || onViewCoverLetter) && (
+            <div onClick={(e) => e.stopPropagation()} className="flex gap-2">
+              {onAddCoverLetterQuestion && (
+                <button
+                  onClick={() => onAddCoverLetterQuestion(saved_job.id)}
+                  className="flex-1 text-left text-sm text-gray-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg px-3 py-2 transition-all flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span>질문 추가</span>
+                </button>
+              )}
+              {onViewCoverLetter && (
+                <button
+                  onClick={() => onViewCoverLetter(saved_job.id, `${saved_job.company || '회사명 없음'} - ${saved_job.title || '공고명 없음'}`)}
+                  className="flex-1 text-left text-sm text-gray-600 hover:text-purple-700 bg-white hover:bg-purple-50 border border-gray-200 hover:border-purple-200 rounded-lg px-3 py-2 transition-all flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                  <span>자소서 보기</span>
+                </button>
+              )}
             </div>
           )}
         </div>

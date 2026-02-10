@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { AddQuestionModal } from '@/components/cover-letter/AddQuestionModal'
+import { CoverLetterViewModal } from '@/components/cover-letter/CoverLetterViewModal'
 import { Briefcase, Search, AlertTriangle, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -366,6 +367,11 @@ export default function HomePage() {
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false)
   const [coverLetterJobId, setCoverLetterJobId] = useState<string | null>(null)
 
+  // 자소서 보기 모달
+  const [showCoverLetterView, setShowCoverLetterView] = useState(false)
+  const [viewCoverLetterJobId, setViewCoverLetterJobId] = useState<string | null>(null)
+  const [viewCoverLetterLabel, setViewCoverLetterLabel] = useState('')
+
   // Demo Mode (비로그인 사용자용)
   const [demoApplications, setDemoApplications] = useState<ApplicationWithJob[]>([])
   const [showSignupModal, setShowSignupModal] = useState(false)
@@ -666,6 +672,12 @@ export default function HomePage() {
   const handleAddCoverLetterQuestion = (savedJobId: string) => {
     setCoverLetterJobId(savedJobId)
     setShowCoverLetterModal(true)
+  }
+
+  const handleViewCoverLetter = (savedJobId: string, jobLabel: string) => {
+    setViewCoverLetterJobId(savedJobId)
+    setViewCoverLetterLabel(jobLabel)
+    setShowCoverLetterView(true)
   }
 
   const handleSaveCoverLetterQuestion = async (data: {
@@ -1277,6 +1289,7 @@ export default function HomePage() {
                     onDelete={handleDemoDelete}
                     onTogglePin={handleDemoTogglePin}
                     onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                    onViewCoverLetter={handleViewCoverLetter}
                   />
 
                   {/* 구분선 */}
@@ -1302,6 +1315,7 @@ export default function HomePage() {
                         isPinned={false}
                         onTogglePin={handleDemoTogglePin}
                         onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                    onViewCoverLetter={handleViewCoverLetter}
                       />
                     ))}
                   </div>
@@ -1435,6 +1449,7 @@ export default function HomePage() {
                     onDelete={handleDelete}
                     onTogglePin={handleTogglePin}
                     onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                    onViewCoverLetter={handleViewCoverLetter}
                   />
 
                   {/* 구분선 */}
@@ -1460,6 +1475,7 @@ export default function HomePage() {
                         isPinned={false}
                         onTogglePin={handleTogglePin}
                         onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                    onViewCoverLetter={handleViewCoverLetter}
                       />
                     ))}
                   </div>
@@ -1485,6 +1501,17 @@ export default function HomePage() {
           onSave={handleSaveCoverLetterQuestion}
           user={user}
           initialJobId={coverLetterJobId}
+        />
+      )}
+
+      {/* 자소서 보기 모달 */}
+      {user && viewCoverLetterJobId && (
+        <CoverLetterViewModal
+          isOpen={showCoverLetterView}
+          onClose={() => { setShowCoverLetterView(false); setViewCoverLetterJobId(null) }}
+          savedJobId={viewCoverLetterJobId}
+          jobLabel={viewCoverLetterLabel}
+          user={user}
         />
       )}
 
