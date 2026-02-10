@@ -14,8 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "채용공고 관리의 모든 것, 지원함",
-  description: "흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요!",
+  title: {
+    default: "채용공고 관리의 모든 것, 지원함",
+    template: "%s",
+  },
+  description: "흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요! AI 맞춤 공고 추천, 지원 현황 관리, AI 자기소개서 작성까지.",
+  keywords: ['채용공고', '취업', '지원관리', '자기소개서', 'AI 자소서', '취업 준비', '채용 추천', '지원함', '취업 플랫폼'],
+  authors: [{ name: '지원함' }],
+  creator: '지원함',
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   metadataBase: new URL('https://jiwonham.vercel.app'),
   icons: {
@@ -53,10 +59,30 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: '지원함',
+    url: 'https://jiwonham.vercel.app',
+    description: '흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요!',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'KRW',
+    },
+    inLanguage: 'ko',
+  }
+
   return (
     <html lang="ko">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
