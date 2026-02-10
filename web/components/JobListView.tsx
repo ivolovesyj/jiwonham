@@ -137,10 +137,12 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                 <ThButton column="score" label="적합도" />
                 {onAction && (
                   <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    액션
+                    지원 여부
                   </th>
                 )}
-                <th className="px-3 py-2.5 w-10" />
+                <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap w-10">
+                  링크
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -275,12 +277,13 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                       </td>
                     )}
                     {/* 링크 */}
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 text-center">
                       <a
-                        href={job.link}
+                        href={job.redirect_url || job.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-300 hover:text-blue-500 transition-colors"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-500 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                        title={job.affiliate ? `원문 보기 (${job.affiliate})` : '원문 보기'}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
