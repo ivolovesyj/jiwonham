@@ -142,8 +142,8 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                     <SortIcon column="score" />
                     <span className="relative group/tip ml-0.5">
                       <HelpCircle className="w-3 h-3 text-gray-300 hover:text-gray-500 cursor-help" />
-                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 px-3 py-2 bg-gray-800 text-white text-[10px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
-                        선호 직무, 지역, 경력, 기업 유형 등 설정한 조건과의 일치도를 기반으로 산정됩니다. 프로필에서 조건을 세밀하게 설정할수록 정확도가 올라갑니다.
+                      <span className="absolute top-full left-0 mt-2 w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
+                        공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
                       </span>
                     </span>
                   </div>
