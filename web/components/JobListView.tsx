@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Job } from '@/types/job'
-import { Search, ExternalLink, ChevronUp, ChevronDown, X, Clock, Check } from 'lucide-react'
+import { Search, ExternalLink, ChevronUp, ChevronDown, X, Clock, Check, HelpCircle } from 'lucide-react'
 
 interface JobListViewProps {
   jobs: Job[]
@@ -134,21 +134,31 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                 <ThButton column="career" label="경력" />
                 <ThButton column="company_type" label="회사유형" />
                 <ThButton column="employee_types" label="채용유형" />
-                <ThButton column="score" label="적합도" />
+                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap"
+                  onClick={() => handleSort('score')}
+                >
+                  <div className="flex items-center gap-0.5">
+                    선호점수
+                    <SortIcon column="score" />
+                    <span className="relative group/tip ml-0.5">
+                      <HelpCircle className="w-3 h-3 text-gray-300 hover:text-gray-500 cursor-help" />
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 px-3 py-2 bg-gray-800 text-white text-[10px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
+                        선호 직무, 지역, 경력, 기업 유형 등 설정한 조건과의 일치도를 기반으로 산정됩니다. 프로필에서 조건을 세밀하게 설정할수록 정확도가 올라갑니다.
+                      </span>
+                    </span>
+                  </div>
+                </th>
                 {onAction && (
                   <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     지원 여부
                   </th>
                 )}
-                <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap w-10">
-                  링크
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredAndSorted.length === 0 ? (
                 <tr>
-                  <td colSpan={onAction ? 8 : 7} className="px-4 py-16 text-center">
+                  <td colSpan={onAction ? 7 : 6} className="px-4 py-16 text-center">
                     <div className="text-gray-400 text-sm">
                       {searchQuery ? (
                         <>
@@ -167,9 +177,14 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
               ) : (
                 filteredAndSorted.map((job) => (
                   <tr key={job.id} className="group hover:bg-blue-50/40 transition-colors">
-                    {/* 회사명 */}
+                    {/* 회사명 (클릭 시 원문 링크) */}
                     <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-2 min-w-[100px]">
+                      <a
+                        href={job.redirect_url || job.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 min-w-[100px] group/link"
+                      >
                         {job.company_image ? (
                           <img
                             src={job.company_image}
@@ -180,23 +195,29 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                         ) : (
                           <div className="w-5 h-5 rounded bg-gray-100 flex-shrink-0" />
                         )}
-                        <span className="text-sm font-medium text-gray-900 truncate max-w-[140px]" title={job.company}>
+                        <span className="text-sm font-medium text-gray-900 truncate max-w-[140px] group-hover/link:text-blue-600 transition-colors" title={job.company}>
                           {job.company}
                         </span>
-                      </div>
+                        <ExternalLink className="w-3 h-3 text-gray-300 group-hover/link:text-blue-500 flex-shrink-0 transition-colors" />
+                      </a>
                     </td>
-                    {/* 공고명 */}
+                    {/* 공고명 (클릭 시 원문 링크) */}
                     <td className="px-3 py-2.5 max-w-[320px]">
-                      <div className="flex items-center gap-1.5">
+                      <a
+                        href={job.redirect_url || job.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 group/link"
+                      >
                         {job.is_new && (
                           <span className="flex-shrink-0 px-1 py-px rounded text-[9px] font-bold bg-green-500 text-white leading-tight">
                             N
                           </span>
                         )}
-                        <span className="text-sm text-gray-800 truncate" title={job.title}>
+                        <span className="text-sm text-gray-800 truncate group-hover/link:text-blue-600 transition-colors" title={job.title}>
                           {job.title}
                         </span>
-                      </div>
+                      </a>
                     </td>
                     {/* 경력 */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
@@ -226,7 +247,7 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                         )}
                       </div>
                     </td>
-                    {/* 적합도 */}
+                    {/* 선호점수 */}
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
                         <div className="w-12 h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -244,31 +265,31 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                           job.score >= 50 ? 'text-yellow-600' :
                           'text-gray-500'
                         }`}>
-                          {Math.round(job.score)}
+                          {Math.round(job.score)}점
                         </span>
                       </div>
                     </td>
-                    {/* 액션 버튼 */}
+                    {/* 지원 여부 버튼 */}
                     {onAction && (
                       <td className="px-3 py-2.5">
-                        <div className="flex items-center justify-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleAction(job, 'pass')}
-                            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-red-400 bg-red-50 hover:text-red-600 hover:bg-red-100 transition-colors"
                             title="지원 안 함"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleAction(job, 'hold')}
-                            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-amber-500 bg-amber-50 hover:text-amber-600 hover:bg-amber-100 transition-colors"
                             title="보류"
                           >
                             <Clock className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleAction(job, 'apply')}
-                            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-green-500 bg-green-50 hover:text-green-700 hover:bg-green-100 transition-colors"
                             title="지원 예정"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -276,18 +297,6 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                         </div>
                       </td>
                     )}
-                    {/* 링크 */}
-                    <td className="px-3 py-2.5 text-center">
-                      <a
-                        href={job.redirect_url || job.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-500 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 transition-colors"
-                        title={job.affiliate ? `원문 보기 (${job.affiliate})` : '원문 보기'}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </td>
                   </tr>
                 ))
               )}

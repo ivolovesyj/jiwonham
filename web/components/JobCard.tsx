@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MapPin, ExternalLink, X, Briefcase, Clock, Check, Calendar, Building2 } from 'lucide-react'
+import { MapPin, ExternalLink, X, Briefcase, Clock, Check, Calendar, Building2, HelpCircle } from 'lucide-react'
 import { Job } from '@/types/job'
 import { useState } from 'react'
 
@@ -70,12 +70,24 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
             {matchPercent > 50 ? (
               <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
                 <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <span className="text-sm font-semibold">적합도 {matchPercent}%</span>
+                <span className="text-sm font-semibold">선호점수 {Math.round(matchPercent)}점</span>
+                <span className="relative group/tip">
+                  <HelpCircle className="w-3.5 h-3.5 text-blue-400 hover:text-blue-600 cursor-help" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 px-3 py-2 bg-gray-800 text-white text-[10px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
+                    선호 직무, 지역, 경력, 기업 유형 등 설정한 조건과의 일치도를 기반으로 산정됩니다. 프로필에서 조건을 세밀하게 설정할수록 정확도가 올라갑니다.
+                  </span>
+                </span>
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
                 <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                <span className="text-sm font-medium">적합도 분석중</span>
+                <span className="text-sm font-medium">선호점수 분석중</span>
+                <span className="relative group/tip">
+                  <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 px-3 py-2 bg-gray-800 text-white text-[10px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
+                    선호 직무, 지역, 경력, 기업 유형 등 설정한 조건과의 일치도를 기반으로 산정됩니다. 프로필에서 조건을 세밀하게 설정할수록 정확도가 올라갑니다.
+                  </span>
+                </span>
               </div>
             )}
             {deadline && (
@@ -163,7 +175,7 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           {/* 공고보기 버튼 */}
           <div className="pt-2">
             <a
-              href={job.link}
+              href={job.redirect_url || job.link}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -171,6 +183,9 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
             >
               <ExternalLink className="w-4 h-4" />
               공고보기
+              {job.affiliate && (
+                <span className="text-[10px] text-gray-400 font-normal">({job.affiliate})</span>
+              )}
             </a>
           </div>
 
