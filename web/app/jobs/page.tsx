@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Carousel3D } from '@/components/Carousel3D'
 import { Button } from '@/components/ui/button'
@@ -283,6 +283,11 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [listSearchQuery, setListSearchQuery] = useState('')
+  const [searchedJobs, setSearchedJobs] = useState<Job[]>([])
+  const [searchTotal, setSearchTotal] = useState<number | undefined>(undefined)
+  const [isSearching, setIsSearching] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // 클라이언트에서만 랜덤 메시지 선택 (hydration 에러 방지)
   useEffect(() => {
@@ -724,6 +729,67 @@ export default function Home() {
     await fetchJobs(true)
   }
 
+  // 리스트뷰 검색 (디바운스 적용)
+  const handleListSearch = useCallback((query: string) => {
+    setListSearchQuery(query)
+
+    // 이전 타이머 취소
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (!query.trim()) {
+      setSearchedJobs([])
+      setSearchTotal(undefined)
+      setIsSearching(false)
+      return
+    }
+
+    setIsSearching(true)
+
+    // 400ms 디바운스
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+
+        const response = await fetch(`/api/jobs?limit=200&offset=0&search=${encodeURIComponent(query.trim())}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.jobs && data.jobs.length > 0) {
+            const newJobs: Job[] = data.jobs.map((job: any) => ({
+              id: job.id, company: job.company, company_image: job.company_image,
+              company_type: job.company_type,
+              title: job.title, location: job.location || '위치 미정',
+              score: job.score || 0, reason: job.reason || '추천 공고',
+              reasons: job.reasons || [], warnings: job.warnings || [],
+              link: job.link, redirect_url: job.redirect_url,
+              affiliate: job.affiliate, source: job.source || 'zighang',
+              crawledAt: job.crawledAt, detail: job.detail || undefined,
+              depth_ones: job.depth_ones, depth_twos: job.depth_twos,
+              keywords: job.keywords, career_min: job.career_min,
+              career_max: job.career_max, employee_types: job.employee_types,
+              deadline_type: job.deadline_type, end_date: job.end_date,
+              is_new: job.is_new,
+            }))
+            setSearchedJobs(newJobs)
+            setSearchTotal(data.searchTotal ?? newJobs.length)
+          } else {
+            setSearchedJobs([])
+            setSearchTotal(0)
+          }
+        }
+      } catch (error) {
+        console.error('Search failed:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 400)
+  }, [])
+
   // 키보드 네비게이션
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -925,8 +991,16 @@ export default function Home() {
           ) : viewMode === 'list' ? (
             // 리스트 뷰
             <div className="w-full pb-8">
-              <JobListView jobs={jobs} onAction={handleListAction} isLoggedIn={!!user} />
-              {hasMore && (
+              <JobListView
+                jobs={listSearchQuery.trim() ? searchedJobs : jobs}
+                onAction={handleListAction}
+                isLoggedIn={!!user}
+                searchQuery={listSearchQuery}
+                onSearchChange={handleListSearch}
+                totalCount={searchTotal}
+                isSearching={isSearching}
+              />
+              {!listSearchQuery.trim() && hasMore && (
                 <div className="flex justify-center mt-6">
                   <Button onClick={handleLoadMore} variant="outline">
                     공고 20개 더 불러오기

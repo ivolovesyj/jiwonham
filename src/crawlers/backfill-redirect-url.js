@@ -116,12 +116,12 @@ async function getTargetJobs() {
   const BATCH = 1000;
 
   while (true) {
+    // PostgREST: 같은 컬럼에 다중 조건은 and() 사용
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/jobs?` +
       `is_active=eq.true&` +
       `redirect_url=is.null&` +
-      `company_type=neq.기타&` +
-      `company_type=not.is.null&` +
+      `and=(company_type.neq.기타,company_type.not.is.null)&` +
       `select=id,company,company_type&` +
       `order=company_type,company&` +
       `limit=${BATCH}&offset=${offset}`,

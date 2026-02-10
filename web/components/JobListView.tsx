@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Job } from '@/types/job'
 import { Search, ExternalLink, ChevronUp, ChevronDown, X, Clock, Check, HelpCircle } from 'lucide-react'
 
@@ -8,6 +8,10 @@ interface JobListViewProps {
   jobs: Job[]
   onAction?: (job: Job, action: 'pass' | 'hold' | 'apply') => void
   isLoggedIn?: boolean
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
+  totalCount?: number
+  isSearching?: boolean
 }
 
 function formatCareer(job: Job): string {
@@ -21,11 +25,18 @@ function formatCareer(job: Job): string {
 type SortKey = 'company' | 'title' | 'career' | 'company_type' | 'employee_types' | 'score'
 type SortDir = 'asc' | 'desc'
 
-export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+export function JobListView({ jobs, onAction, isLoggedIn, searchQuery: externalSearchQuery, onSearchChange, totalCount, isSearching }: JobListViewProps) {
+  const [internalSearchQuery, setInternalSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('score')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [actedJobIds, setActedJobIds] = useState<Set<string>>(new Set())
+  const [showTooltip, setShowTooltip] = useState(false)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+
+  // 서버 검색 모드 vs 클라이언트 검색 모드
+  const isServerSearch = !!onSearchChange
+  const searchQuery = isServerSearch ? (externalSearchQuery || '') : internalSearchQuery
+  const setSearchQuery = isServerSearch ? onSearchChange! : setInternalSearchQuery
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -42,18 +53,21 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
   }
 
   const filteredAndSorted = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim()
-
     let filtered = jobs.filter(job => !actedJobIds.has(job.id))
-    if (query) {
-      filtered = filtered.filter(job =>
-        job.company.toLowerCase().includes(query) ||
-        job.title.toLowerCase().includes(query) ||
-        (job.company_type && job.company_type.toLowerCase().includes(query)) ||
-        (job.employee_types && job.employee_types.some(t => t.toLowerCase().includes(query))) ||
-        (job.depth_twos && job.depth_twos.some(d => d.toLowerCase().includes(query))) ||
-        (job.keywords && job.keywords.some(k => k.toLowerCase().includes(query)))
-      )
+
+    // 서버 검색 모드에서는 이미 필터링된 결과이므로 클라이언트 필터링 스킵
+    if (!isServerSearch) {
+      const query = searchQuery.toLowerCase().trim()
+      if (query) {
+        filtered = filtered.filter(job =>
+          job.company.toLowerCase().includes(query) ||
+          job.title.toLowerCase().includes(query) ||
+          (job.company_type && job.company_type.toLowerCase().includes(query)) ||
+          (job.employee_types && job.employee_types.some(t => t.toLowerCase().includes(query))) ||
+          (job.depth_twos && job.depth_twos.some(d => d.toLowerCase().includes(query))) ||
+          (job.keywords && job.keywords.some(k => k.toLowerCase().includes(query)))
+        )
+      }
     }
 
     return [...filtered].sort((a, b) => {
@@ -80,7 +94,7 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [jobs, searchQuery, sortKey, sortDir, actedJobIds])
+  }, [jobs, searchQuery, sortKey, sortDir, actedJobIds, isServerSearch])
 
   const SortIcon = ({ column }: { column: SortKey }) => {
     if (sortKey !== column) return <ChevronUp className="w-3 h-3 text-gray-300" />
@@ -112,16 +126,39 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-9 pr-16 py-2.5 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
         />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
-          >
-            {filteredAndSorted.length}건
-            <X className="w-3 h-3" />
-          </button>
-        )}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {isSearching && (
+            <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          )}
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+            >
+              {isServerSearch ? (totalCount !== undefined ? `${totalCount}건` : '') : `${filteredAndSorted.length}건`}
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 선호점수 툴팁 (overflow 밖에서 렌더링) */}
+      {showTooltip && tooltipRef.current && (() => {
+        const rect = tooltipRef.current!.getBoundingClientRect()
+        return (
+          <div
+            className="fixed z-[9999] w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg"
+            style={{
+              top: rect.bottom + 8,
+              left: Math.max(8, rect.left - 100),
+            }}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
+          </div>
+        )
+      })()}
 
       {/* 테이블 */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -140,11 +177,16 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
                   <div className="flex items-center gap-0.5">
                     선호점수
                     <SortIcon column="score" />
-                    <span className="relative group/tip ml-0.5">
-                      <HelpCircle className="w-3 h-3 text-gray-300 hover:text-gray-500 cursor-help" />
-                      <span className="absolute top-full left-0 mt-2 w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
-                        공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
-                      </span>
+                    <span className="relative ml-0.5" ref={tooltipRef}>
+                      <HelpCircle
+                        className="w-3 h-3 text-gray-300 hover:text-gray-500 cursor-help"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowTooltip(prev => !prev)
+                        }}
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                      />
                     </span>
                   </div>
                 </th>
@@ -308,7 +350,8 @@ export function JobListView({ jobs, onAction, isLoggedIn }: JobListViewProps) {
         <div className="px-3 py-2 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
           <span className="text-[11px] text-gray-400">
             {filteredAndSorted.length}건 표시
-            {searchQuery && ` (전체 ${jobs.filter(j => !actedJobIds.has(j.id)).length}건)`}
+            {searchQuery && isServerSearch && totalCount !== undefined && ` (검색 결과 ${totalCount}건)`}
+            {searchQuery && !isServerSearch && ` (전체 ${jobs.filter(j => !actedJobIds.has(j.id)).length}건)`}
           </span>
           {actedJobIds.size > 0 && (
             <span className="text-[11px] text-blue-500 font-medium">

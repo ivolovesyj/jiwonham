@@ -481,6 +481,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const searchQuery = searchParams.get('search')?.trim() || ''
 
     // 인증 헤더에서 토큰 추출
     const authHeader = request.headers.get('authorization')
@@ -493,10 +494,18 @@ export async function GET(request: Request) {
       console.log('[API /jobs] No token - using guest mode')
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-      const { data: jobs, error: jobsError } = await supabase
+      let query = supabase
         .from('jobs')
         .select('*')
         .eq('is_active', true)
+
+      // 검색어가 있으면 서버에서 텍스트 검색
+      if (searchQuery) {
+        // 회사명, 공고명, keywords, depth_twos에서 검색
+        query = query.or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
+      }
+
+      const { data: jobs, error: jobsError } = await query
         .order('crawled_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -552,12 +561,25 @@ export async function GET(request: Request) {
         }
       })
 
+      // 검색 시 전체 건수 파악을 위한 카운트 쿼리
+      let totalForSearch: number | undefined
+      if (searchQuery) {
+        let countQuery = supabase
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_active', true)
+          .or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
+        const { count } = await countQuery
+        totalForSearch = count ?? undefined
+      }
+
       return NextResponse.json({
         jobs: basicJobs,
-        total: basicJobs.length,
+        total: totalForSearch ?? basicJobs.length,
         limit,
         offset,
-        hasMore: jobs.length === limit, // 정확한 hasMore는 알 수 없지만 추정
+        hasMore: jobs.length === limit,
+        ...(searchQuery && { searchTotal: totalForSearch }),
       })
     }
 
@@ -622,7 +644,10 @@ export async function GET(request: Request) {
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
     // 5. 활성 공고 가져오기 (RPC 함수로 직무/지역 필터링)
-    const fetchLimit = Math.max(2000, (offset + limit) * 5)
+    // 검색 시에는 더 많이 가져와서 텍스트 매칭 (최대 5000)
+    const fetchLimit = searchQuery
+      ? Math.max(5000, (offset + limit) * 10)
+      : Math.max(2000, (offset + limit) * 5)
 
     const rpcStartTime = Date.now()
 
@@ -674,9 +699,24 @@ export async function GET(request: Request) {
 
     // company_type은 이미 jobs 테이블에 포함되어 있음 (별도 조회 불필요)
 
-    // 6. 이미 본 공고 제외 + 점수 계산 + 필터링 + 정렬
+    // 6. 이미 본 공고 제외 + 검색 필터링 + 점수 계산 + 정렬
     const now = Date.now()
-    const scoredJobs = jobs
+
+    // 검색어 필터링 (서버 사이드)
+    let filteredJobs: JobRow[] = jobs
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      filteredJobs = jobs.filter((job: JobRow) =>
+        job.company.toLowerCase().includes(q) ||
+        job.title.toLowerCase().includes(q) ||
+        (job.company_type && job.company_type.toLowerCase().includes(q)) ||
+        (job.employee_types && job.employee_types.some((t: string) => t.toLowerCase().includes(q))) ||
+        (job.depth_twos && job.depth_twos.some((d: string) => d.toLowerCase().includes(q))) ||
+        (job.keywords && job.keywords.some((k: string) => k.toLowerCase().includes(q)))
+      )
+    }
+
+    const scoredJobs = filteredJobs
       .filter((job: JobRow) => !seenJobIds.has(job.id))
       .map((job: JobRow) => {
         const companyType = job.company_type || '기타'
@@ -719,11 +759,12 @@ export async function GET(request: Request) {
         return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
       })
 
-    // 7. 40점 이상 필터 + 페이지네이션
-    const passedJobs = scoredJobs.filter(j => j.score >= 40)
+    // 7. 40점 이상 필터 + 페이지네이션 (검색 시에는 점수 필터 완화)
+    const scoreThreshold = searchQuery ? 0 : 40
+    const passedJobs = scoredJobs.filter(j => j.score >= scoreThreshold)
     const paginatedJobs = passedJobs.slice(offset, offset + limit)
 
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - Total done, returning ${paginatedJobs.length} jobs`)
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Total done, returning ${paginatedJobs.length} jobs (search: "${searchQuery}")`)
 
     return NextResponse.json({
       jobs: paginatedJobs,
@@ -731,6 +772,7 @@ export async function GET(request: Request) {
       limit,
       offset,
       hasMore: offset + limit < passedJobs.length,
+      ...(searchQuery && { searchTotal: passedJobs.length }),
     })
 
   } catch (error) {
