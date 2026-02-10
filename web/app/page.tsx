@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { AddQuestionModal } from '@/components/cover-letter/AddQuestionModal'
 import { CoverLetterViewModal } from '@/components/cover-letter/CoverLetterViewModal'
-import { Briefcase, Search, AlertTriangle, X } from 'lucide-react'
+import { Briefcase, Search, AlertTriangle, X, FlaskConical } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Navigation } from '@/components/Navigation'
@@ -345,7 +345,7 @@ export default function HomePage() {
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0])
   const initialLoadStartRef = useRef<number | null>(null)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
-  const [showHeroBanner, setShowHeroBanner] = useState(true)
+  const [demoPhase, setDemoPhase] = useState(1)
   const [mounted, setMounted] = useState(false)
 
   // 데이터 로드 완료 여부 (탭 전환 시 재로드 방지)
@@ -756,7 +756,10 @@ export default function HomePage() {
   
   const trackDemoInteraction = () => {
     const count = incrementDemoInteraction()
-    if (count % 5 === 0) {
+    if (count >= 3 && demoPhase === 1) {
+      setDemoPhase(2)
+    }
+    if (count % 7 === 0) {
       setShowSignupModal(true)
     }
   }
@@ -1131,35 +1134,7 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Navigation />
 
-      {/* 히어로 배너 (비로그인 사용자에게만 표시) */}
-      {!user && showHeroBanner && (
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 border-b px-4 py-3 relative">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-            <div className="flex-1 text-left">
-              <h2 className="text-base font-bold text-white leading-tight">
-                지원한 곳 헷갈릴 땐? 지원함
-              </h2>
-              <p className="text-xs text-blue-100 mt-0.5">
-                메모장·노션은 이제 끝. 수동 입력 없이 자동으로 관리하세요.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <button className="px-3 py-1.5 bg-white text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition text-xs whitespace-nowrap">
-                  시작하기
-                </button>
-              </Link>
-              <button
-                onClick={() => setShowHeroBanner(false)}
-                className="p-1 hover:bg-white/10 rounded transition"
-                aria-label="배너 닫기"
-              >
-                <X className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 히어로 배너 삭제됨 - 통합 데모 배너로 이동 */}
 
       <main className="flex-1 p-3 sm:p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
@@ -1173,22 +1148,38 @@ export default function HomePage() {
           {!user ? (
             // 비로그인 상태 - 전체 인터랙티브 데모 모드
             <>
-              {/* 데모 모드 안내 배너 */}
-              <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
-                  <span className="text-xs sm:text-sm text-blue-800 truncate">
-                    <strong>데모 모드:</strong> <span className="hidden sm:inline">모든 기능을 자유롭게 체험해보세요!</span><span className="sm:hidden">체험 중</span>
-                  </span>
+              {/* 통합 데모 + 로그인 유도 배너 */}
+              <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-base font-semibold text-amber-900 truncate">
+                        {demoPhase >= 2 ? '이 데이터는 샘플이에요' : '지금은 체험 모드예요'}
+                      </p>
+                      <p className="text-xs sm:text-sm text-amber-700 truncate">
+                        {demoPhase >= 2
+                          ? '회원가입하면 실제 지원 현황을 관리할 수 있어요'
+                          : '로그인하면 나만의 지원 내역이 안전하게 저장돼요'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Link href="/login">
+                      <button className={`px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg text-xs sm:text-sm transition whitespace-nowrap ${demoPhase >= 2 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}`}>
+                        {demoPhase >= 2 ? '무료로 시작하기' : '로그인하고 시작'}
+                      </button>
+                    </Link>
+                    <button
+                      onClick={handleResetDemo}
+                      className="text-xs text-amber-600 hover:text-amber-800 hover:bg-amber-100 px-2 py-1.5 rounded-lg transition hidden sm:block"
+                    >
+                      초기화
+                    </button>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleResetDemo}
-                  className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 flex-shrink-0 px-2 sm:px-3"
-                >
-                  초기화
-                </Button>
               </div>
 
               {/* 마감 임박 알림 */}
@@ -1524,11 +1515,11 @@ export default function HomePage() {
                 <Briefcase className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                마음에 드시나요?
+                체험은 어떠셨나요?
               </h3>
               <p className="text-gray-600 mb-6">
-                회원가입하고 실제 지원 내역을 관리해보세요!<br/>
-                모든 데이터가 안전하게 저장됩니다.
+                로그인하면 지금까지 체험한 기능을<br/>
+                내 데이터로 쓸 수 있어요!
               </p>
               <div className="flex flex-col gap-3">
                 <Link href="/login" className="w-full">
