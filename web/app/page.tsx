@@ -540,7 +540,7 @@ export default function HomePage() {
         )
       )
       if (newStatus === 'applied') trackEvent('application_applied')
-      else if (newStatus === 'passed' || newStatus === 'final_pass') trackEvent('application_passed', { status: newStatus })
+      else if (newStatus === 'accepted') trackEvent('application_accepted')
     } catch (error) {
       console.error('Failed to update status:', error)
       alert('상태 변경에 실패했습니다.')
