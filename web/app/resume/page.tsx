@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { SectionCard } from '@/components/resume/SectionCard'
@@ -23,7 +23,7 @@ import {
   ResumeData, SectionType, EducationItem, ExperienceItem, CertificationItem, LanguageItem, ActivityItem, AwardItem,
   DEFAULT_SECTION_ORDER, DEFAULT_SECTION_VISIBILITY,
 } from '@/types/resume'
-import { Eye, LogIn } from 'lucide-react'
+import { Eye, LogIn, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 // Supabase에 resumes 테이블이 필요합니다.
@@ -72,6 +72,8 @@ export default function ResumePage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
+  const [pdfImporting, setPdfImporting] = useState(false)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
   const [addedMaterialIds, setAddedMaterialIds] = useState<Set<string>>(new Set())
   type MaterialPrefill = { title: string; experience_type: string; content: string; resume_item_type: string; resume_item_id: string; modalTitle: string }
   const [materialModalPrefill, setMaterialModalPrefill] = useState<MaterialPrefill | null>(null)
@@ -205,6 +207,56 @@ export default function ResumePage() {
     setMaterialModalPrefill(null)
   }
 
+  // ── PDF 불러오기 ───────────────────────────────────────
+  const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !activeId) return
+    e.target.value = ''
+
+    setPdfImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+
+      const res = await fetch('/api/resume/parse-pdf', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (!res.ok || !json.data) throw new Error(json.error || '파싱 실패')
+
+      const d = json.data
+      const newId = () => crypto.randomUUID()
+
+      const patch: Partial<ResumeData> = {
+        ...(d.personal?.name ? { personal: d.personal } : {}),
+        ...(d.summary ? { summary: d.summary } : {}),
+        ...(d.education?.length ? { education: d.education.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.experience?.length ? { experience: d.experience.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.certification?.length ? { certification: d.certification.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.language?.length ? { language: d.language.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.skills?.length ? { skills: d.skills.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.activity?.length ? { activity: d.activity.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.award?.length ? { award: d.award.map((x: any) => ({ ...x, id: newId() })) } : {}),
+        ...(d.links?.length ? { links: d.links.map((x: any) => ({ ...x, id: newId() })) } : {}),
+      }
+
+      // 데이터가 있는 섹션은 자동으로 표시
+      const active = resumes.find(r => r.id === activeId)!
+      const vis = { ...active.section_visibility }
+      if (patch.personal?.name) vis.personal = true
+      if (patch.activity?.length) vis.activity = true
+      if (patch.award?.length) vis.award = true
+      if (patch.links?.length) vis.links = true
+      patch.section_visibility = vis
+
+      setResumes(prev => prev.map(r => r.id === activeId ? { ...r, ...patch } : r))
+      await persist(activeId, patch)
+      alert(`이력서를 불러왔습니다.`)
+    } catch (err: any) {
+      alert(err.message || 'PDF 분석에 실패했습니다.')
+    } finally {
+      setPdfImporting(false)
+    }
+  }
+
   // ── 렌더 ──────────────────────────────────────────────
   if (authLoading || loading) {
     return (
@@ -264,12 +316,29 @@ export default function ResumePage() {
                 onDelete={handleDelete}
               />
             </div>
-            <button
-              onClick={() => setShowPreview(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
-            >
-              <Eye className="w-4 h-4" />미리보기
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={handlePdfImport}
+              />
+              <button
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={pdfImporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {pdfImporting ? 'AI 분석 중...' : 'PDF 불러오기'}
+              </button>
+              <button
+                onClick={() => setShowPreview(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+              >
+                <Eye className="w-4 h-4" />미리보기
+              </button>
+            </div>
           </div>
 
           {/* 섹션 카드 목록 */}
