@@ -44,6 +44,19 @@ export function AddMaterialModal({ isOpen, onClose, onSave }: Props) {
         {/* 폼 */}
         <div className="p-4 space-y-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">경험 유형</label>
+            <select
+              value={experienceType}
+              onChange={(e) => setExperienceType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {EXPERIENCE_TYPE_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               소재 제목 <span className="text-red-500">*</span>
             </label>
@@ -55,19 +68,6 @@ export function AddMaterialModal({ isOpen, onClose, onSave }: Props) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">경험 유형</label>
-            <select
-              value={experienceType}
-              onChange={(e) => setExperienceType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {EXPERIENCE_TYPE_OPTIONS.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
           </div>
 
           <div>
