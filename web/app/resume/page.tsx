@@ -330,7 +330,7 @@ export default function ResumePage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition disabled:opacity-50"
               >
                 <Upload className="w-4 h-4" />
-                {pdfImporting ? 'AI 분석 중...' : 'PDF 불러오기'}
+                {pdfImporting ? 'AI 분석 중...' : '기존 이력서(PDF)로 자동 채우기'}
               </button>
               <button
                 onClick={() => setShowPreview(true)}
