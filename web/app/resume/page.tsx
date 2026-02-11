@@ -71,7 +71,7 @@ export default function ResumePage() {
   const [loading, setLoading] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [addedMaterialIds, setAddedMaterialIds] = useState<Set<string>>(new Set())
-  type MaterialPrefill = { title: string; experience_type: string; content: string; resume_item_type: string; resume_item_id: string }
+  type MaterialPrefill = { title: string; experience_type: string; content: string; resume_item_type: string; resume_item_id: string; modalTitle: string }
   const [materialModalPrefill, setMaterialModalPrefill] = useState<MaterialPrefill | null>(null)
 
   const active = resumes.find(r => r.id === activeId) ?? null
@@ -170,13 +170,13 @@ export default function ResumePage() {
   // ── 이력서 → 자소서 소재 ──────────────────────────────
   const handleExperienceToMaterial = (item: ExperienceItem) => {
     const content = [item.tasks, item.achievements ? `성과: ${item.achievements}` : ''].filter(Boolean).join('\n')
-    setMaterialModalPrefill({ title: `${item.company} - ${item.position}`, experience_type: '인턴', content, resume_item_type: 'experience', resume_item_id: item.id })
+    setMaterialModalPrefill({ title: `${item.company} - ${item.position}`, experience_type: '인턴', content, resume_item_type: 'experience', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.company}` })
   }
   const handleActivityToMaterial = (item: ActivityItem) => {
-    setMaterialModalPrefill({ title: `${item.name} (${item.organization})`, experience_type: '대외활동', content: item.description || '', resume_item_type: 'activity', resume_item_id: item.id })
+    setMaterialModalPrefill({ title: `${item.name} (${item.organization})`, experience_type: '대외활동', content: item.description || '', resume_item_type: 'activity', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.name}` })
   }
   const handleAwardToMaterial = (item: AwardItem) => {
-    setMaterialModalPrefill({ title: `${item.name} - ${item.organization}`, experience_type: '공모전', content: item.description || '', resume_item_type: 'award', resume_item_id: item.id })
+    setMaterialModalPrefill({ title: `${item.name} - ${item.organization}`, experience_type: '공모전', content: item.description || '', resume_item_type: 'award', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.name}` })
   }
   const handleMaterialSave = async (data: { title: string; experience_type: string; content: string | null; resume_item_type?: string; resume_item_id?: string }) => {
     if (!user) return

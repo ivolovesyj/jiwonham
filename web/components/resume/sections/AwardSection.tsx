@@ -62,14 +62,16 @@ export function AwardSection({ items, onChange, onAddToMaterial, addedMaterialId
             </div>
             {item.description && <p className="text-xs text-gray-600">{item.description}</p>}
           </div>
-          <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition">
-            {onAddToMaterial && !addedMaterialIds?.has(item.id) && (
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {onAddToMaterial && (
               <button onClick={() => onAddToMaterial(item)} className="p-1.5 hover:bg-green-100 rounded-md transition" title="자소서 소재로 추가">
-                <Lightbulb className="w-3.5 h-3.5 text-green-500" />
+                <Lightbulb className={`w-3.5 h-3.5 ${addedMaterialIds?.has(item.id) ? 'text-green-500' : 'text-gray-300'}`} />
               </button>
             )}
-            <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-gray-200 rounded-md transition"><Pencil className="w-3.5 h-3.5 text-gray-500" /></button>
-            <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded-md transition"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+              <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-gray-200 rounded-md transition"><Pencil className="w-3.5 h-3.5 text-gray-500" /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded-md transition"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            </div>
           </div>
         </div>
       ))}

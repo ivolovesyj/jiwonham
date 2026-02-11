@@ -10,6 +10,7 @@ interface PrefilledData {
   content: string
   resume_item_type?: string
   resume_item_id?: string
+  modalTitle?: string
 }
 
 interface Props {
@@ -57,7 +58,7 @@ export function AddMaterialModal({ isOpen, onClose, onSave, prefilledData }: Pro
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* 헤더 */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-bold text-gray-900">새 소재 추가</h2>
+          <h2 className="text-lg font-bold text-gray-900">{prefilledData?.modalTitle ?? '새 소재 추가'}</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-md transition">
             <X className="w-5 h-5 text-gray-500" />
           </button>

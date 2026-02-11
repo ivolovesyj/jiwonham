@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ExperienceMaterial, EXPERIENCE_TYPE_OPTIONS } from '@/types/cover-letter'
-import { Pencil, Trash2, X, Check } from 'lucide-react'
+import { Pencil, Trash2, X, Check, ScrollText } from 'lucide-react'
 
 interface Props {
   material: ExperienceMaterial
@@ -105,9 +105,16 @@ export function ExperienceMaterialCard({ material, onUpdate, onDelete }: Props) 
           <Pencil className="w-3.5 h-3.5" />
         </button>
       </div>
-      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100 mb-2">
-        {material.experience_type}
-      </span>
+      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
+          {material.experience_type}
+        </span>
+        {material.resume_item_type && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
+            <ScrollText className="w-3 h-3" />이력서에서 가져옴
+          </span>
+        )}
+      </div>
       {material.content && (
         <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed">{material.content}</p>
       )}
