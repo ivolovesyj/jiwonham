@@ -383,6 +383,13 @@ export default function HomePage() {
     setMounted(true)
     setLoadingMessage(getRandomLoadingMessage())
     initialLoadStartRef.current = Date.now()
+
+    // 사이트 내 페이지 이동 시에는 로딩 애니메이션 스킵 (최초 접속 시에만 표시)
+    if (sessionStorage.getItem('jiwonbox_visited')) {
+      setMinLoadingComplete(true)
+    } else {
+      sessionStorage.setItem('jiwonbox_visited', 'true')
+    }
   }, [])
 
   // 최소 로딩 시간 보장 (1초)
