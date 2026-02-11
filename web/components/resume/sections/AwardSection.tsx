@@ -2,16 +2,18 @@
 
 import { useState } from 'react'
 import { AwardItem } from '@/types/resume'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Lightbulb, Check } from 'lucide-react'
 
 interface Props {
   items: AwardItem[]
   onChange: (items: AwardItem[]) => void
+  onAddToMaterial?: (item: AwardItem) => void
+  addedMaterialIds?: Set<string>
 }
 
 const EMPTY_FORM = { name: '', organization: '', date: '', description: '' }
 
-export function AwardSection({ items, onChange }: Props) {
+export function AwardSection({ items, onChange, onAddToMaterial, addedMaterialIds }: Props) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -52,10 +54,20 @@ export function AwardSection({ items, onChange }: Props) {
               <span className="text-sm font-semibold text-gray-900">{item.name}</span>
               <span className="text-xs text-gray-500">{item.organization}</span>
               {item.date && <span className="text-xs text-gray-400">{item.date.replace('-', '.')}</span>}
+              {addedMaterialIds?.has(item.id) && (
+                <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                  <Check className="w-3 h-3" />소재 추가됨
+                </span>
+              )}
             </div>
             {item.description && <p className="text-xs text-gray-600">{item.description}</p>}
           </div>
           <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition">
+            {onAddToMaterial && !addedMaterialIds?.has(item.id) && (
+              <button onClick={() => onAddToMaterial(item)} className="p-1.5 hover:bg-green-100 rounded-md transition" title="자소서 소재로 추가">
+                <Lightbulb className="w-3.5 h-3.5 text-green-500" />
+              </button>
+            )}
             <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-gray-200 rounded-md transition"><Pencil className="w-3.5 h-3.5 text-gray-500" /></button>
             <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded-md transition"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
           </div>

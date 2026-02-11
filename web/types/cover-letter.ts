@@ -33,6 +33,8 @@ export interface ExperienceMaterial {
   title: string
   experience_type: string
   content: string | null
+  resume_item_type?: string | null
+  resume_item_id?: string | null
   created_at: string
   updated_at: string
 }

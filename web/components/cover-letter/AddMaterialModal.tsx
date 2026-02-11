@@ -1,19 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { EXPERIENCE_TYPE_OPTIONS } from '@/types/cover-letter'
-import { X } from 'lucide-react'
+import { X, Lightbulb } from 'lucide-react'
+
+interface PrefilledData {
+  title: string
+  experience_type: string
+  content: string
+  resume_item_type?: string
+  resume_item_id?: string
+}
 
 interface Props {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: { title: string; experience_type: string; content: string | null }) => void
+  onSave: (data: { title: string; experience_type: string; content: string | null; resume_item_type?: string; resume_item_id?: string }) => void
+  prefilledData?: PrefilledData
 }
 
-export function AddMaterialModal({ isOpen, onClose, onSave }: Props) {
+export function AddMaterialModal({ isOpen, onClose, onSave, prefilledData }: Props) {
   const [title, setTitle] = useState('')
   const [experienceType, setExperienceType] = useState<string>(EXPERIENCE_TYPE_OPTIONS[0])
   const [content, setContent] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      if (prefilledData) {
+        setTitle(prefilledData.title)
+        setExperienceType(prefilledData.experience_type)
+        setContent(prefilledData.content)
+      }
+    } else {
+      setTitle('')
+      setExperienceType(EXPERIENCE_TYPE_OPTIONS[0])
+      setContent('')
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -23,10 +46,9 @@ export function AddMaterialModal({ isOpen, onClose, onSave }: Props) {
       title: title.trim(),
       experience_type: experienceType,
       content: content.trim() || null,
+      ...(prefilledData?.resume_item_type ? { resume_item_type: prefilledData.resume_item_type } : {}),
+      ...(prefilledData?.resume_item_id ? { resume_item_id: prefilledData.resume_item_id } : {}),
     })
-    setTitle('')
-    setExperienceType(EXPERIENCE_TYPE_OPTIONS[0])
-    setContent('')
     onClose()
   }
 
@@ -40,6 +62,14 @@ export function AddMaterialModal({ isOpen, onClose, onSave }: Props) {
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
+
+        {/* 이력서 연동 힌트 */}
+        {prefilledData && (
+          <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2">
+            <Lightbulb className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-700">이력서 내용이 기본으로 채워졌어요. 자기소개서에 활용할 상세 경험을 추가해주세요.</p>
+          </div>
+        )}
 
         {/* 폼 */}
         <div className="p-4 space-y-4">

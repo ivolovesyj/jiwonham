@@ -49,7 +49,7 @@ export function ExperienceMaterialsTab({ user }: Props) {
     )
   }, [materials, searchQuery])
 
-  const handleCreate = async (data: { title: string; experience_type: string; content: string | null }) => {
+  const handleCreate = async (data: { title: string; experience_type: string; content: string | null; resume_item_type?: string; resume_item_id?: string }) => {
     try {
       const { data: created, error } = await supabase
         .from('experience_materials')

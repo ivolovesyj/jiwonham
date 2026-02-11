@@ -15,10 +15,11 @@ import { AwardSection } from '@/components/resume/sections/AwardSection'
 import { LinksSection } from '@/components/resume/sections/LinksSection'
 import { ResumePreviewModal } from '@/components/resume/ResumePreviewModal'
 import { ResumeVersionSelector } from '@/components/resume/ResumeVersionSelector'
+import { AddMaterialModal } from '@/components/cover-letter/AddMaterialModal'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import {
-  ResumeData, SectionType,
+  ResumeData, SectionType, ExperienceItem, ActivityItem, AwardItem,
   DEFAULT_SECTION_ORDER, DEFAULT_SECTION_VISIBILITY,
 } from '@/types/resume'
 import { Eye, LogIn } from 'lucide-react'
@@ -69,6 +70,9 @@ export default function ResumePage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
+  const [addedMaterialIds, setAddedMaterialIds] = useState<Set<string>>(new Set())
+  type MaterialPrefill = { title: string; experience_type: string; content: string; resume_item_type: string; resume_item_id: string }
+  const [materialModalPrefill, setMaterialModalPrefill] = useState<MaterialPrefill | null>(null)
 
   const active = resumes.find(r => r.id === activeId) ?? null
 
@@ -102,6 +106,19 @@ export default function ResumePage() {
 
     fetchResumes()
   }, [user, authLoading])
+
+  // ── 소재 추가됨 ID 로드 ────────────────────────────────
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('experience_materials')
+      .select('resume_item_id')
+      .eq('user_id', user.id)
+      .not('resume_item_id', 'is', null)
+      .then(({ data }) => {
+        if (data) setAddedMaterialIds(new Set(data.map((d: { resume_item_id: string }) => d.resume_item_id).filter(Boolean)))
+      })
+  }, [user])
 
   // ── DB 업데이트 헬퍼 ──────────────────────────────────
   const persist = useCallback(async (id: string, patch: Partial<ResumeData>) => {
@@ -148,6 +165,30 @@ export default function ResumePage() {
     const remaining = resumes.filter(r => r.id !== id)
     setResumes(remaining)
     if (activeId === id) setActiveId(remaining[0]?.id ?? null)
+  }
+
+  // ── 이력서 → 자소서 소재 ──────────────────────────────
+  const handleExperienceToMaterial = (item: ExperienceItem) => {
+    const content = [item.tasks, item.achievements ? `성과: ${item.achievements}` : ''].filter(Boolean).join('\n')
+    setMaterialModalPrefill({ title: `${item.company} - ${item.position}`, experience_type: '인턴', content, resume_item_type: 'experience', resume_item_id: item.id })
+  }
+  const handleActivityToMaterial = (item: ActivityItem) => {
+    setMaterialModalPrefill({ title: `${item.name} (${item.organization})`, experience_type: '대외활동', content: item.description || '', resume_item_type: 'activity', resume_item_id: item.id })
+  }
+  const handleAwardToMaterial = (item: AwardItem) => {
+    setMaterialModalPrefill({ title: `${item.name} - ${item.organization}`, experience_type: '공모전', content: item.description || '', resume_item_type: 'award', resume_item_id: item.id })
+  }
+  const handleMaterialSave = async (data: { title: string; experience_type: string; content: string | null; resume_item_type?: string; resume_item_id?: string }) => {
+    if (!user) return
+    const { data: created } = await supabase
+      .from('experience_materials')
+      .insert({ user_id: user.id, ...data })
+      .select()
+      .single()
+    if (created && data.resume_item_id) {
+      setAddedMaterialIds(prev => new Set([...prev, data.resume_item_id!]))
+    }
+    setMaterialModalPrefill(null)
   }
 
   // ── 렌더 ──────────────────────────────────────────────
@@ -240,6 +281,8 @@ export default function ResumePage() {
                 <ExperienceSection
                   items={active.experience ?? []}
                   onChange={items => handleSectionChange('experience', items)}
+                  onAddToMaterial={handleExperienceToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'certification' && (
@@ -264,12 +307,16 @@ export default function ResumePage() {
                 <ActivitySection
                   items={active.activity ?? []}
                   onChange={items => handleSectionChange('activity', items)}
+                  onAddToMaterial={handleActivityToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'award' && (
                 <AwardSection
                   items={active.award ?? []}
                   onChange={items => handleSectionChange('award', items)}
+                  onAddToMaterial={handleAwardToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'links' && (
@@ -286,6 +333,15 @@ export default function ResumePage() {
 
       {showPreview && active && (
         <ResumePreviewModal resume={active} onClose={() => setShowPreview(false)} />
+      )}
+
+      {materialModalPrefill && (
+        <AddMaterialModal
+          isOpen={true}
+          onClose={() => setMaterialModalPrefill(null)}
+          onSave={handleMaterialSave}
+          prefilledData={materialModalPrefill}
+        />
       )}
     </div>
   )
