@@ -150,22 +150,13 @@ export function ExperienceMaterialsTab({ user }: Props) {
             {searchQuery ? '다른 키워드로 검색해보세요.' : '경험, 프로젝트, 활동 등을 소재로 정리해보세요.'}
           </p>
           {!searchQuery && (
-            <div className="flex flex-col items-center gap-2">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-              >
-                <Plus className="w-4 h-4" />
-                직접 추가하기
-              </button>
-              <button
-                onClick={() => setShowResumeGuide(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition"
-              >
-                <ScrollText className="w-4 h-4" />
-                이력서 항목에서 불러오기
-              </button>
-            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+            >
+              <Plus className="w-4 h-4" />
+              직접 추가하기
+            </button>
           )}
         </div>
       ) : (
