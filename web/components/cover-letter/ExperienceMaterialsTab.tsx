@@ -1,23 +1,25 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { ExperienceMaterial } from '@/types/cover-letter'
 import { ExperienceMaterialCard } from './ExperienceMaterialCard'
 import { AddMaterialModal } from './AddMaterialModal'
-import { Plus, Search, Lightbulb, ScrollText } from 'lucide-react'
-import Link from 'next/link'
+import { Plus, Search, Lightbulb, ScrollText, X } from 'lucide-react'
 
 interface Props {
   user: User
 }
 
 export function ExperienceMaterialsTab({ user }: Props) {
+  const router = useRouter()
   const [materials, setMaterials] = useState<ExperienceMaterial[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showResumeGuide, setShowResumeGuide] = useState(false)
 
   useEffect(() => {
     fetchMaterials()
@@ -121,13 +123,13 @@ export function ExperienceMaterialsTab({ user }: Props) {
             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           />
         </div>
-        <Link
-          href="/resume"
+        <button
+          onClick={() => setShowResumeGuide(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition shadow-sm whitespace-nowrap"
         >
           <ScrollText className="w-4 h-4" />
-          이력서에서
-        </Link>
+          이력서 항목에서 불러오기
+        </button>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition shadow-sm whitespace-nowrap"
@@ -156,13 +158,13 @@ export function ExperienceMaterialsTab({ user }: Props) {
                 <Plus className="w-4 h-4" />
                 직접 추가하기
               </button>
-              <Link
-                href="/resume"
+              <button
+                onClick={() => setShowResumeGuide(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition"
               >
                 <ScrollText className="w-4 h-4" />
-                이력서에서 불러오기
-              </Link>
+                이력서 항목에서 불러오기
+              </button>
             </div>
           )}
         </div>
@@ -185,6 +187,39 @@ export function ExperienceMaterialsTab({ user }: Props) {
         onClose={() => setShowAddModal(false)}
         onSave={handleCreate}
       />
+
+      {/* 이력서 항목 안내 모달 */}
+      {showResumeGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowResumeGuide(false)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">이력서 항목에서 불러오기</h3>
+              <button onClick={() => setShowResumeGuide(false)} className="p-1 hover:bg-gray-100 rounded-md">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-gray-600">이력서 페이지에서 각 항목 옆의 <span className="inline-flex items-center gap-0.5 font-medium text-yellow-600"><Lightbulb className="w-3.5 h-3.5" />전구 버튼</span>을 누르면 해당 내용이 자소서 소재로 바로 추가됩니다.</p>
+              <ol className="text-sm text-gray-500 space-y-1.5 list-decimal list-inside">
+                <li>이력서 페이지로 이동</li>
+                <li>경력, 학력, 대외활동 등 항목 옆 <span className="text-yellow-600 font-medium">전구 아이콘</span> 클릭</li>
+                <li>내용을 확인하고 소재로 저장</li>
+              </ol>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowResumeGuide(false)} className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                닫기
+              </button>
+              <button
+                onClick={() => { setShowResumeGuide(false); router.push('/resume') }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+              >
+                이동하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
