@@ -53,12 +53,13 @@ export function ResumePreviewModal({ resume, onClose }: Props) {
           .resume-print-area {
             display: block !important;
             visibility: visible !important;
-            position: fixed;
-            inset: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
             background: white;
             padding: 15mm;
             z-index: 99999;
-            overflow: visible;
           }
           .resume-print-area * { visibility: visible !important; }
           @page { margin: 0; size: A4; }
