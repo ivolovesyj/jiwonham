@@ -26,7 +26,6 @@ export function Navigation() {
     { href: '/', label: '지원관리', icon: Briefcase },
     { href: '/cover-letter', label: '자기소개서', icon: FileText },
     { href: '/resume', label: '이력서', icon: ScrollText },
-    { href: '/profile', label: '마이페이지', icon: User },
   ]
 
   return (
@@ -76,15 +75,23 @@ export function Navigation() {
               </Link>
             </>
           ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="flex items-center gap-1"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">로그아웃</span>
-            </Button>
+            <>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">마이페이지</span>
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">로그아웃</span>
+              </Button>
+            </>
           )}
         </div>
       </div>

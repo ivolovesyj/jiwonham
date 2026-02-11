@@ -11,18 +11,20 @@ interface Props {
 export function ResumePreviewModal({ resume, onClose }: Props) {
   const handlePrint = () => window.print()
 
-  const visibleSections = (resume.section_order ?? DEFAULT_SECTION_ORDER).filter(
-    s => resume.section_visibility?.[s] !== false
-  )
+  const rawOrder = resume.section_order ?? DEFAULT_SECTION_ORDER
+  const sectionOrder = rawOrder.includes('personal') ? rawOrder : ['personal' as SectionType, ...rawOrder]
+  const visibleSections = sectionOrder.filter(s => resume.section_visibility?.[s] !== false)
 
   const formatDate = (d: string | null | undefined) => d ? d.replace('-', '.') : ''
+
+  const content = <PreviewContent resume={resume} visibleSections={visibleSections} formatDate={formatDate} />
 
   return (
     <>
       {/* 화면 UI */}
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 print:hidden" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
         <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10 print:hidden">
+          <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
             <h2 className="text-base font-bold text-gray-900">미리보기</h2>
             <div className="flex items-center gap-2">
               <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition">
@@ -34,20 +36,32 @@ export function ResumePreviewModal({ resume, onClose }: Props) {
             </div>
           </div>
           <div className="p-6 sm:p-8">
-            <PreviewContent resume={resume} visibleSections={visibleSections} formatDate={formatDate} />
+            {content}
           </div>
         </div>
       </div>
 
-      {/* 인쇄 전용 */}
-      <div className="hidden print:block print:p-8">
-        <PreviewContent resume={resume} visibleSections={visibleSections} formatDate={formatDate} />
+      {/* 인쇄 전용 영역 */}
+      <div className="resume-print-area">
+        {content}
       </div>
 
       <style>{`
+        .resume-print-area { display: none; }
         @media print {
-          body > *:not(.print\\:block) { display: none !important; }
-          @page { margin: 15mm; }
+          body * { visibility: hidden !important; }
+          .resume-print-area {
+            display: block !important;
+            visibility: visible !important;
+            position: fixed;
+            inset: 0;
+            background: white;
+            padding: 15mm;
+            z-index: 99999;
+            overflow: visible;
+          }
+          .resume-print-area * { visibility: visible !important; }
+          @page { margin: 0; size: A4; }
         }
       `}</style>
     </>
@@ -61,12 +75,26 @@ function PreviewContent({ resume, visibleSections, formatDate }: {
 }) {
   return (
     <div className="space-y-6 text-sm text-gray-800">
-      {/* 이력서 제목 */}
-      <div className="text-center border-b pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">이 력 서</h1>
-      </div>
+      {/* 이력서 제목 / 인적사항 헤더 */}
+      {visibleSections.includes('personal') && resume.personal?.name ? (
+        <div className="text-center border-b pb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{resume.personal.name}</h1>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-gray-500">
+            {resume.personal.birth_date && <span>{resume.personal.birth_date}</span>}
+            {resume.personal.phone && <span>{resume.personal.phone}</span>}
+            {resume.personal.email && <span>{resume.personal.email}</span>}
+            {resume.personal.address && <span>{resume.personal.address}</span>}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center border-b pb-4">
+          <h1 className="text-2xl font-bold text-gray-900">이 력 서</h1>
+        </div>
+      )}
 
       {visibleSections.map(section => {
+        if (section === 'personal') return null
+
         if (section === 'summary' && resume.summary) {
           return (
             <Section key={section} label={SECTION_LABELS.summary}>

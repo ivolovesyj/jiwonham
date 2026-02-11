@@ -1,4 +1,5 @@
 export type SectionType =
+  | 'personal'
   | 'summary'
   | 'education'
   | 'experience'
@@ -10,6 +11,7 @@ export type SectionType =
   | 'links'
 
 export const SECTION_LABELS: Record<SectionType, string> = {
+  personal: '인적사항',
   summary: '한줄 소개',
   education: '학력',
   experience: '경력사항',
@@ -22,13 +24,14 @@ export const SECTION_LABELS: Record<SectionType, string> = {
 }
 
 export const DEFAULT_SECTION_ORDER: SectionType[] = [
-  'summary', 'education', 'experience', 'certification',
+  'personal', 'summary', 'education', 'experience', 'certification',
   'language', 'skills', 'activity', 'award', 'links',
 ]
 
 export const REQUIRED_SECTIONS: SectionType[] = ['education', 'experience']
 
 export const DEFAULT_SECTION_VISIBILITY: Record<SectionType, boolean> = {
+  personal: false,
   summary: true,
   education: true,
   experience: true,
@@ -42,6 +45,14 @@ export const DEFAULT_SECTION_VISIBILITY: Record<SectionType, boolean> = {
 
 export type DegreeType = '고졸' | '전문학사' | '학사' | '석사' | '박사' | '기타'
 export const DEGREE_OPTIONS: DegreeType[] = ['고졸', '전문학사', '학사', '석사', '박사', '기타']
+
+export interface PersonalInfo {
+  name: string
+  birth_date?: string
+  phone?: string
+  email?: string
+  address?: string
+}
 
 export interface EducationItem {
   id: string
@@ -119,6 +130,7 @@ export interface ResumeData {
   is_default: boolean
   section_order: SectionType[]
   section_visibility: Record<SectionType, boolean>
+  personal?: PersonalInfo | null
   summary: string
   education: EducationItem[]
   experience: ExperienceItem[]

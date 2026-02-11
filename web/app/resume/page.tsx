@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { SectionCard } from '@/components/resume/SectionCard'
+import { PersonalSection } from '@/components/resume/sections/PersonalSection'
 import { SummarySection } from '@/components/resume/sections/SummarySection'
 import { EducationSection } from '@/components/resume/sections/EducationSection'
 import { ExperienceSection } from '@/components/resume/sections/ExperienceSection'
@@ -53,6 +54,7 @@ const DEFAULT_NEW_RESUME = {
   is_default: true,
   section_order: DEFAULT_SECTION_ORDER,
   section_visibility: DEFAULT_SECTION_VISIBILITY,
+  personal: null,
   summary: '',
   education: [],
   experience: [],
@@ -239,8 +241,9 @@ export default function ResumePage() {
 
   if (!active) return null
 
-  const sectionOrder: SectionType[] = active.section_order ?? DEFAULT_SECTION_ORDER
-  const visibility: Record<SectionType, boolean> = active.section_visibility ?? DEFAULT_SECTION_VISIBILITY
+  const rawOrder = active.section_order ?? DEFAULT_SECTION_ORDER
+  const sectionOrder: SectionType[] = rawOrder.includes('personal') ? rawOrder : ['personal', ...rawOrder]
+  const visibility: Record<SectionType, boolean> = { personal: false, ...(active.section_visibility ?? DEFAULT_SECTION_VISIBILITY) }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -277,6 +280,12 @@ export default function ResumePage() {
               isVisible={visibility[type] !== false}
               onToggleVisibility={() => handleToggleVisibility(type)}
             >
+              {type === 'personal' && (
+                <PersonalSection
+                  data={active.personal}
+                  onChange={data => handleSectionChange('personal', data)}
+                />
+              )}
               {type === 'summary' && (
                 <SummarySection
                   value={active.summary ?? ''}

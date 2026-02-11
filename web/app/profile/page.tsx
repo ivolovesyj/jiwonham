@@ -1,12 +1,35 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
 import { Navigation } from '@/components/Navigation'
 import { User, LogIn } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
+  const router = useRouter()
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    const confirmed = confirm(
+      '정말로 탈퇴하시겠습니까?\n이력서, 자기소개서 소재 등 모든 데이터가 삭제되며 복구할 수 없습니다.'
+    )
+    if (!confirmed) return
+
+    setDeleting(true)
+    try {
+      const { error } = await supabase.rpc('delete_own_account')
+      if (error) throw error
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch {
+      alert('탈퇴 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+      setDeleting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -43,8 +66,9 @@ export default function ProfilePage() {
       <Navigation />
 
       <main className="flex-1 p-4 md:p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg border p-6 mb-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* 계정 정보 */}
+          <div className="bg-white rounded-lg border p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-white" />
@@ -54,16 +78,24 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600">회원</p>
               </div>
             </div>
-
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                <p>선호 조건은 채용공고 페이지의 필터에서 설정할 수 있습니다.</p>
-              </div>
+            <div className="text-sm text-gray-600">
+              <p>선호 조건은 채용공고 페이지의 필터에서 설정할 수 있습니다.</p>
             </div>
           </div>
 
-          <div className="text-center text-sm text-gray-500">
-            <p>더 많은 기능이 곧 추가됩니다!</p>
+          {/* 위험 구역 */}
+          <div className="bg-white rounded-lg border border-red-100 p-6">
+            <h3 className="text-base font-semibold text-red-600 mb-1">계정 탈퇴</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              탈퇴 시 이력서, 자기소개서 소재, 지원 현황 등 모든 데이터가 영구 삭제됩니다.
+            </p>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+            >
+              {deleting ? '처리 중...' : '회원 탈퇴'}
+            </button>
           </div>
         </div>
       </main>
