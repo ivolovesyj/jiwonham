@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지원함 - 프로젝트 소개</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #ffffff;
+    color: #1a1a2e;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 0;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ===== COVER ===== */
+  .cover {
+    background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 55px;
+    color: #fff;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -60px;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-logo-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+  }
+  .cover-logo-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 18px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 500;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(10px);
+  }
+
+  .cover-title {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1.35;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-title .gradient-text {
+    background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-subtitle {
+    font-size: 18px;
+    color: rgba(255,255,255,0.65);
+    font-weight: 400;
+    line-height: 1.7;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Desktop Mockup */
+  .desktop-mockup {
+    width: 580px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+  }
+  .desktop-bar {
+    background: #f5f6f8;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #e0e4ea;
+  }
+  .d-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .d-dot.red { background: #ff5f56; }
+  .d-dot.yellow { background: #ffbd2e; }
+  .d-dot.green { background: #27ca40; }
+  .d-url {
+    flex: 1;
+    background: #fff;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: #999;
+    margin-left: 10px;
+    border: 1px solid #e8ecf2;
+  }
+  .desktop-content {
+    padding: 0;
+    color: #1a1a2e;
+  }
+
+  /* Mini Nav */
+  .mini-nav {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 20px;
+  }
+  .mini-nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1a1a2e;
+  }
+  .mini-nav-logo .icon {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+  .mini-nav-item {
+    font-size: 10px;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .mini-nav-item.active {
+    background: #1a1a2e;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* Mini Table */
+  .mini-table-area {
+    padding: 14px 20px;
+  }
+  .mini-table-title {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .mini-alert {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 9px;
+    color: #dc2626;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .mini-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .mini-tab {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 8px;
+    background: #f5f5f5;
+    color: #666;
+  }
+  .mini-tab.active {
+    background: #1a1a2e;
+    color: #fff;
+    font-weight: 600;
+  }
+  .mini-tab.highlight {
+    background: #dc2626;
+    color: #fff;
+  }
+  .mini-table-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 9px;
+    gap: 8px;
+  }
+  .mini-table-row .company {
+    font-weight: 700;
+    width: 70px;
+    flex-shrink: 0;
+  }
+  .mini-table-row .title {
+    flex: 1;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-table-row .region {
+    font-size: 8px;
+    color: #999;
+    width: 30px;
+    text-align: center;
+  }
+  .mini-status-badge {
+    font-size: 7px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .status-planned { background: #fef3c7; color: #92400e; }
+  .status-applied { background: #dbeafe; color: #1e40af; }
+  .mini-dday {
+    font-size: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+    width: 50px;
+    text-align: right;
+  }
+  .dday-urgent { color: #dc2626; }
+  .dday-soon { color: #f59e0b; }
+  .dday-normal { color: #6b7280; }
+
+  .cover-url {
+    margin-top: 32px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    position: relative;
+    z-index: 1;
+  }
+  .cover-url a {
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* ===== CONTENT PAGES ===== */
+  .content-page {
+    padding: 50px 55px;
+  }
+  .section-label {
+    display: inline-block;
+    background: #6366f1;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 30px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  .section-desc {
+    font-size: 15px;
+    color: #5a6678;
+    line-height: 1.7;
+    margin-bottom: 36px;
+  }
+  .divider {
+    width: 40px;
+    height: 3px;
+    background: #6366f1;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  /* Problem & Solution */
+  .ps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  .ps-card {
+    padding: 28px;
+    border-radius: 16px;
+  }
+  .ps-card.problem {
+    background: linear-gradient(135deg, #fef5f5, #fee8e8);
+    border: 1px solid #fecaca;
+  }
+  .ps-card.solution {
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    border: 1px solid #c4b5fd;
+  }
+  .ps-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .ps-card.problem .ps-icon { background: #fecaca; }
+  .ps-card.solution .ps-icon { background: #c4b5fd; }
+  .ps-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .ps-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .ps-card ul li {
+    font-size: 13px;
+    color: #5a6678;
+    line-height: 1.7;
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 4px;
+  }
+  .ps-card.problem ul li::before {
+    content: '✕';
+    position: absolute;
+    left: 0;
+    color: #e74c3c;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .ps-card.solution ul li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #6366f1;
+    font-weight: 700;
+  }
+
+  /* Flow */
+  .flow-container {
+    position: relative;
+    margin-bottom: 40px;
+  }
+  .flow-line {
+    position: absolute;
+    top: 24px;
+    left: 60px;
+    right: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, #6366f1, #c084fc, #f472b6);
+    z-index: 0;
+  }
+  .flow-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+  .flow-step {
+    text-align: center;
+    width: 120px;
+  }
+  .step-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin: 0 auto 10px;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+  }
+  .flow-step h4 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .flow-step p {
+    font-size: 10px;
+    color: #7a8a9e;
+    line-height: 1.4;
+  }
+
+  /* Features */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+  .feature-card {
+    background: #f8fafc;
+    border: 1px solid #e8ecf2;
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  .feature-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .feature-card p {
+    font-size: 12px;
+    color: #7a8a9e;
+    line-height: 1.6;
+  }
+
+  /* Screens showcase */
+  .screen-showcase {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    margin-top: 20px;
+  }
+  .screen-item {
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid #e8ecf2;
+  }
+  .screen-label {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .screen-label .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+  }
+  .browser-frame {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e0e4ea;
+  }
+  .browser-bar {
+    background: #f5f6f8;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-bottom: 1px solid #e0e4ea;
+  }
+  .b-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .b-dot.red { background: #ff5f56; }
+  .b-dot.yellow { background: #ffbd2e; }
+  .b-dot.green { background: #27ca40; }
+  .b-url {
+    flex: 1;
+    background: #fff;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 8px;
+    color: #aaa;
+    margin-left: 6px;
+    border: 1px solid #eee;
+  }
+  .browser-content {
+    padding: 12px;
+    min-height: 130px;
+  }
+
+  /* Mini job card */
+  .mini-job-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 6px;
+  }
+  .mini-job-score {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .score-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6366f1;
+  }
+  .score-text {
+    font-size: 9px;
+    font-weight: 700;
+    color: #6366f1;
+  }
+  .score-badges {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+  }
+  .score-badge {
+    font-size: 7px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #f5f5f5;
+    color: #888;
+  }
+  .mini-job-company {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .mini-job-title {
+    font-size: 8px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .mini-job-tags {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+  .mini-tag {
+    font-size: 7px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #f0f0ff;
+    color: #6366f1;
+  }
+  .mini-job-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .mini-action {
+    flex: 1;
+    padding: 4px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 7px;
+    font-weight: 600;
+    border: 1px solid #eee;
+    color: #888;
+  }
+  .mini-action.primary {
+    background: #6366f1;
+    color: #fff;
+    border-color: #6366f1;
+  }
+
+  /* Mini list view */
+  .mini-list-header {
+    display: flex;
+    padding: 4px 0;
+    border-bottom: 2px solid #eee;
+    font-size: 7px;
+    font-weight: 700;
+    color: #999;
+    gap: 4px;
+  }
+  .mini-list-row {
+    display: flex;
+    padding: 5px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 8px;
+    align-items: center;
+    gap: 4px;
+  }
+  .col-company { width: 22%; font-weight: 600; }
+  .col-title { width: 38%; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col-exp { width: 10%; color: #999; font-size: 7px; }
+  .col-type { width: 12%; }
+  .type-badge {
+    font-size: 6px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .type-intern { background: #dbeafe; color: #1e40af; }
+  .type-full { background: #dcfce7; color: #166534; }
+  .col-score {
+    width: 18%;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .score-bar {
+    flex: 1;
+    height: 4px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border-radius: 2px;
+  }
+  .score-num {
+    font-size: 8px;
+    font-weight: 700;
+    color: #16a34a;
+  }
+
+  /* Cover letter mini */
+  .mini-cl-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+  }
+  .mini-cl-title {
+    font-size: 9px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .mini-cl-tag {
+    display: inline-block;
+    font-size: 7px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #f0e6ff;
+    color: #7c3aed;
+    margin-bottom: 3px;
+  }
+  .mini-cl-desc {
+    font-size: 7px;
+    color: #999;
+    line-height: 1.4;
+  }
+
+  /* Tech Stack */
+  .tech-section { margin-top: 10px; }
+  .tech-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .tech-category {
+    width: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #7a8a9e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .tech-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tech-tag {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f5f3ff;
+    color: #6366f1;
+    border: 1px solid #ddd6fe;
+  }
+
+  /* Metrics */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .metric-card {
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    border-radius: 14px;
+    padding: 22px 14px;
+    text-align: center;
+    border: 1px solid #ddd6fe;
+  }
+  .metric-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #6366f1;
+    margin-bottom: 4px;
+  }
+  .metric-label {
+    font-size: 10px;
+    color: #7a8a9e;
+    font-weight: 500;
+  }
+
+  /* Links */
+  .links-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .link-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e8ecf2;
+  }
+  .link-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .link-icon.web { background: #ede9fe; }
+  .link-icon.github { background: #f0f0f0; }
+  .link-label {
+    font-size: 11px;
+    color: #7a8a9e;
+    margin-bottom: 2px;
+  }
+  .link-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+
+  /* Page Footer */
+  .page-footer {
+    position: absolute;
+    bottom: 30px;
+    left: 55px;
+    right: 55px;
+  }
+  .footer-line {
+    width: 100%;
+    height: 1px;
+    background: #eee;
+    margin-bottom: 12px;
+  }
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #bbb;
+  }
+
+  @media print {
+    body { background: white; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0;
+      box-shadow: none;
+    }
+  }
+  @media screen {
+    body { background: #e8ecf2; padding: 20px 0; }
+    .page {
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== PAGE 1: COVER ===== -->
+<div class="page cover">
+  <div class="cover-logo">
+    <div class="cover-logo-icon">📋</div>
+    <div class="cover-logo-text">지원함</div>
+  </div>
+  <div class="cover-badge">Full-Stack Web App &middot; 2026</div>
+  <div class="cover-title">
+    채용공고 관리의 모든 것,<br>
+    <span class="gradient-text">AI가 추천하는 맞춤 채용공고</span>
+  </div>
+  <div class="cover-subtitle">
+    잡코리아, 원티드, 지행 3개 플랫폼의 채용공고를 자동 수집하고<br>
+    AI가 분석한 맞춤 추천과 지원 이력 관리를 한 곳에서
+  </div>
+
+  <!-- Desktop Mockup -->
+  <div class="desktop-mockup">
+    <div class="desktop-bar">
+      <div class="d-dot red"></div>
+      <div class="d-dot yellow"></div>
+      <div class="d-dot green"></div>
+      <div class="d-url">jiwonham.vercel.app</div>
+    </div>
+    <div class="desktop-content">
+      <div class="mini-nav">
+        <div class="mini-nav-logo">
+          <div class="icon">📋</div>
+          지원함
+        </div>
+        <div class="mini-nav-item">채용공고</div>
+        <div class="mini-nav-item active">지원관리</div>
+        <div class="mini-nav-item">자기소개서</div>
+        <div class="mini-nav-item">마이페이지</div>
+      </div>
+      <div class="mini-table-area">
+        <div class="mini-table-title">지원 관리</div>
+        <div class="mini-alert">⚠ 3일 내 마감 1건 &nbsp;<span style="color:#f59e0b;font-weight:400;">클릭하면 마감일순 정렬</span></div>
+        <div class="mini-tabs">
+          <div class="mini-tab">전체 (19)</div>
+          <div class="mini-tab active">지원 예정 (4)</div>
+          <div class="mini-tab">보류 (6)</div>
+          <div class="mini-tab">지원 완료 (1)</div>
+          <div class="mini-tab">서류 합격 (0)</div>
+          <div class="mini-tab highlight">지원안함 (8)</div>
+        </div>
+        <div class="mini-table-row">
+          <span class="company">에어로코리아</span>
+          <span class="title">생활가전 및 용품 브랜드 '올리' 제품 마케터</span>
+          <span class="mini-status-badge status-planned">예정</span>
+          <span class="mini-dday dday-urgent">● D-2</span>
+        </div>
+        <div class="mini-table-row">
+          <span class="company">카카오페이</span>
+          <span class="title">[어시스턴트] 국내 오프라인결제 마케팅 운영 지원</span>
+          <span class="mini-status-badge status-planned">예정</span>
+          <span class="mini-dday dday-normal">2/26 (D-16)</span>
+        </div>
+        <div class="mini-table-row">
+          <span class="company">카카오페이</span>
+          <span class="title">[어시스턴트] 기업 브랜드 마케팅 업무 지원</span>
+          <span class="mini-status-badge status-planned">예정</span>
+          <span class="mini-dday dday-soon">● D-7</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-url">
+    <a href="https://jiwonham.vercel.app">jiwonham.vercel.app</a>
+  </div>
+</div>
+
+<!-- ===== PAGE 2: OVERVIEW ===== -->
+<div class="page content-page">
+  <div class="section-label">OVERVIEW</div>
+  <div class="section-title">프로젝트 개요</div>
+  <div class="divider"></div>
+  <div class="section-desc">
+    "지원함"은 취준생이 여러 채용 플랫폼을 매일 확인하는 번거로움을 해결하기 위해 만든 올인원 채용공고 관리 서비스입니다.<br>
+    잡코리아, 원티드, 지행 3개 플랫폼의 채용공고를 자동 크롤링하고, 사용자 설문 기반 AI 필터링으로 맞춤 추천을 제공합니다.
+  </div>
+
+  <div class="ps-grid">
+    <div class="ps-card problem">
+      <div class="ps-icon">😫</div>
+      <h3>Problem</h3>
+      <ul>
+        <li>여러 채용 사이트를 매일 번갈아 확인</li>
+        <li>내 조건에 맞는 공고를 일일이 필터링</li>
+        <li>지원 현황을 엑셀로 따로 관리</li>
+        <li>마감일을 놓쳐 지원 기회를 놓침</li>
+      </ul>
+    </div>
+    <div class="ps-card solution">
+      <div class="ps-icon">💡</div>
+      <h3>Solution</h3>
+      <ul>
+        <li>3개 플랫폼 공고를 자동 수집 & 통합</li>
+        <li>AI 선호점수로 맞춤 공고 추천</li>
+        <li>지원 상태별 이력 관리 대시보드</li>
+        <li>D-day 알림과 마감일 자동 추적</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-label">USER FLOW</div>
+  <div class="section-title" style="font-size:22px;">사용자 여정</div>
+  <div style="height:24px;"></div>
+
+  <div class="flow-container">
+    <div class="flow-line"></div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-circle">📝</div>
+        <h4>설문 작성</h4>
+        <p>희망 직무, 경력, 근무<br>조건 등을 입력</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-circle">🤖</div>
+        <h4>AI 추천</h4>
+        <p>선호도 점수 기반<br>맞춤 공고 추천</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-circle">📊</div>
+        <h4>지원 관리</h4>
+        <p>상태별 이력 관리<br>D-day 추적</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-circle">✍️</div>
+        <h4>자소서 작성</h4>
+        <p>경험 소재 정리<br>공고별 자소서</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <span>지원함 - 프로젝트 소개</span>
+      <span>Page 2</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE 3: FEATURES & SCREENS ===== -->
+<div class="page content-page">
+  <div class="section-label">FEATURES</div>
+  <div class="section-title">주요 기능</div>
+  <div class="divider"></div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h4>멀티 플랫폼 크롤링</h4>
+      <p>잡코리아, 원티드, 지행 3개 채용 플랫폼의 공고를 매일 자동 수집하고 중복을 제거합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h4>AI 선호점수 추천</h4>
+      <p>사용자 설문 기반으로 각 공고에 선호점수를 부여하고, 좋아요/싫어요 피드백으로 정확도를 개선합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h4>지원 이력 관리</h4>
+      <p>지원 예정, 지원 완료, 서류 합격, 면접 중 등 상태별로 관리하고 D-day를 추적합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✍️</div>
+      <h4>자기소개서 작성</h4>
+      <p>경험 소재를 정리하고, 공고별 맞춤 자기소개서를 작성할 수 있습니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h4>카카오톡 일일 알림</h4>
+      <p>매일 아침 8시에 맞춤 채용공고를 카카오톡 웹훅으로 자동 발송합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h4>카드 / 리스트 뷰</h4>
+      <p>채용공고를 카드형과 리스트형 두 가지 뷰로 전환하며 비교할 수 있습니다.</p>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div class="section-label">SCREENS</div>
+  <div class="section-title" style="font-size:22px;">실제 화면 미리보기</div>
+  <div class="screen-showcase">
+    <div class="screen-item">
+      <div class="screen-label"><div class="dot"></div>채용공고 - 카드 뷰</div>
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="b-dot red"></div>
+          <div class="b-dot yellow"></div>
+          <div class="b-dot green"></div>
+          <div class="b-url">jiwonham.vercel.app/jobs</div>
+        </div>
+        <div class="browser-content" style="padding:10px;">
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div style="padding:3px 8px;background:#6366f1;color:#fff;border-radius:4px;font-size:7px;font-weight:600;">카드</div>
+            <div style="padding:3px 8px;background:#f5f5f5;color:#666;border-radius:4px;font-size:7px;">리스트</div>
+          </div>
+          <div class="mini-job-card">
+            <div class="mini-job-score">
+              <div class="score-dot"></div>
+              <div class="score-text">선호점수 81점</div>
+              <div class="score-badges">
+                <span class="score-badge">채용시마감</span>
+                <span class="score-badge">외국계</span>
+              </div>
+            </div>
+            <div class="mini-job-company">벡톤디킨슨코리아</div>
+            <div class="mini-job-title">Marketing Intern, UCC & Surgery, BDI (6 months fixed)</div>
+            <div class="mini-job-tags">
+              <span class="mini-tag">콘텐츠마케팅</span>
+              <span class="mini-tag">마케팅기획 전략</span>
+              <span class="mini-tag">체험형인턴</span>
+            </div>
+            <div class="mini-job-actions">
+              <div class="mini-action">✕ 지원 안 함</div>
+              <div class="mini-action">보류</div>
+              <div class="mini-action primary">✓ 지원 예정</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-item">
+      <div class="screen-label"><div class="dot"></div>채용공고 - 리스트 뷰</div>
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="b-dot red"></div>
+          <div class="b-dot yellow"></div>
+          <div class="b-dot green"></div>
+          <div class="b-url">jiwonham.vercel.app/jobs</div>
+        </div>
+        <div class="browser-content" style="padding:10px;">
+          <div class="mini-list-header">
+            <span class="col-company">회사명</span>
+            <span class="col-title">공고명</span>
+            <span class="col-exp">경력</span>
+            <span class="col-type">채용유형</span>
+            <span class="col-score">선호점수</span>
+          </div>
+          <div class="mini-list-row">
+            <span class="col-company">벡톤디킨슨코리아</span>
+            <span class="col-title">Marketing Intern, UCC & Surgery...</span>
+            <span class="col-exp">신입</span>
+            <span class="col-type"><span class="type-badge type-intern">체험형인턴</span></span>
+            <span class="col-score"><span class="score-bar"><span class="score-fill" style="width:81%;"></span></span><span class="score-num">81</span></span>
+          </div>
+          <div class="mini-list-row">
+            <span class="col-company">올리브인터내셔널</span>
+            <span class="col-title">일본 마케팅 지원 인턴</span>
+            <span class="col-exp">신입</span>
+            <span class="col-type"><span class="type-badge type-intern">전환형인턴</span></span>
+            <span class="col-score"><span class="score-bar"><span class="score-fill" style="width:80%;"></span></span><span class="score-num">80</span></span>
+          </div>
+          <div class="mini-list-row">
+            <span class="col-company">우리방식대로</span>
+            <span class="col-title">스포츠 산업 채용 박람회...</span>
+            <span class="col-exp">신입</span>
+            <span class="col-type"><span class="type-badge type-intern">체험형인턴</span></span>
+            <span class="col-score"><span class="score-bar"><span class="score-fill" style="width:80%;"></span></span><span class="score-num">80</span></span>
+          </div>
+          <div class="mini-list-row">
+            <span class="col-company">핸켈</span>
+            <span class="col-title">HAIR PROFESSIONAL GRADUATE...</span>
+            <span class="col-exp">신입~1년</span>
+            <span class="col-type"><span class="type-badge type-intern">체험형인턴</span></span>
+            <span class="col-score"><span class="score-bar"><span class="score-fill" style="width:79%;"></span></span><span class="score-num">79</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <span>지원함 - 프로젝트 소개</span>
+      <span>Page 3</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE 4: SCREENS CONTINUED + TECH ===== -->
+<div class="page content-page">
+  <div class="screen-showcase" style="margin-top:0;">
+    <div class="screen-item">
+      <div class="screen-label"><div class="dot"></div>지원 관리</div>
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="b-dot red"></div>
+          <div class="b-dot yellow"></div>
+          <div class="b-dot green"></div>
+          <div class="b-url">jiwonham.vercel.app (지원관리)</div>
+        </div>
+        <div class="browser-content" style="padding:10px;">
+          <div style="font-size:11px;font-weight:800;margin-bottom:6px;">지원 관리</div>
+          <div style="display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-size:7px;padding:2px 5px;background:#1a1a2e;color:#fff;border-radius:3px;">지원 예정 (4)</span>
+            <span style="font-size:7px;padding:2px 5px;background:#f5f5f5;color:#666;border-radius:3px;">보류 (6)</span>
+            <span style="font-size:7px;padding:2px 5px;background:#f5f5f5;color:#666;border-radius:3px;">지원 완료 (1)</span>
+          </div>
+          <div class="mini-table-row" style="font-size:8px;">
+            <span class="company" style="width:60px;">에어로코리아</span>
+            <span class="title">생활가전 및 용품 브랜드 '올리' 제품 마케터</span>
+            <span class="mini-dday dday-urgent" style="font-size:7px;">● D-2</span>
+          </div>
+          <div class="mini-table-row" style="font-size:8px;">
+            <span class="company" style="width:60px;">카카오페이</span>
+            <span class="title">[어시스턴트] 국내 오프라인결제 마케팅 운영</span>
+            <span class="mini-dday dday-normal" style="font-size:7px;">D-16</span>
+          </div>
+          <div class="mini-table-row" style="font-size:8px;border:none;">
+            <span class="company" style="width:60px;">카카오페이</span>
+            <span class="title">[어시스턴트] 기업 브랜드 마케팅 업무 지원</span>
+            <span class="mini-dday dday-soon" style="font-size:7px;">● D-7</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-item">
+      <div class="screen-label"><div class="dot"></div>자기소개서</div>
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="b-dot red"></div>
+          <div class="b-dot yellow"></div>
+          <div class="b-dot green"></div>
+          <div class="b-url">jiwonham.vercel.app/cover-letter</div>
+        </div>
+        <div class="browser-content" style="padding:10px;">
+          <div style="font-size:11px;font-weight:800;margin-bottom:3px;">자기소개서</div>
+          <div style="font-size:7px;color:#999;margin-bottom:8px;">경험 소재를 정리하고, 공고별 자소서를 작성하세요.</div>
+          <div style="display:flex;gap:4px;margin-bottom:8px;">
+            <span style="font-size:7px;padding:3px 8px;background:#6366f1;color:#fff;border-radius:4px;font-weight:600;">경험 소재</span>
+            <span style="font-size:7px;padding:3px 8px;background:#f5f5f5;color:#666;border-radius:4px;">자소서 작성</span>
+          </div>
+          <div class="mini-cl-card">
+            <div class="mini-cl-title">샌드위치 판매 사업</div>
+            <div class="mini-cl-tag">사이드 프로젝트</div>
+            <div class="mini-cl-desc">친구와 함께 무인매장에 샌드위치를 납품하는 사업을 진행함.</div>
+          </div>
+          <div class="mini-cl-card">
+            <div class="mini-cl-title">회사 재직 경력</div>
+            <div class="mini-cl-tag">기타</div>
+            <div class="mini-cl-desc">경영지원 업무를 총괄하며 약 3년간 근무함. 정부지원사업, 인사, IR 등을 담당함.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:30px;"></div>
+
+  <div class="section-label">TECH STACK</div>
+  <div class="section-title">기술 스택</div>
+  <div class="divider"></div>
+
+  <div class="tech-section">
+    <div class="tech-row">
+      <div class="tech-category">Frontend</div>
+      <div class="tech-tags">
+        <span class="tech-tag">Next.js</span>
+        <span class="tech-tag">TypeScript</span>
+        <span class="tech-tag">Tailwind CSS</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-category">Backend</div>
+      <div class="tech-tags">
+        <span class="tech-tag">Supabase</span>
+        <span class="tech-tag">PostgreSQL</span>
+        <span class="tech-tag">Node.js</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-category">AI / API</div>
+      <div class="tech-tags">
+        <span class="tech-tag">OpenAI API</span>
+        <span class="tech-tag">Kakao Webhook</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-category">Infra</div>
+      <div class="tech-tags">
+        <span class="tech-tag">Vercel</span>
+        <span class="tech-tag">GitHub Actions</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-value">3개</div>
+      <div class="metric-label">채용 플랫폼 연동</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">203+</div>
+      <div class="metric-label">커밋 수</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">매일</div>
+      <div class="metric-label">자동 크롤링</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">AI</div>
+      <div class="metric-label">맞춤 추천</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <span>지원함 - 프로젝트 소개</span>
+      <span>Page 4</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE 5: LINKS & ABOUT ===== -->
+<div class="page content-page">
+  <div class="section-label">ARCHITECTURE</div>
+  <div class="section-title">시스템 아키텍처</div>
+  <div class="divider"></div>
+
+  <!-- Architecture Diagram -->
+  <div style="background: #f8fafc; border-radius: 16px; padding: 30px; border: 1px solid #e8ecf2; margin-bottom: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+      <!-- Data Sources -->
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 10px; font-weight: 700; color: #7a8a9e; margin-bottom: 10px; text-transform: uppercase;">Data Sources</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: #fff; border: 1px solid #e0e4ea; border-radius: 8px; padding: 8px; font-size: 10px; font-weight: 600;">잡코리아</div>
+          <div style="background: #fff; border: 1px solid #e0e4ea; border-radius: 8px; padding: 8px; font-size: 10px; font-weight: 600;">원티드</div>
+          <div style="background: #fff; border: 1px solid #e0e4ea; border-radius: 8px; padding: 8px; font-size: 10px; font-weight: 600;">지행</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; padding-top: 40px; font-size: 18px; color: #c0c8d4;">→</div>
+
+      <!-- Crawler -->
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 10px; font-weight: 700; color: #7a8a9e; margin-bottom: 10px; text-transform: uppercase;">Crawler</div>
+        <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 1px solid #c4b5fd; border-radius: 8px; padding: 12px;">
+          <div style="font-size: 10px; font-weight: 700; color: #6366f1; margin-bottom: 4px;">GitHub Actions</div>
+          <div style="font-size: 8px; color: #999;">매일 자동 실행</div>
+          <div style="font-size: 8px; color: #999;">중복 제거 & 정제</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; padding-top: 40px; font-size: 18px; color: #c0c8d4;">→</div>
+
+      <!-- AI Filter -->
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 10px; font-weight: 700; color: #7a8a9e; margin-bottom: 10px; text-transform: uppercase;">AI Filter</div>
+        <div style="background: linear-gradient(135deg, #fdf2f8, #fce7f3); border: 1px solid #f9a8d4; border-radius: 8px; padding: 12px;">
+          <div style="font-size: 10px; font-weight: 700; color: #ec4899; margin-bottom: 4px;">OpenAI API</div>
+          <div style="font-size: 8px; color: #999;">설문 기반 필터링</div>
+          <div style="font-size: 8px; color: #999;">선호점수 산출</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; padding-top: 40px; font-size: 18px; color: #c0c8d4;">→</div>
+
+      <!-- Database & Delivery -->
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 10px; font-weight: 700; color: #7a8a9e; margin-bottom: 10px; text-transform: uppercase;">Storage & Delivery</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 1px solid #6ee7b7; border-radius: 8px; padding: 8px;">
+            <div style="font-size: 10px; font-weight: 700; color: #059669;">Supabase</div>
+            <div style="font-size: 8px; color: #999;">PostgreSQL</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #fefce8, #fef3c7); border: 1px solid #fcd34d; border-radius: 8px; padding: 8px;">
+            <div style="font-size: 10px; font-weight: 700; color: #d97706;">카카오톡</div>
+            <div style="font-size: 8px; color: #999;">매일 8AM 발송</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">LINKS</div>
+  <div class="section-title" style="font-size: 22px;">프로젝트 링크</div>
+  <div class="divider"></div>
+
+  <div class="links-grid">
+    <div class="link-card">
+      <div class="link-icon web">🌐</div>
+      <div>
+        <div class="link-label">Live Service</div>
+        <div class="link-value">jiwonham.vercel.app</div>
+      </div>
+    </div>
+    <div class="link-card">
+      <div class="link-icon github">📂</div>
+      <div>
+        <div class="link-label">GitHub Repository</div>
+        <div class="link-value">github.com/ivolovesyj/jiwonham</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+
+  <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px; padding: 32px; color: #fff;">
+    <div style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">ABOUT THIS PROJECT</div>
+    <div style="font-size: 15px; color: rgba(255,255,255,0.8); line-height: 1.8;">
+      취업 준비 과정에서 직접 겪은 불편함을 기술로 해결하고자 시작한 프로젝트입니다.
+      매일 여러 채용 사이트를 일일이 확인하는 대신, 크롤러가 자동으로 수집하고 AI가 나에게 맞는 공고를 추천해줍니다.
+      설문 한 번이면 매일 아침 카카오톡으로 맞춤 채용공고를 받아볼 수 있어, 실제 취준 생활에서 활용하고 있는 서비스입니다.
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <span>지원함 - 프로젝트 소개</span>
+      <span>Page 5</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

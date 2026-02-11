@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포트폴리오</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, sans-serif;
+      background: #fff;
+      color: #111;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 0;
+      padding: 13mm 15mm 10mm;
+      page-break-after: always;
+      position: relative;
+    }
+    .page:last-child { page-break-after: avoid; }
+
+    @media print {
+      body { background: #fff; }
+      .page { margin: 0; }
+    }
+
+    /* ── 컬러 ── */
+    :root {
+      --blue: #2563eb;
+      --blue-bg: #eff6ff;
+      --blue-border: #bfdbfe;
+      --green: #16a34a;
+      --green-bg: #f0fdf4;
+      --green-border: #bbf7d0;
+      --gray1: #f9fafb;
+      --gray2: #f3f4f6;
+      --gray3: #e5e7eb;
+      --gray5: #6b7280;
+      --gray8: #1f2937;
+    }
+
+    /* ══════════════════════════════
+       PAGE 1 — 표지
+    ══════════════════════════════ */
+    .cover-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+    .cover-left { max-width: 58%; }
+    .cover-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+    .cover-title {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--gray8);
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .cover-title span { color: var(--blue); }
+    .cover-desc {
+      font-size: 13px;
+      color: var(--gray5);
+      line-height: 1.8;
+    }
+    .cover-meta {
+      text-align: right;
+      font-size: 11px;
+      color: var(--gray5);
+      line-height: 2;
+    }
+    .cover-meta a { color: var(--blue); text-decoration: none; }
+
+    /* 프로젝트 카드 2개 */
+    .project-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .pcard {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid var(--gray3);
+    }
+    .pcard-header {
+      padding: 12px 16px 10px;
+    }
+    .pcard-header.blue { background: var(--blue-bg); border-bottom: 1px solid var(--blue-border); }
+    .pcard-header.green { background: var(--green-bg); border-bottom: 1px solid var(--green-border); }
+    .pcard-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 3px;
+    }
+    .pcard-num.blue { color: var(--blue); }
+    .pcard-num.green { color: var(--green); }
+    .pcard-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gray8);
+      margin-bottom: 4px;
+    }
+    .pcard-sub {
+      font-size: 11px;
+      color: var(--gray5);
+    }
+    .pcard-img {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      object-position: top;
+      display: block;
+      background: var(--gray2);
+    }
+    .pcard-body {
+      padding: 10px 14px 12px;
+    }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .tag.blue { background: #dbeafe; color: var(--blue); }
+    .tag.green { background: #dcfce7; color: var(--green); }
+    .tag.gray  { background: var(--gray2); color: var(--gray5); }
+
+    /* 스킬 바 */
+    .skills-bar {
+      background: var(--gray8);
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .skills-bar-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #9ca3af;
+      margin-right: 4px;
+    }
+    .skill-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    /* ══════════════════════════════
+       PAGE 2 — 지원함 상세
+    ══════════════════════════════ */
+    .section-title-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--gray3);
+    }
+    .section-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .section-dot.blue { background: var(--blue); }
+    .section-dot.green { background: var(--green); }
+    .section-title-bar h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gray8);
+    }
+    .section-url {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--blue);
+    }
+
+    /* 스크린샷 + 설명 레이아웃 */
+    .ss-layout {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .ss-layout.two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ss-layout.three-col {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .ss-block {
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--gray3);
+    }
+    .ss-block img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: top;
+      background: var(--gray2);
+    }
+    .ss-block .ss-caption {
+      padding: 7px 10px;
+      background: var(--gray1);
+      border-top: 1px solid var(--gray3);
+    }
+    .ss-block .ss-caption .ss-cap-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray8);
+      margin-bottom: 2px;
+    }
+    .ss-block .ss-caption p {
+      font-size: 10.5px;
+      color: var(--gray5);
+      line-height: 1.5;
+    }
+
+    /* 개요 박스 */
+    .overview {
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      border-left: 3px solid;
+      margin-bottom: 16px;
+    }
+    .overview.blue { background: var(--blue-bg); border-color: var(--blue); }
+    .overview.green { background: var(--green-bg); border-color: var(--green); }
+    .overview .ov-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .overview.blue .ov-label { color: var(--blue); }
+    .overview.green .ov-label { color: var(--green); }
+    .overview p { font-size: 12.5px; color: var(--gray8); line-height: 1.75; }
+
+    /* 기술 스택 행 */
+    .tech-rows { margin-bottom: 14px; }
+    .tech-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .tech-label {
+      width: 68px;
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      letter-spacing: 0.5px;
+    }
+
+    /* 플로우 */
+    .flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-bottom: 14px;
+    }
+    .flow-node {
+      padding: 6px 11px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .flow-node.blue  { background: var(--blue-bg); color: var(--blue); border: 1.5px solid var(--blue-border); }
+    .flow-node.green { background: var(--green-bg); color: var(--green); border: 1.5px solid var(--green-border); }
+    .flow-arrow { color: #9ca3af; padding: 0 5px; font-size: 13px; }
+
+    /* 기능 그리드 */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .feat-card {
+      border: 1px solid var(--gray3);
+      border-radius: 7px;
+      padding: 10px 12px;
+    }
+    .feat-card .feat-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--gray8);
+      margin-bottom: 4px;
+    }
+    .feat-card p {
+      font-size: 11px;
+      color: var(--gray5);
+      line-height: 1.55;
+    }
+
+    /* ══════════════════════════════
+       PAGE 4 — 정리
+    ══════════════════════════════ */
+    table.cmp {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    table.cmp th {
+      background: var(--gray8);
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    table.cmp th:first-child { border-radius: 6px 0 0 0; }
+    table.cmp th:last-child  { border-radius: 0 6px 0 0; }
+    table.cmp td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--gray3);
+      color: var(--gray5);
+      vertical-align: top;
+    }
+    table.cmp tr:nth-child(even) td { background: var(--gray1); }
+    table.cmp td:first-child { font-weight: 700; color: var(--gray8); white-space: nowrap; }
+
+    .retro-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .retro-card {
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .retro-card.blue { background: var(--blue-bg); }
+    .retro-card.green { background: var(--green-bg); }
+    .retro-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .retro-card.blue h3 { color: var(--blue); }
+    .retro-card.green h3 { color: var(--green); }
+    .retro-card ul { list-style: none; }
+    .retro-card ul li {
+      font-size: 11.5px;
+      color: var(--gray5);
+      padding: 3px 0 3px 13px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .retro-card ul li::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      font-weight: 900;
+      color: #9ca3af;
+    }
+
+    .links-footer {
+      background: var(--gray8);
+      border-radius: 10px;
+      padding: 16px 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .lf-proj { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #6b7280; margin-bottom: 3px; }
+    .lf-name { font-size: 14px; font-weight: 800; color: white; margin-bottom: 3px; }
+    .lf-url  { font-size: 11px; color: #93c5fd; line-height: 1.7; }
+
+    .pg-num {
+      position: absolute;
+      bottom: 8mm;
+      right: 15mm;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     PAGE 1 · 표지
+════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="cover-top">
+    <div class="cover-left">
+      <div class="cover-eyebrow">PROJECT PORTFOLIO</div>
+      <div class="cover-title">직접 기획하고<br><span>배포까지</span> 완성한<br>웹 서비스 2종</div>
+      <div class="cover-desc">
+        실제 불편함에서 출발해 기획·개발·배포까지<br>
+        혼자 완성한 두 가지 웹 서비스를 소개합니다.
+      </div>
+    </div>
+    <div class="cover-meta">
+      <div style="font-size:20px; margin-bottom:8px;">🧑‍💻</div>
+      <div><a href="https://github.com/ivolovesyj">github.com/ivolovesyj</a></div>
+      <div><a href="https://jiwonham.vercel.app">jiwonham.vercel.app</a></div>
+      <div><a href="https://dinner-planner-nine.vercel.app">dinner-planner-nine.vercel.app</a></div>
+      <div style="margin-top:8px; color:#9ca3af;">2025 · 2026</div>
+    </div>
+  </div>
+
+  <!-- 프로젝트 카드 -->
+  <div class="project-cards">
+
+    <div class="pcard">
+      <div class="pcard-header blue">
+        <div class="pcard-num blue">PROJECT 01</div>
+        <div class="pcard-name">지원함 (JiwonBox)</div>
+        <div class="pcard-sub">채용공고 관리의 모든 것</div>
+      </div>
+      <img class="pcard-img"
+           src="https://jiwonham.vercel.app/opengraph-image"
+           onerror="this.style.background='#eff6ff';this.style.height='130px';this.removeAttribute('src')"
+           alt="지원함 미리보기" />
+      <div class="pcard-body">
+        <div style="font-size:12px; color:#374151; margin-bottom:8px; line-height:1.6;">
+          채용공고 자동 수집 · 지원 현황 추적 · AI 자기소개서 작성을 한 플랫폼에서
+        </div>
+        <div class="tag-row">
+          <span class="tag blue">Next.js</span>
+          <span class="tag blue">TypeScript</span>
+          <span class="tag blue">Supabase</span>
+          <span class="tag blue">OpenAI</span>
+          <span class="tag gray">GitHub Actions</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <div class="pcard-header green">
+        <div class="pcard-num green">PROJECT 02</div>
+        <div class="pcard-name">뭐먹을래?</div>
+        <div class="pcard-sub">그룹 식당 투표 & 결정 앱</div>
+      </div>
+      <img class="pcard-img"
+           src="https://dinner-planner-nine.vercel.app/og-image.png"
+           onerror="this.style.background='#f0fdf4';this.style.height='130px';this.removeAttribute('src')"
+           alt="뭐먹을래 미리보기" />
+      <div class="pcard-body">
+        <div style="font-size:12px; color:#374151; margin-bottom:8px; line-height:1.6;">
+          링크 공유만으로 친구들과 식당 후보 투표, 사다리 타기로 최종 결정
+        </div>
+        <div class="tag-row">
+          <span class="tag green">React</span>
+          <span class="tag green">Vite</span>
+          <span class="tag green">Node.js</span>
+          <span class="tag green">Kakao API</span>
+          <span class="tag gray">Docker</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 기술 스택 바 -->
+  <div class="skills-bar">
+    <span class="skills-bar-label">SKILLS</span>
+    <span class="skill-pill">Next.js</span>
+    <span class="skill-pill">React</span>
+    <span class="skill-pill">TypeScript</span>
+    <span class="skill-pill">TailwindCSS</span>
+    <span class="skill-pill">Supabase</span>
+    <span class="skill-pill">Node.js</span>
+    <span class="skill-pill">OpenAI API</span>
+    <span class="skill-pill">GitHub Actions</span>
+    <span class="skill-pill">Vercel</span>
+    <span class="skill-pill">Docker</span>
+  </div>
+
+  <div class="pg-num">1 / 4</div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 2 · 지원함 상세
+════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="section-title-bar">
+    <div class="section-dot blue"></div>
+    <h2>PROJECT 01 &nbsp;—&nbsp; 지원함 (JiwonBox)</h2>
+    <span class="section-url">jiwonham.vercel.app</span>
+  </div>
+
+  <!-- 개요 -->
+  <div class="overview blue" style="margin-bottom:14px;">
+    <div class="ov-label">OVERVIEW</div>
+    <p>취업 준비 중 여러 사이트에 흩어진 채용공고를 일일이 찾아다니던 불편함에서 출발.
+    크롤러로 공고를 자동 수집하고, 지원 현황 추적과 AI 자기소개서 작성까지 하나의 플랫폼에서 처리합니다.</p>
+  </div>
+
+  <!-- 스크린샷 3장 -->
+  <div class="ss-layout three-col" style="margin-bottom:14px;">
+    <div class="ss-block">
+      <img src="screenshot://ss_9047r9xln" style="height:140px;" alt="지원 관리 화면"
+        onerror="this.style.height='140px';this.style.background='#eff6ff';" />
+      <div class="ss-caption">
+        <div class="ss-cap-title">① 지원 관리</div>
+        <p>상태별 탭 분류 (예정·보류·완료·합격), 회사·공고명 검색</p>
+      </div>
+    </div>
+    <div class="ss-block">
+      <img src="data:image/jpeg;base64,__JIWON_JOBS__" style="height:140px;" alt="채용공고 카드 화면"
+        onerror="this.style.height='140px';this.style.background='#eff6ff';" />
+      <div class="ss-caption">
+        <div class="ss-cap-title">② 채용공고 탐색</div>
+        <p>AI 선호점수, 카드·리스트 뷰, 지원안함·보류·지원예정 원클릭</p>
+      </div>
+    </div>
+    <div class="ss-block">
+      <img src="data:image/jpeg;base64,__JIWON_COVER__" style="height:140px;" alt="자기소개서 화면"
+        onerror="this.style.height='140px';this.style.background='#eff6ff';" />
+      <div class="ss-caption">
+        <div class="ss-cap-title">③ AI 자기소개서</div>
+        <p>경험 소재 정리 후 공고별 자소서 AI 자동 작성</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기능 -->
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-title">🤖 자동 크롤링</div>
+      <p>GitHub Actions로 매일 새벽 3시 지그재그 채용공고 자동 수집 → Supabase 저장</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">🔍 고급 필터링</div>
+      <p>직무(26개 대분류)·지역·기업유형·학력·경력 다차원 필터, AI 선호점수 정렬</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">📋 지원 현황 관리</div>
+      <p>지원 예정→완료→면접→합격 상태 추적, 드래그 앤 드롭 핀 고정, 메모·체크리스트</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">✍️ AI 자기소개서</div>
+      <p>OpenAI / Gemini API로 회사·직무 맞춤 자소서 초안 자동 생성</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">🎮 데모 모드</div>
+      <p>비로그인 상태에서도 localStorage 기반으로 모든 기능 체험 가능</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">➕ 외부 공고 추가</div>
+      <p>크롤링 외 다른 사이트 공고도 수동 등록해 통합 관리</p>
+    </div>
+  </div>
+
+  <!-- 기술 스택 -->
+  <div class="tech-rows">
+    <div class="tech-row">
+      <span class="tech-label">Frontend</span>
+      <div class="tag-row">
+        <span class="tag blue">Next.js 16</span><span class="tag blue">React 19</span>
+        <span class="tag blue">TypeScript 5</span><span class="tag blue">TailwindCSS 4</span>
+        <span class="tag blue">Framer Motion</span><span class="tag blue">Radix UI</span><span class="tag blue">dnd-kit</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-label">Backend</span>
+      <div class="tag-row">
+        <span class="tag gray">Node.js</span><span class="tag gray">Supabase (PostgreSQL)</span><span class="tag gray">Cheerio</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-label">AI / DevOps</span>
+      <div class="tag-row">
+        <span class="tag gray">OpenAI GPT</span><span class="tag gray">Gemini</span>
+        <span class="tag gray">Vercel</span><span class="tag gray">GitHub Actions</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 아키텍처 플로우 -->
+  <div class="flow">
+    <div class="flow-node blue">채용사이트<br><span style="font-size:10px;font-weight:400">지그재그</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node blue">Node.js 크롤러<br><span style="font-size:10px;font-weight:400">Cheerio</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node blue">Supabase DB<br><span style="font-size:10px;font-weight:400">PostgreSQL</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node blue">Next.js API<br><span style="font-size:10px;font-weight:400">Route Handler</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node blue">React UI<br><span style="font-size:10px;font-weight:400">사용자 화면</span></div>
+    <div style="margin-left:10px;font-size:10px;color:#9ca3af;">⏰ GitHub Actions 새벽 3시 자동 실행</div>
+  </div>
+
+  <div class="pg-num">2 / 4</div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 3 · 뭐먹을래? 상세
+════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="section-title-bar">
+    <div class="section-dot green"></div>
+    <h2>PROJECT 02 &nbsp;—&nbsp; 뭐먹을래?</h2>
+    <span class="section-url">dinner-planner-nine.vercel.app</span>
+  </div>
+
+  <!-- 개요 -->
+  <div class="overview green" style="margin-bottom:14px;">
+    <div class="ov-label">OVERVIEW</div>
+    <p>"오늘 뭐 먹지?" 고민을 함께 해결하는 실시간 그룹 투표 앱.
+    방장이 링크를 공유하면 친구들이 식당 후보를 올리고 좋아요/싫어요로 투표, 사다리 타기로 최종 결정.
+    설치 없이 링크 하나로 바로 사용 가능한 것이 핵심입니다.</p>
+  </div>
+
+  <!-- 스크린샷 2장 (랜딩 + 투표방) -->
+  <div class="ss-layout two-col" style="margin-bottom:14px;">
+    <div class="ss-block">
+      <img src="data:image/jpeg;base64,__DINNER_LANDING__" style="height:180px;" alt="랜딩 페이지"
+        onerror="this.style.height='180px';this.style.background='#f0fdf4';" />
+      <div class="ss-caption">
+        <div class="ss-cap-title">랜딩 페이지</div>
+        <p>"이번 모임은 어디서?" — 투표방 만들기 원클릭, STEP 1·2·3 안내</p>
+      </div>
+    </div>
+    <div class="ss-block">
+      <img src="data:image/jpeg;base64,__DINNER_ROOM__" style="height:180px;" alt="투표방 내부"
+        onerror="this.style.height='180px';this.style.background='#f0fdf4';" />
+      <div class="ss-caption">
+        <div class="ss-cap-title">투표방 내부</div>
+        <p>네이버/카카오 링크 붙여넣기 → 식당 자동 등록, 친구 초대 URL 공유</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사용 플로우 -->
+  <div style="margin-bottom:12px;">
+    <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:8px;">사용 플로우</div>
+    <div class="flow">
+      <div class="flow-node green">① 방 생성<br><span style="font-size:10px;font-weight:400">방장</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">② URL 공유<br><span style="font-size:10px;font-weight:400">링크 복사</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">③ 후보 등록<br><span style="font-size:10px;font-weight:400">지도 링크</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">④ 실시간 투표<br><span style="font-size:10px;font-weight:400">👍 / 👎</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">⑤ 사다리 타기<br><span style="font-size:10px;font-weight:400">최종 결정</span></div>
+    </div>
+  </div>
+
+  <!-- 기능 -->
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-title">🗳️ 실시간 투표</div>
+      <p>좋아요/싫어요 투표 점수 실시간 반영, 안정적 정렬로 목록 순서 유지</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">🗺️ 지도 뷰</div>
+      <p>네이버맵·카카오맵 링크 붙여넣으면 지도 마커 자동 표시</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">🎲 사다리 타기</div>
+      <p>투표 상위 후보로 사다리 게임 진행, 최종 메뉴 재미있게 결정</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">👤 로그인 불필요</div>
+      <p>닉네임만 설정하면 바로 참여, localStorage로 사용자 식별</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">📱 모바일 최적화</div>
+      <p>모바일 우선 반응형 설계, 스마트폰에서 편리하게 사용</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">🛡️ 어드민 대시보드</div>
+      <p>/admin 경로로 방 관리·식당 삭제 등 운영 기능 제공</p>
+    </div>
+  </div>
+
+  <!-- 기술 스택 -->
+  <div class="tech-rows">
+    <div class="tech-row">
+      <span class="tech-label">Frontend</span>
+      <div class="tag-row">
+        <span class="tag green">React</span><span class="tag green">Vite</span>
+        <span class="tag green">JavaScript ES6+</span><span class="tag green">CSS3</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-label">Backend</span>
+      <div class="tag-row">
+        <span class="tag gray">Node.js</span><span class="tag gray">Express</span><span class="tag gray">REST API</span>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-label">배포</span>
+      <div class="tag-row">
+        <span class="tag gray">Vercel (프론트)</span><span class="tag gray">Fly.io (백엔드)</span><span class="tag gray">Docker</span><span class="tag gray">Kakao SDK</span><span class="tag gray">GA4</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 해결한 기술 문제 -->
+  <div style="border:1px solid var(--gray3); border-radius:8px; padding:12px 14px;">
+    <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:8px;">해결한 기술 문제</div>
+    <div style="margin-bottom:6px;">
+      <span style="font-size:11px;font-weight:700;color:#dc2626;">⚠ 투표 시 목록 순서가 갑자기 바뀌는 UX 문제</span><br>
+      <span style="font-size:11px;color:#4b5563;">→ <strong>Stable Sort</strong> 적용 — 점수 변경 시 기존 순서 유지, 정렬 로직 분리</span>
+    </div>
+    <div>
+      <span style="font-size:11px;font-weight:700;color:#dc2626;">⚠ 지도 링크 파싱 신뢰도 불안정</span><br>
+      <span style="font-size:11px;color:#4b5563;">→ 네이버맵·카카오맵 URL 패턴 분석 후 <strong>정규식 기반 파싱 모듈</strong> 별도 구현</span>
+    </div>
+  </div>
+
+  <div class="pg-num">3 / 4</div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 4 · 비교 & 회고
+════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="section-title-bar">
+    <div class="section-dot blue"></div>
+    <h2>프로젝트 비교 및 회고</h2>
+  </div>
+
+  <table class="cmp">
+    <thead>
+      <tr>
+        <th>구분</th>
+        <th>지원함 (JiwonBox)</th>
+        <th>뭐먹을래?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>출발점</td>
+        <td>취업 준비 중 공고 관리 불편함</td>
+        <td>모임 때마다 식당 결정하기 어려움</td>
+      </tr>
+      <tr>
+        <td>핵심 기술</td>
+        <td>Next.js · TypeScript · Supabase · AI API</td>
+        <td>React · Vite · Node.js · Kakao API</td>
+      </tr>
+      <tr>
+        <td>주요 도전</td>
+        <td>크롤러 설계, DB RLS, 다중 AI 연동</td>
+        <td>실시간 동기화, 지도 파싱, Docker 배포</td>
+      </tr>
+      <tr>
+        <td>배포 구성</td>
+        <td>Vercel + Supabase + GitHub Actions</td>
+        <td>Vercel (프론트) + Fly.io (백엔드)</td>
+      </tr>
+      <tr>
+        <td>특징</td>
+        <td>데모 모드 · SEO 적용 · 멀티 AI 모델</td>
+        <td>로그인 불필요 · 모바일 최적화</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 회고 -->
+  <div class="retro-grid">
+    <div class="retro-card blue">
+      <h3>지원함에서 배운 것</h3>
+      <ul>
+        <li>풀스택 아키텍처 — 크롤러부터 UI까지 혼자 설계</li>
+        <li>Supabase RLS로 사용자 데이터 격리 구현</li>
+        <li>GitHub Actions 크롤링 자동화 파이프라인</li>
+        <li>OpenAI / Gemini 멀티 AI 연동과 프롬프트 설계</li>
+        <li>비로그인 데모 모드로 진입 장벽 낮추기</li>
+      </ul>
+    </div>
+    <div class="retro-card green">
+      <h3>뭐먹을래?에서 배운 것</h3>
+      <ul>
+        <li>실시간 데이터 동기화 전략 탐구</li>
+        <li>외부 지도 API URL 파싱 및 마커 연동</li>
+        <li>Docker + Fly.io 컨테이너 백엔드 배포</li>
+        <li>모바일 우선 반응형 CSS 설계</li>
+        <li>로그인 없는 서비스의 사용자 식별 전략</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 공통 성장 -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+    <div style="border:1px solid var(--gray3);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:5px;">🚀</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gray8);">기획 → 배포</div>
+      <div style="font-size:11px;color:var(--gray5);margin-top:3px;">아이디어부터 실서비스까지 혼자 완성</div>
+    </div>
+    <div style="border:1px solid var(--gray3);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:5px;">🔧</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gray8);">문제 해결</div>
+      <div style="font-size:11px;color:var(--gray5);margin-top:3px;">실사용 중 버그를 직접 추적·수정</div>
+    </div>
+    <div style="border:1px solid var(--gray3);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:5px;">👥</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gray8);">사용자 중심</div>
+      <div style="font-size:11px;color:var(--gray5);margin-top:3px;">실제 불편함에서 출발한 기획</div>
+    </div>
+  </div>
+
+  <!-- 링크 -->
+  <div class="links-footer">
+    <div>
+      <div class="lf-proj">PROJECT 01</div>
+      <div class="lf-name">지원함 (JiwonBox)</div>
+      <div class="lf-url">🌐 jiwonham.vercel.app</div>
+      <div class="lf-url">🐙 github.com/ivolovesyj/jiwonham</div>
+    </div>
+    <div>
+      <div class="lf-proj">PROJECT 02</div>
+      <div class="lf-name">뭐먹을래?</div>
+      <div class="lf-url">🌐 dinner-planner-nine.vercel.app</div>
+      <div class="lf-url">🐙 github.com/ivolovesyj/dinner-planner</div>
+    </div>
+  </div>
+
+  <div class="pg-num">4 / 4</div>
+</div>
+
+
+<!-- ════════════════════════ 실제 스크린샷 주입 스크립트 ════════════════════════ -->
+<script>
+// 실제 사이트 이미지를 iframe으로 캡처하는 대신, 직접 fetch로 이미지 로딩
+// 스크린샷 이미지는 아래 URL에서 직접 로드
+const screenshots = {
+  jiwon_main:  'https://jiwonham.vercel.app/',
+  jiwon_jobs:  'https://jiwonham.vercel.app/jobs',
+  jiwon_cover: 'https://jiwonham.vercel.app/cover-letter',
+  dinner_land: 'https://dinner-planner-nine.vercel.app/',
+  dinner_room: 'https://dinner-planner-nine.vercel.app/room/demo'
+};
+
+// OG 이미지 직접 로드 시도
+document.querySelectorAll('.pcard-img').forEach(img => {
+  img.onerror = function() {
+    this.style.height = '130px';
+    this.style.background = this.closest('.pcard').querySelector('.pcard-header').classList.contains('blue')
+      ? '#eff6ff' : '#f0fdf4';
+    this.style.display = 'block';
+    this.removeAttribute('src');
+  };
+});
+</script>
+
+</body>
+</html>
