@@ -17,6 +17,7 @@ import {
   Sparkles, Wand2, Loader2, MessageSquare, Info,
   Clock, Eye, CheckCircle2,
 } from 'lucide-react'
+import { trackEvent } from '@/lib/analytics'
 
 interface SavedJobOption {
   id: string
@@ -138,6 +139,7 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
         jd_info: jdInfo || null,
         saved_job_id: selectedJobId || null,
       })
+      if (answer) trackEvent('cover_letter_saved', { has_answer: true })
     } finally {
       setSaving(false)
     }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { GA_ID } from "@/lib/analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
   authors: [{ name: '지원함' }],
   creator: '지원함',
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-  metadataBase: new URL('https://jiwonham.vercel.app'),
+  metadataBase: new URL('https://jiwonham.cloud'),
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
@@ -35,12 +37,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    url: 'https://jiwonham.vercel.app',
+    url: 'https://jiwonham.cloud',
     siteName: '지원함',
     title: '채용공고 관리의 모든 것, 지원함',
     description: '흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요!',
     images: [{
-      url: 'https://jiwonham.vercel.app/opengraph-image.png',
+      url: 'https://jiwonham.cloud/opengraph-image.png',
       width: 1200,
       height: 630,
       alt: '지원함 - 채용공고 관리 서비스',
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '채용공고 관리의 모든 것, 지원함',
     description: '흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요!',
-    images: ['https://jiwonham.vercel.app/twitter-image.png'],
+    images: ['https://jiwonham.cloud/twitter-image.png'],
   },
 };
 
@@ -63,7 +65,7 @@ export default function RootLayout({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: '지원함',
-    url: 'https://jiwonham.vercel.app',
+    url: 'https://jiwonham.cloud',
     description: '흩어진 채용 공고부터 합격 현황까지, 한곳에서 체계적으로 관리하세요!',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
@@ -90,6 +92,22 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

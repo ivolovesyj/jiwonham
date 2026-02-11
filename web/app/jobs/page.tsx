@@ -8,6 +8,7 @@ import { RotateCcw, Briefcase, SlidersHorizontal, X as XIcon, Check, Package, La
 import { Job } from '@/types/job'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { trackEvent } from '@/lib/analytics'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
@@ -686,6 +687,7 @@ export default function Home() {
 
       // 실시간 학습 (백그라운드)
       updateLearningData(user.id, targetJob, action).catch(console.error)
+      if (action === 'apply' || action === 'hold') trackEvent('job_saved', { action })
 
     } catch (error) {
       console.error('Failed to save action:', error)

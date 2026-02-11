@@ -11,6 +11,7 @@ import { getDeadlineSortValue } from '@/components/DeadlineBadge'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { trackEvent } from '@/lib/analytics'
 import { AddQuestionModal } from '@/components/cover-letter/AddQuestionModal'
 import { CoverLetterViewModal } from '@/components/cover-letter/CoverLetterViewModal'
 import { Briefcase, Search, AlertTriangle, X, FlaskConical } from 'lucide-react'
@@ -538,6 +539,8 @@ export default function HomePage() {
             : app
         )
       )
+      if (newStatus === 'applied') trackEvent('application_applied')
+      else if (newStatus === 'passed' || newStatus === 'final_pass') trackEvent('application_passed', { status: newStatus })
     } catch (error) {
       console.error('Failed to update status:', error)
       alert('상태 변경에 실패했습니다.')
@@ -753,6 +756,7 @@ export default function HomePage() {
         { ...status, saved_job: savedJob },
         ...prev,
       ])
+      trackEvent('external_job_saved')
     } catch (error) {
       console.error('Failed to save external job:', error)
       alert('저장에 실패했습니다.')

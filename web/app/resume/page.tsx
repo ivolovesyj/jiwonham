@@ -19,6 +19,7 @@ import { ResumeVersionSelector } from '@/components/resume/ResumeVersionSelector
 import { AddMaterialModal } from '@/components/cover-letter/AddMaterialModal'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
+import { trackEvent } from '@/lib/analytics'
 import {
   ResumeData, SectionType, EducationItem, ExperienceItem, CertificationItem, LanguageItem, ActivityItem, AwardItem,
   DEFAULT_SECTION_ORDER, DEFAULT_SECTION_VISIBILITY,
@@ -249,8 +250,10 @@ export default function ResumePage() {
 
       setResumes(prev => prev.map(r => r.id === activeId ? { ...r, ...patch } : r))
       await persist(activeId, patch)
+      trackEvent('pdf_import_success')
       alert(`이력서를 불러왔습니다.`)
     } catch (err: any) {
+      trackEvent('pdf_import_error')
       alert(err.message || 'PDF 분석에 실패했습니다.')
     } finally {
       setPdfImporting(false)
