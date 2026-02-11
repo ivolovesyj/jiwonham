@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ResumeData, SectionType, SECTION_LABELS, DEFAULT_SECTION_ORDER } from '@/types/resume'
 import { X, Printer } from 'lucide-react'
 
@@ -9,6 +11,9 @@ interface Props {
 }
 
 export function ResumePreviewModal({ resume, onClose }: Props) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const handlePrint = () => window.print()
 
   const rawOrder = resume.section_order ?? DEFAULT_SECTION_ORDER
@@ -41,27 +46,23 @@ export function ResumePreviewModal({ resume, onClose }: Props) {
         </div>
       </div>
 
-      {/* 인쇄 전용 영역 */}
-      <div className="resume-print-area">
-        {content}
-      </div>
+      {/* 인쇄 전용 영역: body 직속으로 portal 렌더링 */}
+      {mounted && createPortal(
+        <div className="resume-print-area">{content}</div>,
+        document.body
+      )}
 
       <style>{`
         .resume-print-area { display: none; }
         @media print {
-          body * { visibility: hidden !important; }
-          .resume-print-area {
+          body > * { display: none !important; }
+          body > .resume-print-area {
             display: block !important;
-            visibility: visible !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: white;
             padding: 15mm;
-            z-index: 99999;
+            background: white;
+            box-sizing: border-box;
+            min-height: 100vh;
           }
-          .resume-print-area * { visibility: visible !important; }
           @page { margin: 0; size: A4; }
         }
       `}</style>
