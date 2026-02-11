@@ -121,6 +121,13 @@ export function ExperienceMaterialsTab({ user }: Props) {
             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           />
         </div>
+        <Link
+          href="/resume"
+          className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition shadow-sm whitespace-nowrap"
+        >
+          <ScrollText className="w-4 h-4" />
+          이력서에서
+        </Link>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition shadow-sm whitespace-nowrap"

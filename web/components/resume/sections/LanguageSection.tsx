@@ -2,16 +2,18 @@
 
 import { useState } from 'react'
 import { LanguageItem } from '@/types/resume'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Lightbulb, Check } from 'lucide-react'
 
 interface Props {
   items: LanguageItem[]
   onChange: (items: LanguageItem[]) => void
+  onAddToMaterial?: (item: LanguageItem) => void
+  addedMaterialIds?: Set<string>
 }
 
 const EMPTY_FORM = { language: '', test_name: '', score: '', date: '' }
 
-export function LanguageSection({ items, onChange }: Props) {
+export function LanguageSection({ items, onChange, onAddToMaterial, addedMaterialIds }: Props) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -46,16 +48,28 @@ export function LanguageSection({ items, onChange }: Props) {
 
       {items.map(item => (
         <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium text-gray-900">{item.language}</span>
               <span className="text-xs text-gray-500">{item.test_name}</span>
+              {addedMaterialIds?.has(item.id) && (
+                <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                  <Check className="w-3 h-3" />소재 추가됨
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-700 font-semibold">{item.score}{item.date ? <span className="font-normal text-gray-400 ml-2">{item.date.replace('-', '.')}</span> : ''}</p>
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-            <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-gray-200 rounded-md transition"><Pencil className="w-3.5 h-3.5 text-gray-500" /></button>
-            <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded-md transition"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {onAddToMaterial && (
+              <button onClick={() => onAddToMaterial(item)} className="p-1.5 hover:bg-green-100 rounded-md transition" title="자소서 소재로 추가">
+                <Lightbulb className={`w-3.5 h-3.5 ${addedMaterialIds?.has(item.id) ? 'text-green-500' : 'text-gray-300'}`} />
+              </button>
+            )}
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+              <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-gray-200 rounded-md transition"><Pencil className="w-3.5 h-3.5 text-gray-500" /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded-md transition"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            </div>
           </div>
         </div>
       ))}

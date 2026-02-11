@@ -19,7 +19,7 @@ import { AddMaterialModal } from '@/components/cover-letter/AddMaterialModal'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import {
-  ResumeData, SectionType, ExperienceItem, ActivityItem, AwardItem,
+  ResumeData, SectionType, EducationItem, ExperienceItem, CertificationItem, LanguageItem, ActivityItem, AwardItem,
   DEFAULT_SECTION_ORDER, DEFAULT_SECTION_VISIBILITY,
 } from '@/types/resume'
 import { Eye, LogIn } from 'lucide-react'
@@ -168,6 +168,10 @@ export default function ResumePage() {
   }
 
   // ── 이력서 → 자소서 소재 ──────────────────────────────
+  const handleEducationToMaterial = (item: EducationItem) => {
+    const content = [item.major, item.gpa ? `학점: ${item.gpa}` : '', item.note || ''].filter(Boolean).join('\n')
+    setMaterialModalPrefill({ title: `${item.school} ${item.degree}`, experience_type: '학업/연구', content, resume_item_type: 'education', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.school}` })
+  }
   const handleExperienceToMaterial = (item: ExperienceItem) => {
     const content = [item.tasks, item.achievements ? `성과: ${item.achievements}` : ''].filter(Boolean).join('\n')
     setMaterialModalPrefill({ title: `${item.company} - ${item.position}`, experience_type: '인턴', content, resume_item_type: 'experience', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.company}` })
@@ -177,6 +181,14 @@ export default function ResumePage() {
   }
   const handleAwardToMaterial = (item: AwardItem) => {
     setMaterialModalPrefill({ title: `${item.name} - ${item.organization}`, experience_type: '공모전', content: item.description || '', resume_item_type: 'award', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.name}` })
+  }
+  const handleCertificationToMaterial = (item: CertificationItem) => {
+    const content = [item.issuer, item.date ? `취득: ${item.date.replace('-', '.')}` : ''].filter(Boolean).join('\n')
+    setMaterialModalPrefill({ title: item.name, experience_type: '자격증', content, resume_item_type: 'certification', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.name}` })
+  }
+  const handleLanguageToMaterial = (item: LanguageItem) => {
+    const content = [item.score, item.date ? `취득: ${item.date.replace('-', '.')}` : ''].filter(Boolean).join('\n')
+    setMaterialModalPrefill({ title: `${item.language} ${item.test_name}`, experience_type: '학업/연구', content, resume_item_type: 'language', resume_item_id: item.id, modalTitle: `소재로 추가 — ${item.test_name}` })
   }
   const handleMaterialSave = async (data: { title: string; experience_type: string; content: string | null; resume_item_type?: string; resume_item_id?: string }) => {
     if (!user) return
@@ -275,6 +287,8 @@ export default function ResumePage() {
                 <EducationSection
                   items={active.education ?? []}
                   onChange={items => handleSectionChange('education', items)}
+                  onAddToMaterial={handleEducationToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'experience' && (
@@ -289,12 +303,16 @@ export default function ResumePage() {
                 <CertificationSection
                   items={active.certification ?? []}
                   onChange={items => handleSectionChange('certification', items)}
+                  onAddToMaterial={handleCertificationToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'language' && (
                 <LanguageSection
                   items={active.language ?? []}
                   onChange={items => handleSectionChange('language', items)}
+                  onAddToMaterial={handleLanguageToMaterial}
+                  addedMaterialIds={addedMaterialIds}
                 />
               )}
               {type === 'skills' && (

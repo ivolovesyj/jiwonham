@@ -24,8 +24,8 @@ export function Navigation() {
   const navItems = [
     { href: '/jobs', label: '채용공고', icon: Search },
     { href: '/', label: '지원관리', icon: Briefcase },
-    { href: '/resume', label: '이력서', icon: ScrollText },
     { href: '/cover-letter', label: '자기소개서', icon: FileText },
+    { href: '/resume', label: '이력서', icon: ScrollText },
     { href: '/profile', label: '마이페이지', icon: User },
   ]
 
