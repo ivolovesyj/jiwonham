@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Navigation } from '@/components/Navigation'
 import { ExperienceMaterialsTab } from '@/components/cover-letter/ExperienceMaterialsTab'
 import { CoverLetterQuestionsTab } from '@/components/cover-letter/CoverLetterQuestionsTab'
-import { Lightbulb, PenTool } from 'lucide-react'
+import { Lightbulb, PenTool, LogIn } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 function CoverLetterContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading } = useAuth()
   const tabParam = searchParams.get('tab')
@@ -18,12 +18,6 @@ function CoverLetterContent() {
   const [activeTab, setActiveTab] = useState<'materials' | 'questions'>(
     tabParam === 'questions' ? 'questions' : 'materials'
   )
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
-    }
-  }, [user, loading, router])
 
   if (loading) {
     return (
@@ -38,7 +32,27 @@ function CoverLetterContent() {
     )
   }
 
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <Navigation />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <LogIn className="w-8 h-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요해요</h2>
+            <p className="text-gray-500 mb-6 text-sm">자기소개서를 작성하고 관리하려면 로그인해주세요.</p>
+            <Link href="/login">
+              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                로그인하기
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">

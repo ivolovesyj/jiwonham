@@ -1,25 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Navigation } from '@/components/Navigation'
-import { User } from 'lucide-react'
+import { User, LogIn } from 'lucide-react'
+import Link from 'next/link'
 
 export default function ProfilePage() {
-  const router = useRouter()
   const { user, loading } = useAuth()
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
-    }
-  }, [user, loading, router])
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <p className="text-lg font-medium text-gray-700">로딩 중...</p>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <Navigation />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <LogIn className="w-8 h-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요해요</h2>
+            <p className="text-gray-500 mb-6 text-sm">마이페이지를 이용하려면 로그인해주세요.</p>
+            <Link href="/login">
+              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                로그인하기
+              </button>
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
