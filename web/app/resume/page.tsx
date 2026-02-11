@@ -243,7 +243,7 @@ export default function ResumePage() {
 
   const rawOrder = active.section_order ?? DEFAULT_SECTION_ORDER
   const sectionOrder: SectionType[] = rawOrder.includes('personal') ? rawOrder : ['personal', ...rawOrder]
-  const visibility: Record<SectionType, boolean> = { personal: false, ...(active.section_visibility ?? DEFAULT_SECTION_VISIBILITY) }
+  const visibility: Record<SectionType, boolean> = { ...DEFAULT_SECTION_VISIBILITY, ...(active.section_visibility ?? {}) }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
