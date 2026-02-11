@@ -149,15 +149,6 @@ export function ExperienceMaterialsTab({ user }: Props) {
           <p className="text-sm text-gray-500 mb-4">
             {searchQuery ? '다른 키워드로 검색해보세요.' : '경험, 프로젝트, 활동 등을 소재로 정리해보세요.'}
           </p>
-          {!searchQuery && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-            >
-              <Plus className="w-4 h-4" />
-              직접 추가하기
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
