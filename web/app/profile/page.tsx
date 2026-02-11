@@ -78,9 +78,6 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600">회원</p>
               </div>
             </div>
-            <div className="text-sm text-gray-600">
-              <p>선호 조건은 채용공고 페이지의 필터에서 설정할 수 있습니다.</p>
-            </div>
           </div>
 
           {/* 위험 구역 */}
