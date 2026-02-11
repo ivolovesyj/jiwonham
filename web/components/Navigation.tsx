@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
-import { Search, Briefcase, User, LogOut, LogIn, UserPlus, FileText } from 'lucide-react'
+import { Search, Briefcase, User, LogOut, LogIn, UserPlus, FileText, ScrollText } from 'lucide-react'
 
 export function Navigation() {
   const pathname = usePathname()
@@ -24,6 +24,7 @@ export function Navigation() {
   const navItems = [
     { href: '/jobs', label: '채용공고', icon: Search },
     { href: '/', label: '지원관리', icon: Briefcase },
+    { href: '/resume', label: '이력서', icon: ScrollText },
     { href: '/cover-letter', label: '자기소개서', icon: FileText },
     { href: '/profile', label: '마이페이지', icon: User },
   ]
