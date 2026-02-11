@@ -1155,16 +1155,43 @@ export default function HomePage() {
           {!user ? (
             // 비로그인 상태 - 전체 인터랙티브 데모 모드
             <>
+              <style>{`
+                @keyframes demo-bg { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+                @keyframes demo-shimmer { 0%{transform:translateX(-150%)} 100%{transform:translateX(150%)} }
+                @keyframes demo-glow { 0%,100%{box-shadow:0 0 8px 2px rgba(251,191,36,0.25)} 50%{box-shadow:0 0 22px 6px rgba(251,191,36,0.55),0 0 40px 12px rgba(251,191,36,0.15)} }
+                @keyframes sparkle { 0%,100%{opacity:1;transform:scale(1) rotate(0deg)} 50%{opacity:0.6;transform:scale(1.4) rotate(20deg)} }
+                @keyframes demo-btn-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.7)} 50%{box-shadow:0 0 0 6px rgba(245,158,11,0)} }
+              `}</style>
+
               {/* 통합 데모 + 로그인 유도 배너 */}
-              <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
-                <div className="flex items-center justify-between gap-3">
+              <div
+                className="relative mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl overflow-hidden border-2 border-amber-300"
+                style={{
+                  background: 'linear-gradient(270deg,#fef3c7,#fde68a,#fed7aa,#fde68a,#fef3c7)',
+                  backgroundSize: '300% 300%',
+                  animation: 'demo-bg 4s ease infinite, demo-glow 2.5s ease-in-out infinite',
+                }}
+              >
+                {/* 광택 스윕 */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.55) 50%,transparent 70%)',
+                    animation: 'demo-shimmer 2.8s ease-in-out infinite',
+                  }}
+                />
+
+                <div className="relative flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                    {/* 통통 튀는 아이콘 */}
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 animate-bounce">
+                      <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm sm:text-base font-semibold text-amber-900 truncate">
-                        {demoPhase >= 2 ? '이 데이터는 샘플이에요' : '지금은 체험 모드예요'}
+                      <p className="text-sm sm:text-base font-bold text-amber-900 flex items-center gap-1 flex-wrap">
+                        <span style={{ display:'inline-block', animation:'sparkle 1.6s ease-in-out infinite' }}>✨</span>
+                        <span>{demoPhase >= 2 ? '이 데이터는 샘플이에요' : '지금은 체험 모드예요'}</span>
+                        <span style={{ display:'inline-block', animation:'sparkle 1.6s ease-in-out infinite 0.8s' }}>✨</span>
                       </p>
                       <p className="text-xs sm:text-sm text-amber-700 truncate">
                         {demoPhase >= 2
@@ -1175,7 +1202,10 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Link href="/login">
-                      <button className={`px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg text-xs sm:text-sm transition whitespace-nowrap ${demoPhase >= 2 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}`}>
+                      <button
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs sm:text-sm transition whitespace-nowrap ${demoPhase >= 2 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}`}
+                        style={{ animation: 'demo-btn-pulse 2s ease-in-out infinite' }}
+                      >
                         {demoPhase >= 2 ? '무료로 시작하기' : '로그인하고 시작'}
                       </button>
                     </Link>
