@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { motion } from 'framer-motion'
 import { ApplicationStatus } from '@/types/application'
 import { ChevronDown } from 'lucide-react'
 
@@ -11,7 +12,7 @@ interface StatusBadgeProps {
   onStatusChange?: (newStatus: ApplicationStatus) => void
 }
 
-const statusConfig: Record<
+export const statusConfig: Record<
   ApplicationStatus,
   { label: string; shortLabel: string; className: string }
 > = {
@@ -140,17 +141,18 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
 
   return (
     <>
-      <button
+      <motion.button
         ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
+        whileTap={{ scale: 0.92 }}
         className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap ${config.className}`}
       >
         {config.shortLabel}
         <ChevronDown className="w-3 h-3" />
-      </button>
+      </motion.button>
 
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div

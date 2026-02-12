@@ -3,6 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MapPin, ExternalLink, X, Briefcase, Clock, Check, Calendar, Building2, HelpCircle } from 'lucide-react'
+import { ScoreRing } from './ScoreRing'
 import { Job } from '@/types/job'
 import { useState } from 'react'
 
@@ -67,29 +68,18 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
       <div className="flex-1">
         <div className="px-4 pt-4">
           <div className="flex items-center gap-2">
-            {matchPercent > 50 ? (
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <span className="text-sm font-semibold">선호점수 {Math.round(matchPercent)}점</span>
-                <span className="relative group/tip">
-                  <HelpCircle className="w-3.5 h-3.5 text-blue-400 hover:text-blue-600 cursor-help" />
-                  <span className="absolute top-full left-0 mt-2 w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
-                    공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
-                  </span>
+            <div className="inline-flex items-center gap-1.5 bg-gray-50 pl-1 pr-2.5 py-1 rounded-full border border-gray-200">
+              <ScoreRing score={matchPercent} size={28} strokeWidth={2.5} />
+              <span className={`text-xs font-semibold ${matchPercent > 50 ? 'text-blue-700' : 'text-gray-500'}`}>
+                {matchPercent > 50 ? '선호' : '분석중'}
+              </span>
+              <span className="relative group/tip">
+                <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" />
+                <span className="absolute top-full left-0 mt-2 w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
+                  공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
                 </span>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
-                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                <span className="text-sm font-medium">선호점수 분석중</span>
-                <span className="relative group/tip">
-                  <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" />
-                  <span className="absolute top-full left-0 mt-2 w-56 px-3 py-2.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50">
-                    공고에 대한 지원안함/보류/지원예정 선택이 누적되면서 나의 선호도를 학습합니다. 많이 사용할수록 점수가 정확해집니다.
-                  </span>
-                </span>
-              </div>
-            )}
+              </span>
+            </div>
             {deadline && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
                 <Calendar className="w-3 h-3" />
@@ -142,12 +132,12 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
           {/* 모든 태그 한 줄로 통합 */}
           <div className="flex flex-wrap gap-1.5">
             {tags.slice(0, 3).map((tag, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
+              <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-200">
                 {tag.replace(/_/g, ' ')}
               </span>
             ))}
             {job.employee_types?.slice(0, 1).map((type, i) => (
-              <span key={`et-${i}`} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200">
+              <span key={`et-${i}`} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-200">
                 {type}
               </span>
             ))}
@@ -161,12 +151,12 @@ export function JobCard({ job, onPass, onHold, onApply, disabled, style }: JobCa
               if (tags.some(tag => tag.replace(/_/g, ' ') === cleanReason)) return false
               return true
             }).slice(0, 2).map((reason, i) => (
-              <span key={`r-${i}`} className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md border border-gray-200">
+              <span key={`r-${i}`} className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
                 {reason.replace(/_/g, ' ')}
               </span>
             ))}
             {job.is_new && (
-              <span className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-md border border-green-200">
+              <span className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-full border border-green-200">
                 🆕 신규
               </span>
             )}

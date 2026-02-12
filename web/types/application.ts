@@ -61,6 +61,7 @@ export interface SavedJob {
   pin_order?: number | null
   redirect_url?: string | null  // 원문 링크 (타 플랫폼 URL)
   affiliate?: string | null     // 출처 플랫폼명 (잡알리오 등)
+  company_image?: string | null // 회사 로고 이미지 URL
 }
 
 export interface ApplicationStatusData {

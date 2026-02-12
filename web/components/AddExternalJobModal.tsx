@@ -11,6 +11,7 @@ interface ExternalJobData {
   deadline: string
   link: string
   notes: string
+  image?: string
 }
 
 interface AddExternalJobModalProps {
@@ -51,6 +52,7 @@ export function AddExternalJobModal({ isOpen, onClose, onSave }: AddExternalJobM
           deadline: data.deadline || '',
           link: data.link || url.trim(),
           notes: '',
+          image: data.image || '',
         })
       } else {
         alert(data.error || '파싱에 실패했습니다. 수동으로 입력해주세요.')
@@ -72,7 +74,7 @@ export function AddExternalJobModal({ isOpen, onClose, onSave }: AddExternalJobM
     onSave(form)
     // 초기화
     setUrl('')
-    setForm({ company: '', title: '', location: '', deadline: '', link: '', notes: '' })
+    setForm({ company: '', title: '', location: '', deadline: '', link: '', notes: '', image: '' })
     onClose()
   }
 

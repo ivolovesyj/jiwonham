@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
 import { StatusBadge } from './StatusBadge'
 import { DeadlineBadge } from './DeadlineBadge'
 import { Button } from '@/components/ui/button'
 import { Star, ChevronDown, ChevronUp, ExternalLink, Trash2, MessageSquare, FileText } from 'lucide-react'
+import { CompanyLogo } from './CompanyLogo'
 
 interface CompactApplicationRowProps {
   application: ApplicationWithJob
@@ -82,9 +84,16 @@ export function CompactApplicationRow({
         )}
 
         {/* 회사명 */}
-        <span className="flex-shrink-0 w-20 sm:w-28 text-sm font-bold text-gray-900 truncate">
-          {company}
-        </span>
+        <div className="flex-shrink-0 w-20 sm:w-28 flex items-center gap-1.5 min-w-0">
+          <CompanyLogo
+            companyName={company}
+            imageUrl={saved_job.company_image}
+            size={22}
+          />
+          <span className="text-sm font-bold text-gray-900 truncate">
+            {company}
+          </span>
+        </div>
 
         {/* 공고명 */}
         <span className="flex-1 text-sm text-gray-700 truncate min-w-0 font-medium">
@@ -130,7 +139,15 @@ export function CompactApplicationRow({
       </div>
 
       {/* 확장 시 상세 정보 */}
+      <AnimatePresence>
       {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          className="overflow-hidden"
+        >
         <div className="border-t border-gray-100 px-4 py-3 bg-gradient-to-b from-gray-50 to-white space-y-3">
           {/* 상세 정보 행 */}
           <div className="flex items-center justify-between text-xs">
@@ -229,7 +246,9 @@ export function CompactApplicationRow({
             </div>
           )}
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

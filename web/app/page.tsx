@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { ApplicationWithJob, ApplicationStatus, RequiredDocuments } from '@/types/application'
 import { CompactApplicationRow } from '@/components/CompactApplicationRow'
@@ -14,7 +15,11 @@ import { useAuth } from '@/lib/auth-context'
 import { trackEvent } from '@/lib/analytics'
 import { AddQuestionModal } from '@/components/cover-letter/AddQuestionModal'
 import { CoverLetterViewModal } from '@/components/cover-letter/CoverLetterViewModal'
-import { Briefcase, Search, AlertTriangle, X, FlaskConical } from 'lucide-react'
+import { StatsWidget } from '@/components/StatsWidget'
+import { KanbanBoard } from '@/components/KanbanBoard'
+import { EmptyStateIllustration } from '@/components/EmptyStateIllustration'
+import { WeeklyTimeline } from '@/components/WeeklyTimeline'
+import { Briefcase, Search, AlertTriangle, X, FlaskConical, List, LayoutGrid } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Navigation } from '@/components/Navigation'
@@ -352,6 +357,9 @@ export default function HomePage() {
   // 데이터 로드 완료 여부 (탭 전환 시 재로드 방지)
   const dataLoadedRef = useRef(false)
   const lastUserIdRef = useRef<string | null>(null)
+
+  // 뷰 모드
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
 
   // Phase 1: 검색, 정렬
   const [searchQuery, setSearchQuery] = useState('')
@@ -714,7 +722,7 @@ export default function HomePage() {
     }
   }
 
-  const handleSaveExternal = async (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
+  const handleSaveExternal = async (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string; image?: string }) => {
     if (!user) return
     try {
       // saved_jobs에 삽입
@@ -731,6 +739,7 @@ export default function HomePage() {
           deadline: data.deadline || null,
           is_external: true,
           source_url: data.link,
+          company_image: data.image || null,
         })
         .select()
         .single()
@@ -880,7 +889,7 @@ export default function HomePage() {
     saveDemoData(updated)
   }
 
-  const handleDemoSaveExternal = (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string }) => {
+  const handleDemoSaveExternal = (data: { company: string; title: string; location: string; deadline: string; link: string; notes: string; image?: string }) => {
     trackDemoInteraction()
     
     const newId = `demo-${Date.now()}`
@@ -907,9 +916,10 @@ export default function HomePage() {
         created_at: new Date().toISOString(),
         is_pinned: false,
         pin_order: null,
+        company_image: data.image || null,
       },
     }
-    
+
     const updated = [newApp, ...demoApplications]
     setDemoApplications(updated)
     saveDemoData(updated)
@@ -1151,8 +1161,30 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">지원 관리</h2>
-            <div className="text-xs sm:text-sm text-gray-600">
-              총 {!user ? demoApplications.length : applications.length}개
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">리스트</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    viewMode === 'kanban' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">칸반</span>
+                </button>
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                총 {!user ? demoApplications.length : applications.length}개
+              </div>
             </div>
           </div>
 
@@ -1223,6 +1255,12 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* 통계 위젯 */}
+              <StatsWidget applications={demoApplications} />
+
+              {/* 주간 타임라인 */}
+              <WeeklyTimeline applications={demoApplications} />
+
               {/* 마감 임박 알림 */}
               {demoUrgentCount > 0 && (
                 <div
@@ -1259,106 +1297,127 @@ export default function HomePage() {
                 }}
               />
 
-              {/* 필터 탭 */}
-              <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {filterButtons.map(({ key, label }) => {
-                    const count = demoStatusCounts[key] || 0
-                    const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
-                    if (!alwaysShow && count === 0) return null
-                    return (
-                      <Button
-                        key={key}
-                        size="sm"
-                        variant={filter === key ? 'default' : 'outline'}
-                        onClick={() => {
-                          setFilter(key)
-                          trackDemoInteraction()
-                        }}
-                        className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
-                      >
-                        {label} ({count})
-                      </Button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* 공고 목록 */}
-              {demoProcessedApplications.length === 0 && demoPinnedApplications.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {searchQuery
-                      ? `"${searchQuery}" 검색 결과가 없습니다`
-                      : filter === 'all'
-                        ? '데모 데이터를 추가해보세요'
-                        : '해당 상태의 공고가 없습니다'}
-                  </h3>
-                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                    외부 공고 추가 기능을 사용해 새 항목을 추가하거나,<br/>
-                    초기화 버튼으로 샘플 데이터를 복원하세요
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={() => setShowExternalModal(true)}
-                    className="gap-2"
-                  >
-                    데모 공고 추가하기
-                  </Button>
-                </div>
+              {viewMode === 'kanban' ? (
+                <KanbanBoard
+                  applications={demoApplications}
+                  onStatusChange={handleDemoStatusChange}
+                />
               ) : (
                 <>
-                  {/* 핀 고정 섹션 */}
-                  <PinnedSection
-                    pinnedApps={demoPinnedApplications}
-                    pinnedIds={demoPinnedIds}
-                    onReorder={handleDemoReorderPins}
-                    onStatusChange={handleDemoStatusChange}
-                    onUpdateNotes={handleDemoUpdateNotes}
-                    onUpdateDocuments={handleDemoUpdateDocuments}
-                    onUpdateDeadline={handleDemoUpdateDeadline}
-                    onDelete={handleDemoDelete}
-                    onTogglePin={handleDemoTogglePin}
-                    onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
-                    onViewCoverLetter={handleViewCoverLetter}
-                  />
-
-                  {/* 구분선 */}
-                  {demoPinnedApplications.length > 0 && demoProcessedApplications.length > 0 && (
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <div className="flex-1 border-t border-gray-200" />
-                      <span className="text-xs text-gray-400">일반</span>
-                      <div className="flex-1 border-t border-gray-200" />
+                  {/* 필터 탭 */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {filterButtons.map(({ key, label }) => {
+                        const count = demoStatusCounts[key] || 0
+                        const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
+                        if (!alwaysShow && count === 0) return null
+                        return (
+                          <Button
+                            key={key}
+                            size="sm"
+                            variant={filter === key ? 'default' : 'outline'}
+                            onClick={() => {
+                              setFilter(key)
+                              trackDemoInteraction()
+                            }}
+                            className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
+                          >
+                            {label} ({count})
+                          </Button>
+                        )
+                      })}
                     </div>
-                  )}
+                  </div>
 
-                  {/* 일반 공고 목록 */}
-                  <div className="space-y-2">
-                    {demoProcessedApplications.map((application) => (
-                      <CompactApplicationRow
-                        key={application.id}
-                        application={application}
+                  {/* 공고 목록 */}
+                  {demoProcessedApplications.length === 0 && demoPinnedApplications.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+                      <div className="mx-auto mb-4 flex justify-center">
+                        <EmptyStateIllustration type={searchQuery ? 'no-results' : 'no-applications'} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {searchQuery
+                          ? `"${searchQuery}" 검색 결과가 없습니다`
+                          : filter === 'all'
+                            ? '데모 데이터를 추가해보세요'
+                            : '해당 상태의 공고가 없습니다'}
+                      </h3>
+                      <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                        외부 공고 추가 기능을 사용해 새 항목을 추가하거나,<br/>
+                        초기화 버튼으로 샘플 데이터를 복원하세요
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={() => setShowExternalModal(true)}
+                        className="gap-2"
+                      >
+                        데모 공고 추가하기
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 핀 고정 섹션 */}
+                      <PinnedSection
+                        pinnedApps={demoPinnedApplications}
+                        pinnedIds={demoPinnedIds}
+                        onReorder={handleDemoReorderPins}
                         onStatusChange={handleDemoStatusChange}
                         onUpdateNotes={handleDemoUpdateNotes}
                         onUpdateDocuments={handleDemoUpdateDocuments}
                         onUpdateDeadline={handleDemoUpdateDeadline}
                         onDelete={handleDemoDelete}
-                        isPinned={false}
                         onTogglePin={handleDemoTogglePin}
                         onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
-                    onViewCoverLetter={handleViewCoverLetter}
+                        onViewCoverLetter={handleViewCoverLetter}
                       />
-                    ))}
-                  </div>
+
+                      {/* 구분선 */}
+                      {demoPinnedApplications.length > 0 && demoProcessedApplications.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                          <div className="flex-1 border-t border-gray-200" />
+                          <span className="text-xs text-gray-400">일반</span>
+                          <div className="flex-1 border-t border-gray-200" />
+                        </div>
+                      )}
+
+                      {/* 일반 공고 목록 */}
+                      <div className="space-y-2">
+                        <AnimatePresence mode="popLayout">
+                          {demoProcessedApplications.map((application) => (
+                            <motion.div
+                              key={application.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -30 }}
+                              transition={{ duration: 0.2 }}
+                              layout
+                            >
+                              <CompactApplicationRow
+                                application={application}
+                                onStatusChange={handleDemoStatusChange}
+                                onUpdateNotes={handleDemoUpdateNotes}
+                                onUpdateDocuments={handleDemoUpdateDocuments}
+                                onUpdateDeadline={handleDemoUpdateDeadline}
+                                onDelete={handleDemoDelete}
+                                isPinned={false}
+                                onTogglePin={handleDemoTogglePin}
+                                onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                                onViewCoverLetter={handleViewCoverLetter}
+                              />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </>
           ) : applications.length === 0 ? (
             // 로그인했지만 지원 내역 없음
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-24 h-24 mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                <Briefcase className="w-12 h-12 text-gray-400" />
+              <div className="mb-6">
+                <EmptyStateIllustration type="no-applications" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 아직 지원한 공고가 없어요
@@ -1387,6 +1446,12 @@ export default function HomePage() {
           ) : (
             // 지원 관리 전체 기능
             <>
+              {/* 통계 위젯 */}
+              <StatsWidget applications={applications} />
+
+              {/* 주간 타임라인 */}
+              <WeeklyTimeline applications={applications} />
+
               {/* 마감 임박 알림 */}
               {urgentCount > 0 && (
                 <div
@@ -1413,104 +1478,125 @@ export default function HomePage() {
                 onAddExternal={() => setShowExternalModal(true)}
               />
 
-              {/* 필터 탭 */}
-              <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {filterButtons.map(({ key, label }) => {
-                    const count = statusCounts[key] || 0
-                    const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
-                    if (!alwaysShow && count === 0) return null
-                    return (
-                      <Button
-                        key={key}
-                        size="sm"
-                        variant={filter === key ? 'default' : 'outline'}
-                        onClick={() => setFilter(key)}
-                        className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
-                      >
-                        {label} ({count})
-                      </Button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* 공고 목록 */}
-              {processedApplications.length === 0 && pinnedApplications.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {searchQuery
-                      ? `"${searchQuery}" 검색 결과가 없습니다`
-                      : filter === 'all'
-                        ? '아직 지원한 공고가 없어요'
-                        : '해당 상태의 공고가 없습니다'}
-                  </h3>
-                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                    채용공고 페이지에서 관심있는 공고를 찾아 지원하거나,<br/>
-                    다른 사이트에서 지원한 내역을 직접 추가해보세요
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
-                    <Link href="/jobs">
-                      <Button className="gap-2">
-                        <Briefcase className="w-4 h-4" />
-                        채용공고 보러가기
-                      </Button>
-                    </Link>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowExternalModal(true)}
-                      className="gap-2"
-                    >
-                      지원 내역 직접 추가
-                    </Button>
-                  </div>
-                </div>
+              {viewMode === 'kanban' ? (
+                <KanbanBoard
+                  applications={applications}
+                  onStatusChange={handleStatusChange}
+                />
               ) : (
                 <>
-                  {/* 핀 고정 섹션 */}
-                  <PinnedSection
-                    pinnedApps={pinnedApplications}
-                    pinnedIds={pinnedIds}
-                    onReorder={handleReorderPins}
-                    onStatusChange={handleStatusChange}
-                    onUpdateNotes={handleUpdateNotes}
-                    onUpdateDocuments={handleUpdateDocuments}
-                    onUpdateDeadline={handleUpdateDeadline}
-                    onDelete={handleDelete}
-                    onTogglePin={handleTogglePin}
-                    onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
-                    onViewCoverLetter={handleViewCoverLetter}
-                  />
-
-                  {/* 구분선 */}
-                  {pinnedApplications.length > 0 && processedApplications.length > 0 && (
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <div className="flex-1 border-t border-gray-200" />
-                      <span className="text-xs text-gray-400">일반</span>
-                      <div className="flex-1 border-t border-gray-200" />
+                  {/* 필터 탭 */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 md:p-4 mb-4 sm:mb-6">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {filterButtons.map(({ key, label }) => {
+                        const count = statusCounts[key] || 0
+                        const alwaysShow = ['all', 'pending', 'applied', 'document_pass', 'interviewing', 'accepted'].includes(key)
+                        if (!alwaysShow && count === 0) return null
+                        return (
+                          <Button
+                            key={key}
+                            size="sm"
+                            variant={filter === key ? 'default' : 'outline'}
+                            onClick={() => setFilter(key)}
+                            className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 ${count === 0 ? 'opacity-50' : ''}`}
+                          >
+                            {label} ({count})
+                          </Button>
+                        )
+                      })}
                     </div>
-                  )}
+                  </div>
 
-                  {/* 일반 공고 목록 */}
-                  <div className="space-y-2">
-                    {processedApplications.map((application) => (
-                      <CompactApplicationRow
-                        key={application.id}
-                        application={application}
+                  {/* 공고 목록 */}
+                  {processedApplications.length === 0 && pinnedApplications.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+                      <div className="mx-auto mb-4 flex justify-center">
+                        <EmptyStateIllustration type={searchQuery ? 'no-results' : 'no-applications'} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {searchQuery
+                          ? `"${searchQuery}" 검색 결과가 없습니다`
+                          : filter === 'all'
+                            ? '아직 지원한 공고가 없어요'
+                            : '해당 상태의 공고가 없습니다'}
+                      </h3>
+                      <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                        채용공고 페이지에서 관심있는 공고를 찾아 지원하거나,<br/>
+                        다른 사이트에서 지원한 내역을 직접 추가해보세요
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <Link href="/jobs">
+                          <Button className="gap-2">
+                            <Briefcase className="w-4 h-4" />
+                            채용공고 보러가기
+                          </Button>
+                        </Link>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowExternalModal(true)}
+                          className="gap-2"
+                        >
+                          지원 내역 직접 추가
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 핀 고정 섹션 */}
+                      <PinnedSection
+                        pinnedApps={pinnedApplications}
+                        pinnedIds={pinnedIds}
+                        onReorder={handleReorderPins}
                         onStatusChange={handleStatusChange}
                         onUpdateNotes={handleUpdateNotes}
                         onUpdateDocuments={handleUpdateDocuments}
                         onUpdateDeadline={handleUpdateDeadline}
                         onDelete={handleDelete}
-                        isPinned={false}
                         onTogglePin={handleTogglePin}
                         onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
-                    onViewCoverLetter={handleViewCoverLetter}
+                        onViewCoverLetter={handleViewCoverLetter}
                       />
-                    ))}
-                  </div>
+
+                      {/* 구분선 */}
+                      {pinnedApplications.length > 0 && processedApplications.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                          <div className="flex-1 border-t border-gray-200" />
+                          <span className="text-xs text-gray-400">일반</span>
+                          <div className="flex-1 border-t border-gray-200" />
+                        </div>
+                      )}
+
+                      {/* 일반 공고 목록 */}
+                      <div className="space-y-2">
+                        <AnimatePresence mode="popLayout">
+                          {processedApplications.map((application) => (
+                            <motion.div
+                              key={application.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -30 }}
+                              transition={{ duration: 0.2 }}
+                              layout
+                            >
+                              <CompactApplicationRow
+                                application={application}
+                                onStatusChange={handleStatusChange}
+                                onUpdateNotes={handleUpdateNotes}
+                                onUpdateDocuments={handleUpdateDocuments}
+                                onUpdateDeadline={handleUpdateDeadline}
+                                onDelete={handleDelete}
+                                isPinned={false}
+                                onTogglePin={handleTogglePin}
+                                onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                                onViewCoverLetter={handleViewCoverLetter}
+                              />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </>

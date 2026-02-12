@@ -12,6 +12,7 @@ import { trackEvent } from '@/lib/analytics'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LoginPromptModal } from '@/components/LoginPromptModal'
+import { EmptyStateIllustration } from '@/components/EmptyStateIllustration'
 import { Navigation } from '@/components/Navigation'
 import { FilterModal } from '@/components/FilterModal'
 import { JobListView } from '@/components/JobListView'
@@ -616,6 +617,7 @@ export default function Home() {
         warnings: targetJob.warnings || [],
         description: targetJob.description,
         detail: targetJob.detail || null,
+        company_image: targetJob.company_image || null,
       }
 
       // 기존 saved_job 확인
@@ -1014,7 +1016,9 @@ export default function Home() {
             // 모든 공고 확인 완료
             <div className="w-full h-full flex items-center justify-center">
               <div className="text-center space-y-6 max-w-md mx-auto">
-                <div className="text-6xl">🎉</div>
+                <div className="flex justify-center">
+                  <EmptyStateIllustration type="all-reviewed" size={140} />
+                </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">모든 공고를 확인했어요!</h1>
                 {user && (
                   <p className="text-gray-600">
