@@ -359,7 +359,7 @@ export default function HomePage() {
   const lastUserIdRef = useRef<string | null>(null)
 
   // 뷰 모드
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban')
 
   // Phase 1: 검색, 정렬
   const [searchQuery, setSearchQuery] = useState('')
@@ -1259,25 +1259,14 @@ export default function HomePage() {
               <StatsWidget applications={demoApplications} />
 
               {/* 주간 타임라인 */}
-              <WeeklyTimeline applications={demoApplications} />
-
-              {/* 마감 임박 알림 */}
-              {demoUrgentCount > 0 && (
-                <div
-                  className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
-                  onClick={() => {
-                    setFilter('all')
-                    setSortKey('deadline')
-                    trackDemoInteraction()
-                  }}
-                >
-                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-red-700">
-                    3일 내 마감 {demoUrgentCount}건
-                  </span>
-                  <span className="text-xs text-red-500">클릭하면 마감일순 정렬</span>
-                </div>
-              )}
+              <WeeklyTimeline
+                applications={demoApplications}
+                onDayClick={() => {
+                  setFilter('all')
+                  setSortKey('deadline')
+                  trackDemoInteraction()
+                }}
+              />
 
               {/* 툴바 */}
               <ApplicationToolbar
@@ -1450,24 +1439,13 @@ export default function HomePage() {
               <StatsWidget applications={applications} />
 
               {/* 주간 타임라인 */}
-              <WeeklyTimeline applications={applications} />
-
-              {/* 마감 임박 알림 */}
-              {urgentCount > 0 && (
-                <div
-                  className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
-                  onClick={() => {
-                    setFilter('all')
-                    setSortKey('deadline')
-                  }}
-                >
-                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-red-700">
-                    3일 내 마감 {urgentCount}건
-                  </span>
-                  <span className="text-xs text-red-500">클릭하면 마감일순 정렬</span>
-                </div>
-              )}
+              <WeeklyTimeline
+                applications={applications}
+                onDayClick={() => {
+                  setFilter('all')
+                  setSortKey('deadline')
+                }}
+              />
 
               {/* 툴바 */}
               <ApplicationToolbar

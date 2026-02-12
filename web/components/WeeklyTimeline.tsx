@@ -10,11 +10,11 @@ interface WeeklyTimelineProps {
 
 function getWeekDays(): Date[] {
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const dayOfWeek = today.getDay() // 0=Sun, 1=Mon...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
   const monday = new Date(today)
   monday.setDate(today.getDate() + mondayOffset)
-  monday.setHours(0, 0, 0, 0)
 
   const days: Date[] = []
   for (let i = 0; i < 7; i++) {
@@ -27,17 +27,16 @@ function getWeekDays(): Date[] {
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
-function formatDateKey(d: Date): string {
-  return d.toISOString().split('T')[0]
+function toLocalDateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps) {
   const weekDays = useMemo(() => getWeekDays(), [])
-  const today = useMemo(() => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    return formatDateKey(d)
-  }, [])
+  const today = useMemo(() => toLocalDateKey(new Date()), [])
 
   const deadlinesByDay = useMemo(() => {
     const map: Record<string, number> = {}
@@ -51,8 +50,7 @@ export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps
     return map
   }, [applications])
 
-  // Check if there's anything to show this week
-  const hasAnyDeadline = weekDays.some((d) => (deadlinesByDay[formatDateKey(d)] || 0) > 0)
+  const hasAnyDeadline = weekDays.some((d) => (deadlinesByDay[toLocalDateKey(d)] || 0) > 0)
   if (!hasAnyDeadline && applications.length === 0) return null
 
   return (
@@ -62,19 +60,19 @@ export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps
       </div>
       <div className="flex items-end gap-1 sm:gap-2">
         {weekDays.map((day, i) => {
-          const key = formatDateKey(day)
+          const key = toLocalDateKey(day)
           const count = deadlinesByDay[key] || 0
           const isToday = key === today
 
-          // Color logic
           const now = new Date()
           now.setHours(0, 0, 0, 0)
           const diff = Math.ceil((day.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          let dotColor = 'bg-gray-300'
+          let countColor = 'text-gray-300'
+          let countBg = ''
           if (count > 0) {
-            if (diff < 0) dotColor = 'bg-gray-400'
-            else if (diff <= 3) dotColor = 'bg-red-400'
-            else dotColor = 'bg-yellow-400'
+            if (diff < 0) { countColor = 'text-gray-400'; countBg = 'bg-gray-100' }
+            else if (diff <= 3) { countColor = 'text-red-600'; countBg = 'bg-red-50' }
+            else { countColor = 'text-yellow-600'; countBg = 'bg-yellow-50' }
           }
 
           return (
@@ -91,10 +89,12 @@ export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps
               <span className={`text-xs sm:text-sm ${isToday ? 'font-bold text-blue-700' : 'text-gray-700'}`}>
                 {day.getDate()}
               </span>
-              <div className="flex gap-0.5 min-h-[8px]">
-                {count > 0 && Array.from({ length: Math.min(count, 4) }).map((_, j) => (
-                  <div key={j} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                ))}
+              <div className="min-h-[18px] flex items-center justify-center">
+                {count > 0 ? (
+                  <span className={`text-[10px] sm:text-xs font-bold rounded-full px-1.5 ${countColor} ${countBg}`}>
+                    {count}
+                  </span>
+                ) : null}
               </div>
             </button>
           )
