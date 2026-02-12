@@ -41,7 +41,7 @@ export function StatsWidget({ applications }: StatsWidgetProps) {
     const urgent = applications.filter((a) => {
       const deadline = a.saved_job.external_deadline || a.saved_job.deadline
       if (!deadline) return false
-      if (['rejected', 'accepted', 'declined', 'passed'].includes(a.status)) return false
+      if (['rejected', 'accepted', 'declined', 'passed', 'document_pass', 'interviewing', 'final'].includes(a.status)) return false
       const d = new Date(deadline)
       d.setHours(0, 0, 0, 0)
       const diff = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))

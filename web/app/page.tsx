@@ -1044,12 +1044,12 @@ export default function HomePage() {
     return counts
   }, [applications])
 
-  // 마감 임박 알림
+  // 마감 임박 알림 (서류합격 이후는 면접일이므로 제외)
   const urgentCount = useMemo(() => {
     return applications.filter((app) => {
       const deadline = app.saved_job.external_deadline || app.saved_job.deadline
       if (!deadline) return false
-      if (app.status === 'rejected' || app.status === 'accepted' || app.status === 'declined' || app.status === 'passed') return false
+      if (['rejected', 'accepted', 'declined', 'passed', 'document_pass', 'interviewing', 'final'].includes(app.status)) return false
       const d = new Date(deadline)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -1142,7 +1142,7 @@ export default function HomePage() {
     return demoApplications.filter((app) => {
       const deadline = app.saved_job.external_deadline || app.saved_job.deadline
       if (!deadline) return false
-      if (app.status === 'rejected' || app.status === 'accepted' || app.status === 'declined' || app.status === 'passed') return false
+      if (['rejected', 'accepted', 'declined', 'passed', 'document_pass', 'interviewing', 'final'].includes(app.status)) return false
       const d = new Date(deadline)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -1323,6 +1323,7 @@ export default function HomePage() {
                   applications={demoApplications}
                   onStatusChange={handleDemoStatusChange}
                   onDelete={handleDemoDelete}
+                  onDeadlineChange={handleDemoUpdateDeadline}
                 />
               ) : (
                 <>
@@ -1496,6 +1497,7 @@ export default function HomePage() {
                   applications={applications}
                   onStatusChange={handleStatusChange}
                   onDelete={handleDelete}
+                  onDeadlineChange={handleUpdateDeadline}
                 />
               ) : (
                 <>

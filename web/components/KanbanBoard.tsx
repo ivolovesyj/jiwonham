@@ -26,6 +26,7 @@ interface KanbanBoardProps {
   applications: ApplicationWithJob[]
   onStatusChange: (applicationId: string, newStatus: ApplicationStatus) => void
   onDelete: (applicationId: string, savedJobId: string) => void
+  onDeadlineChange: (savedJobId: string, deadline: string) => void
 }
 
 const KANBAN_COLUMNS: ApplicationStatus[] = [
@@ -87,12 +88,14 @@ function CardDetailPopover({
   anchorRect,
   onStatusChange,
   onDelete,
+  onDeadlineChange,
   onClose,
 }: {
   application: ApplicationWithJob
   anchorRect: DOMRect
   onStatusChange: (id: string, status: ApplicationStatus) => void
   onDelete: (applicationId: string, savedJobId: string) => void
+  onDeadlineChange: (savedJobId: string, deadline: string) => void
   onClose: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -153,12 +156,14 @@ function CardDetailPopover({
       {/* 정보 */}
       <div className="space-y-2 text-xs text-gray-600">
         {location && <div>📍 {location}</div>}
-        {deadline && (
-          <div className="flex items-center gap-2">
-            <span>마감:</span>
-            <DeadlineBadge deadline={deadline} />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span>마감:</span>
+          <DeadlineBadge
+            deadline={deadline}
+            editable
+            onDeadlineChange={(newDeadline) => onDeadlineChange(application.saved_job.id, newDeadline)}
+          />
+        </div>
         {application.notes && (
           <div className="bg-gray-50 rounded-lg p-2 text-gray-700">{application.notes}</div>
         )}
@@ -304,7 +309,7 @@ function DroppableColumn({
   )
 }
 
-export function KanbanBoard({ applications, onStatusChange, onDelete }: KanbanBoardProps) {
+export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadlineChange }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overColumnId, setOverColumnId] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<{ app: ApplicationWithJob; rect: DOMRect } | null>(null)
@@ -412,6 +417,7 @@ export function KanbanBoard({ applications, onStatusChange, onDelete }: KanbanBo
           anchorRect={selectedApp.rect}
           onStatusChange={onStatusChange}
           onDelete={onDelete}
+          onDeadlineChange={onDeadlineChange}
           onClose={() => setSelectedApp(null)}
         />
       )}
