@@ -1322,6 +1322,7 @@ export default function HomePage() {
                 <KanbanBoard
                   applications={demoApplications}
                   onStatusChange={handleDemoStatusChange}
+                  onDelete={handleDemoDelete}
                 />
               ) : (
                 <>
@@ -1494,6 +1495,7 @@ export default function HomePage() {
                 <KanbanBoard
                   applications={applications}
                   onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
                 />
               ) : (
                 <>
