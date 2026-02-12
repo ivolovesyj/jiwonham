@@ -5,6 +5,7 @@ import { ApplicationWithJob } from '@/types/application'
 
 interface WeeklyTimelineProps {
   applications: ApplicationWithJob[]
+  selectedDate?: string | null
   onDayClick?: (date: string) => void
 }
 
@@ -34,7 +35,7 @@ function toLocalDateKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps) {
+export function WeeklyTimeline({ applications, selectedDate, onDayClick }: WeeklyTimelineProps) {
   const weekDays = useMemo(() => getWeekDays(), [])
   const today = useMemo(() => toLocalDateKey(new Date()), [])
 
@@ -63,6 +64,7 @@ export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps
           const key = toLocalDateKey(day)
           const count = deadlinesByDay[key] || 0
           const isToday = key === today
+          const isSelected = key === selectedDate
 
           const now = new Date()
           now.setHours(0, 0, 0, 0)
@@ -80,7 +82,11 @@ export function WeeklyTimeline({ applications, onDayClick }: WeeklyTimelineProps
               key={i}
               onClick={() => onDayClick?.(key)}
               className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors ${
-                isToday ? 'bg-blue-50' : 'hover:bg-gray-50'
+                isSelected
+                  ? 'bg-blue-100 ring-2 ring-blue-400'
+                  : isToday
+                    ? 'bg-blue-50'
+                    : 'hover:bg-gray-50'
               }`}
             >
               <span className={`text-[10px] sm:text-xs ${isToday ? 'font-bold text-blue-600' : 'text-gray-400'}`}>

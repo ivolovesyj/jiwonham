@@ -364,6 +364,7 @@ export default function HomePage() {
   // Phase 1: 검색, 정렬
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
+  const [deadlineFilter, setDeadlineFilter] = useState<string | null>(null)
 
   // Phase 2: 핀 상태 + 순서
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
@@ -949,7 +950,7 @@ export default function HomePage() {
 
   // ========== END DEMO MODE HANDLERS ==========
 
-  // 필터 → 검색 → 정렬
+  // 필터 → 검색 → 마감일 필터 → 정렬
   const processedApplications = useMemo(() => {
     let result = filter === 'all'
       ? applications
@@ -967,6 +968,14 @@ export default function HomePage() {
           title.toLowerCase().includes(q) ||
           location.toLowerCase().includes(q)
         )
+      })
+    }
+
+    // 마감일 필터
+    if (deadlineFilter) {
+      result = result.filter((app) => {
+        const dl = app.saved_job.external_deadline || app.saved_job.deadline
+        return dl && dl.split('T')[0] === deadlineFilter
       })
     }
 
@@ -988,7 +997,7 @@ export default function HomePage() {
     })
 
     return unpinned
-  }, [applications, filter, searchQuery, sortKey, pinnedIds])
+  }, [applications, filter, searchQuery, sortKey, pinnedIds, deadlineFilter])
 
   // 핀된 항목 (pinOrder 순서대로)
   const pinnedApplications = useMemo(() => {
@@ -1010,6 +1019,13 @@ export default function HomePage() {
       })
     }
 
+    if (deadlineFilter) {
+      result = result.filter((app) => {
+        const dl = app.saved_job.external_deadline || app.saved_job.deadline
+        return dl && dl.split('T')[0] === deadlineFilter
+      })
+    }
+
     const pinned = result.filter((a) => pinnedIds.has(a.saved_job.id))
     // pinOrder 순서대로 정렬
     return pinned.sort((a, b) => {
@@ -1017,7 +1033,7 @@ export default function HomePage() {
       const bIdx = pinOrder.indexOf(b.saved_job.id)
       return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx)
     })
-  }, [applications, filter, searchQuery, pinnedIds, pinOrder])
+  }, [applications, filter, searchQuery, pinnedIds, pinOrder, deadlineFilter])
 
   // 상태별 카운트
   const statusCounts = useMemo(() => {
@@ -1059,6 +1075,13 @@ export default function HomePage() {
       )
     }
 
+    if (deadlineFilter) {
+      result = result.filter((app) => {
+        const dl = app.saved_job.external_deadline || app.saved_job.deadline
+        return dl && dl.split('T')[0] === deadlineFilter
+      })
+    }
+
     const unpinned = result.filter((a) => !demoPinnedIds.has(a.saved_job.id))
 
     unpinned.sort((a, b) => {
@@ -1076,7 +1099,7 @@ export default function HomePage() {
     })
 
     return unpinned
-  }, [demoApplications, filter, searchQuery, sortKey, demoPinnedIds])
+  }, [demoApplications, filter, searchQuery, sortKey, demoPinnedIds, deadlineFilter])
 
   const demoPinnedApplications = useMemo(() => {
     let result = filter === 'all'
@@ -1092,13 +1115,20 @@ export default function HomePage() {
       )
     }
 
+    if (deadlineFilter) {
+      result = result.filter((app) => {
+        const dl = app.saved_job.external_deadline || app.saved_job.deadline
+        return dl && dl.split('T')[0] === deadlineFilter
+      })
+    }
+
     const pinned = result.filter((a) => demoPinnedIds.has(a.saved_job.id))
     return pinned.sort((a, b) => {
       const aIdx = demoPinOrder.indexOf(a.saved_job.id)
       const bIdx = demoPinOrder.indexOf(b.saved_job.id)
       return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx)
     })
-  }, [demoApplications, filter, searchQuery, demoPinnedIds, demoPinOrder])
+  }, [demoApplications, filter, searchQuery, demoPinnedIds, demoPinOrder, deadlineFilter])
 
   const demoStatusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: demoApplications.length }
@@ -1261,9 +1291,11 @@ export default function HomePage() {
               {/* 주간 타임라인 */}
               <WeeklyTimeline
                 applications={demoApplications}
-                onDayClick={() => {
+                selectedDate={deadlineFilter}
+                onDayClick={(date) => {
+                  setDeadlineFilter((prev) => prev === date ? null : date)
                   setFilter('all')
-                  setSortKey('deadline')
+                  setViewMode('list')
                   trackDemoInteraction()
                 }}
               />
@@ -1441,9 +1473,11 @@ export default function HomePage() {
               {/* 주간 타임라인 */}
               <WeeklyTimeline
                 applications={applications}
-                onDayClick={() => {
+                selectedDate={deadlineFilter}
+                onDayClick={(date) => {
+                  setDeadlineFilter((prev) => prev === date ? null : date)
                   setFilter('all')
-                  setSortKey('deadline')
+                  setViewMode('list')
                 }}
               />
 
