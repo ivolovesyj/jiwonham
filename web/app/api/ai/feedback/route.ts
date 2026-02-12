@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { allowed, remaining } = checkRateLimit(user.id)
+    const { allowed, remaining } = await checkRateLimit(user.id)
     if (!allowed) {
       return NextResponse.json(
         { error: 'AI 기능 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.' },

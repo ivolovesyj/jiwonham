@@ -1,26 +1,43 @@
-/**
- * 서버리스 환경용 인메모리 Rate Limiter
- * Lambda 인스턴스 내에서 동작하며, 콜드 스타트 시 초기화됨.
- * (소규모 서비스에서 단기 반복 호출 방지에 적합)
- */
-const store = new Map<string, { count: number; resetAt: number }>()
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 
-export const AI_HOURLY_LIMIT = 20 // 시간당 최대 요청 수
-const WINDOW_MS = 60 * 60 * 1000 // 1시간
+// Upstash Redis가 설정되지 않은 경우 fallback (로컬 개발용)
+const isUpstashConfigured =
+  !!process.env.UPSTASH_REDIS_REST_URL &&
+  !!process.env.UPSTASH_REDIS_REST_TOKEN
 
-export function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
+let ratelimit: Ratelimit | null = null
+
+if (isUpstashConfigured) {
+  ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(20, '1 h'), // 1시간에 20회
+    analytics: true,
+    prefix: 'jiwonham:ai',
+  })
+}
+
+// 인메모리 fallback (로컬 개발 / Upstash 미설정 시)
+const localStore = new Map<string, { count: number; resetAt: number }>()
+const LOCAL_LIMIT = 20
+const WINDOW_MS = 60 * 60 * 1000
+
+function localRateLimit(userId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
-  const record = store.get(userId)
-
+  const record = localStore.get(userId)
   if (!record || now > record.resetAt) {
-    store.set(userId, { count: 1, resetAt: now + WINDOW_MS })
-    return { allowed: true, remaining: AI_HOURLY_LIMIT - 1 }
+    localStore.set(userId, { count: 1, resetAt: now + WINDOW_MS })
+    return { allowed: true, remaining: LOCAL_LIMIT - 1 }
   }
-
-  if (record.count >= AI_HOURLY_LIMIT) {
-    return { allowed: false, remaining: 0 }
-  }
-
+  if (record.count >= LOCAL_LIMIT) return { allowed: false, remaining: 0 }
   record.count++
-  return { allowed: true, remaining: AI_HOURLY_LIMIT - record.count }
+  return { allowed: true, remaining: LOCAL_LIMIT - record.count }
+}
+
+export async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+  if (!ratelimit) {
+    return localRateLimit(userId)
+  }
+  const { success, remaining } = await ratelimit.limit(userId)
+  return { allowed: success, remaining: remaining ?? 0 }
 }
