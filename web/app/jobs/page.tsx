@@ -615,7 +615,7 @@ export default function Home() {
         reason: targetJob.reason,
         reasons: targetJob.reasons || [],
         warnings: targetJob.warnings || [],
-        description: targetJob.description,
+        description: targetJob.description || null,
         detail: targetJob.detail || null,
         company_image: targetJob.company_image || null,
       }
@@ -626,7 +626,7 @@ export default function Home() {
         .select('id')
         .eq('user_id', user.id)
         .eq('job_id', targetJob.id)
-        .single()
+        .maybeSingle()
 
       let savedJob
       let savedJobError
@@ -665,7 +665,7 @@ export default function Home() {
           .select('id')
           .eq('user_id', user.id)
           .eq('saved_job_id', savedJob.id)
-          .single()
+          .maybeSingle()
 
         if (existingStatus) {
           await supabase
