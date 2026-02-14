@@ -653,7 +653,7 @@ export async function GET(request: Request) {
 
     const rpcStartTime = Date.now()
 
-    // RPC 파라미터
+    // RPC 파라미터 (hard filter를 SQL에서 수행하여 반환 건수 대폭 축소)
     const rpcParams = {
       p_job_types: preferences?.preferred_job_types?.length
         ? preferences.preferred_job_types
@@ -661,7 +661,19 @@ export async function GET(request: Request) {
       p_locations: preferences?.preferred_locations?.length
         ? preferences.preferred_locations
         : null,
-      p_limit: fetchLimit
+      p_limit: fetchLimit,
+      p_career_levels: preferences?.career_level
+        ? preferences.career_level.split(',').filter(Boolean)
+        : null,
+      p_work_styles: preferences?.work_style?.length
+        ? preferences.work_style
+        : null,
+      p_company_types: preferences?.preferred_company_types?.length
+        ? preferences.preferred_company_types
+        : null,
+      p_education: preferences?.preferred_education?.length
+        ? preferences.preferred_education
+        : null,
     }
 
     console.log('[API /jobs] RPC params:', JSON.stringify(rpcParams))
