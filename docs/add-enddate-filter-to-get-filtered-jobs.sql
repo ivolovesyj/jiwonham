@@ -1,11 +1,13 @@
 -- ============================================================
--- get_filtered_jobs 성능 개선 (v2)
+-- get_filtered_jobs 성능 개선 (v3)
 -- 변경사항:
 --   1. 새 파라미터: p_career_levels, p_work_styles, p_company_types, p_education
---   2. 지역 필터: regions JSONB ILIKE → location TEXT strpos (87K×strpos)
+--   2. 지역 필터: regions JSONB ILIKE → location TEXT strpos
 --   3. 경력/고용형태/기업유형/학력 hard filter를 SQL WHERE로 이동
 --   4. RETURNS에 education, redirect_url, affiliate 추가
---   5. end_date 인덱스 생성
+--   5. GIN 인덱스 (depth_twos, depth_ones, employee_types) → ?| 연산 인덱스 활용
+--   6. btree 인덱스 (company_type, career_min, education) → 순차스캔 방지
+--   7. end_date 인덱스
 -- Supabase SQL Editor에서 실행
 -- ============================================================
 
@@ -180,7 +182,48 @@ $$;
 -- 3단계: 권한 부여 (새 시그니처)
 GRANT EXECUTE ON FUNCTION get_filtered_jobs(text[], text[], integer, text[], text[], text[], text[]) TO anon, authenticated;
 
--- 4단계: end_date 인덱스 (활성 공고만, 순차스캔 방지)
+-- ============================================================
+-- 4단계: 인덱스 생성 (핵심 성능 개선)
+-- GIN 인덱스: ?| 연산이 87K 전체 스캔 → 인덱스 lookup으로 변경
+-- btree 인덱스: equality/range 필터 가속
+-- 모두 partial index (is_active = true) → 인덱스 크기 최소화
+-- ============================================================
+
+-- GIN 인덱스: depth_twos ?| p_job_types (가장 선택적인 필터)
+-- 87K 전체 스캔 → 매칭되는 수천 건만 평가
+CREATE INDEX IF NOT EXISTS idx_jobs_depth_twos_gin
+  ON jobs USING gin(depth_twos jsonb_ops)
+  WHERE is_active = TRUE;
+
+-- GIN 인덱스: depth_ones ?| p_job_types (depth_twos 없을 때 fallback)
+CREATE INDEX IF NOT EXISTS idx_jobs_depth_ones_gin
+  ON jobs USING gin(depth_ones jsonb_ops)
+  WHERE is_active = TRUE;
+
+-- GIN 인덱스: employee_types (고용형태 필터 가속)
+CREATE INDEX IF NOT EXISTS idx_jobs_employee_types_gin
+  ON jobs USING gin(employee_types jsonb_ops)
+  WHERE is_active = TRUE;
+
+-- btree 인덱스: company_type 등 equality 필터
+CREATE INDEX IF NOT EXISTS idx_jobs_company_type
+  ON jobs(company_type)
+  WHERE is_active = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_jobs_career_min
+  ON jobs(career_min)
+  WHERE is_active = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_jobs_education
+  ON jobs(education)
+  WHERE is_active = TRUE;
+
+-- end_date 인덱스 (기존)
 CREATE INDEX IF NOT EXISTS idx_jobs_end_date
   ON jobs(end_date DESC)
+  WHERE is_active = TRUE;
+
+-- crawled_at 인덱스 (ORDER BY 가속)
+CREATE INDEX IF NOT EXISTS idx_jobs_crawled_at
+  ON jobs(crawled_at DESC)
   WHERE is_active = TRUE;
