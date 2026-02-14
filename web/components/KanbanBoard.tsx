@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
   DragOverlay,
@@ -297,27 +296,15 @@ function DraggableKanbanCard({
   onCardClick: (app: ApplicationWithJob, rect: DOMRect) => void
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({ id: application.id })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: application.id })
 
   const wasDragging = useRef(false)
 
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)`, opacity: isDragging ? 0.4 : 1 }
-    : undefined
-
-  // 드래그 시작 시 기록
   useEffect(() => {
     if (isDragging) wasDragging.current = true
   }, [isDragging])
 
   const handleClick = () => {
-    // 드래그 후 놓았을 때 클릭 방지
     if (wasDragging.current) {
       wasDragging.current = false
       return
@@ -328,21 +315,19 @@ function DraggableKanbanCard({
   }
 
   return (
-    <motion.div
+    <div
       ref={(node) => {
         setNodeRef(node)
         ;(cardRef as any).current = node
       }}
-      style={style}
       {...attributes}
       {...listeners}
-      layout
-      transition={{ duration: 0.15 }}
       onClick={handleClick}
       className="cursor-grab active:cursor-grabbing"
+      style={{ opacity: isDragging ? 0 : 1 }}
     >
       <KanbanCard application={application} />
-    </motion.div>
+    </div>
   )
 }
 
@@ -404,9 +389,8 @@ export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadline
     for (const app of applications) {
       if (groups[app.status]) {
         groups[app.status].push(app)
-      } else {
-        groups['pending']?.push(app)
       }
+      // 칸반에 없는 상태(hold, not_applying, passed 등)는 표시 안 함
     }
     return groups
   }, [applications])
