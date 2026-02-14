@@ -494,10 +494,12 @@ export async function GET(request: Request) {
       console.log('[API /jobs] No token - using guest mode')
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+      const today = new Date().toISOString().split('T')[0]
       let query = supabase
         .from('jobs')
         .select('*')
         .eq('is_active', true)
+        .or(`end_date.is.null,end_date.gte.${today}`)
 
       // 검색어가 있으면 서버에서 텍스트 검색
       if (searchQuery) {
