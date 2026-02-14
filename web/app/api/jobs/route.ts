@@ -683,8 +683,8 @@ export async function GET(request: Request) {
     }
 
     if (jobsError) {
-      console.error('[API /jobs] RPC error:', jobsError)
-      console.error('[API /jobs] RPC may have timed out. Indexes may need time to build.')
+      const errDetail = `code=${jobsError?.code}, message=${jobsError?.message}, hint=${jobsError?.hint}`
+      console.error(`[API /jobs] RPC FAILED: ${errDetail}`)
       return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
     }
 

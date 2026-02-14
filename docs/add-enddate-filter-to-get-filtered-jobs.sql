@@ -1,9 +1,15 @@
 -- ============================================================
--- get_filtered_jobs 함수에 end_date 필터 추가
--- 마감일이 지난 공고는 is_active와 무관하게 제외
+-- get_filtered_jobs 함수에 end_date 필터 추가 (최종 버전)
+-- optimize-get-filtered-jobs.sql 기반 (올바른 타입 유지)
+-- end_date는 DATE 타입 → CURRENT_DATE와 date >= date 비교 (정상)
+-- regions/depth_twos/keywords 등은 jsonb 타입 유지
 -- Supabase SQL Editor에서 실행
 -- ============================================================
 
+-- 1단계: 기존 함수 삭제
+DROP FUNCTION IF EXISTS get_filtered_jobs(text[], text[], integer);
+
+-- 2단계: 올바른 타입 + end_date 필터 포함한 함수 생성
 CREATE OR REPLACE FUNCTION get_filtered_jobs(
   p_job_types text[] DEFAULT NULL,
   p_locations text[] DEFAULT NULL,
@@ -16,21 +22,21 @@ RETURNS TABLE(
   company_image text,
   company_type text,
   title text,
-  regions text[],
+  regions jsonb,
   location text,
   career_min integer,
   career_max integer,
-  employee_types text[],
+  employee_types jsonb,
   deadline_type text,
-  end_date text,
-  depth_ones text[],
-  depth_twos text[],
-  keywords text[],
+  end_date date,
+  depth_ones jsonb,
+  depth_twos jsonb,
+  keywords jsonb,
   views integer,
   detail jsonb,
   original_created_at text,
   last_modified_at text,
-  crawled_at text,
+  crawled_at timestamp with time zone,
   is_active boolean
 )
 LANGUAGE plpgsql
@@ -53,67 +59,33 @@ BEGIN
     j.employee_types,
     j.deadline_type,
     j.end_date,
-    CASE
-      WHEN j.depth_ones IS NULL THEN ARRAY[]::text[]
-      WHEN pg_typeof(j.depth_ones)::text = 'jsonb' THEN ARRAY(SELECT jsonb_array_elements_text(j.depth_ones))
-      ELSE j.depth_ones::text[]
-    END as depth_ones,
-    CASE
-      WHEN j.depth_twos IS NULL THEN ARRAY[]::text[]
-      WHEN pg_typeof(j.depth_twos)::text = 'jsonb' THEN ARRAY(SELECT jsonb_array_elements_text(j.depth_twos))
-      ELSE j.depth_twos::text[]
-    END as depth_twos,
-    CASE
-      WHEN j.keywords IS NULL THEN ARRAY[]::text[]
-      WHEN pg_typeof(j.keywords)::text = 'jsonb' THEN ARRAY(SELECT jsonb_array_elements_text(j.keywords))
-      ELSE j.keywords::text[]
-    END as keywords,
+    j.depth_ones,
+    j.depth_twos,
+    j.keywords,
     j.views,
     j.detail,
-    j.original_created_at,
-    j.last_modified_at,
-    j.crawled_at::text,
+    j.original_created_at::text,
+    j.last_modified_at::text,
+    j.crawled_at,
     j.is_active
   FROM jobs j
   WHERE j.is_active = true
-    AND (j.end_date IS NULL OR j.end_date >= CURRENT_DATE)  -- 마감일 필터 추가
+    AND (j.end_date IS NULL OR j.end_date >= CURRENT_DATE)  -- date >= date 비교 (정상)
     AND (
       p_job_types IS NULL
       OR array_length(p_job_types, 1) IS NULL
-      OR (
-        CASE
-          WHEN pg_typeof(j.depth_twos)::text = 'jsonb' THEN
-            EXISTS (
-              SELECT 1 FROM jsonb_array_elements_text(j.depth_twos) AS dt
-              WHERE dt = ANY(p_job_types)
-            )
-          ELSE j.depth_twos::text[] && p_job_types
-        END
-      )
-      OR (
-        CASE
-          WHEN pg_typeof(j.depth_ones)::text = 'jsonb' THEN
-            EXISTS (
-              SELECT 1 FROM jsonb_array_elements_text(j.depth_ones) AS d1
-              WHERE d1 = ANY(p_job_types)
-            )
-          ELSE j.depth_ones::text[] && p_job_types
-        END
-      )
+      OR j.depth_twos ?| p_job_types
+      OR j.depth_ones ?| p_job_types
     )
     AND (
       p_locations IS NULL
       OR array_length(p_locations, 1) IS NULL
       OR EXISTS (
-        SELECT 1 FROM unnest(
-          CASE
-            WHEN pg_typeof(j.regions)::text = 'jsonb' THEN
-              ARRAY(SELECT jsonb_array_elements_text(j.regions))
-            ELSE j.regions::text[]
-          END
-        ) AS r
+        SELECT 1
+        FROM jsonb_array_elements_text(j.regions) AS r
         WHERE EXISTS (
-          SELECT 1 FROM unnest(p_locations) AS loc
+          SELECT 1
+          FROM unnest(p_locations) AS loc
           WHERE r ILIKE '%' || loc || '%'
         )
       )
