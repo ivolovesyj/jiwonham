@@ -1324,6 +1324,7 @@ export default function HomePage() {
                   onStatusChange={handleDemoStatusChange}
                   onDelete={handleDemoDelete}
                   onDeadlineChange={handleDemoUpdateDeadline}
+                  onUpdateNotes={handleDemoUpdateNotes}
                 />
               ) : (
                 <>
@@ -1498,6 +1499,9 @@ export default function HomePage() {
                   onStatusChange={handleStatusChange}
                   onDelete={handleDelete}
                   onDeadlineChange={handleUpdateDeadline}
+                  onUpdateNotes={handleUpdateNotes}
+                  onAddCoverLetterQuestion={handleAddCoverLetterQuestion}
+                  onViewCoverLetter={handleViewCoverLetter}
                 />
               ) : (
                 <>

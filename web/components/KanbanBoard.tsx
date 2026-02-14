@@ -20,13 +20,16 @@ import { statusConfig } from './StatusBadge'
 import { StatusBadge } from './StatusBadge'
 import { CompanyLogo } from './CompanyLogo'
 import { DeadlineBadge } from './DeadlineBadge'
-import { ExternalLink, Trash2, X } from 'lucide-react'
+import { ExternalLink, Trash2, X, Pencil, MessageSquare, FileText } from 'lucide-react'
 
 interface KanbanBoardProps {
   applications: ApplicationWithJob[]
   onStatusChange: (applicationId: string, newStatus: ApplicationStatus) => void
   onDelete: (applicationId: string, savedJobId: string) => void
   onDeadlineChange: (savedJobId: string, deadline: string) => void
+  onUpdateNotes: (applicationId: string, notes: string) => void
+  onAddCoverLetterQuestion?: (savedJobId: string) => void
+  onViewCoverLetter?: (savedJobId: string, jobLabel: string) => void
 }
 
 const KANBAN_COLUMNS: ApplicationStatus[] = [
@@ -89,6 +92,9 @@ function CardDetailPopover({
   onStatusChange,
   onDelete,
   onDeadlineChange,
+  onUpdateNotes,
+  onAddCoverLetterQuestion,
+  onViewCoverLetter,
   onClose,
 }: {
   application: ApplicationWithJob
@@ -96,14 +102,20 @@ function CardDetailPopover({
   onStatusChange: (id: string, status: ApplicationStatus) => void
   onDelete: (applicationId: string, savedJobId: string) => void
   onDeadlineChange: (savedJobId: string, deadline: string) => void
+  onUpdateNotes: (applicationId: string, notes: string) => void
+  onAddCoverLetterQuestion?: (savedJobId: string) => void
+  onViewCoverLetter?: (savedJobId: string, jobLabel: string) => void
   onClose: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notes, setNotes] = useState(application.notes || '')
   const company = application.saved_job.external_company || application.saved_job.company || '회사명 없음'
   const title = application.saved_job.external_title || application.saved_job.title || '직무명 없음'
   const location = application.saved_job.external_location || application.saved_job.location
   const deadline = application.saved_job.external_deadline || application.saved_job.deadline
   const jobUrl = application.saved_job.external_url || application.saved_job.redirect_url || application.saved_job.link
+  const jobLabel = `${company} ${title}`
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -164,8 +176,50 @@ function CardDetailPopover({
             onDeadlineChange={(newDeadline) => onDeadlineChange(application.saved_job.id, newDeadline)}
           />
         </div>
-        {application.notes && (
-          <div className="bg-gray-50 rounded-lg p-2 text-gray-700">{application.notes}</div>
+      </div>
+
+      {/* 메모 */}
+      <div className="space-y-1">
+        {!editingNotes ? (
+          <div className="flex items-start gap-1.5">
+            {application.notes ? (
+              <div className="flex-1 bg-gray-50 rounded-lg p-2 text-xs text-gray-700 whitespace-pre-wrap">{application.notes}</div>
+            ) : (
+              <span className="flex-1 text-xs text-gray-400">메모 없음</span>
+            )}
+            <button
+              onClick={() => setEditingNotes(true)}
+              className="p-1 hover:bg-gray-100 rounded-md flex-shrink-0"
+              title="메모 편집"
+            >
+              <Pencil className="w-3 h-3 text-gray-400" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full text-xs border border-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+              rows={3}
+              placeholder="메모를 입력하세요..."
+              autoFocus
+            />
+            <div className="flex gap-1.5 justify-end">
+              <button
+                onClick={() => { setNotes(application.notes || ''); setEditingNotes(false) }}
+                className="text-xs px-2 py-1 text-gray-500 hover:bg-gray-100 rounded"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { onUpdateNotes(application.id, notes); setEditingNotes(false) }}
+                className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                저장
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -181,6 +235,30 @@ function CardDetailPopover({
           }}
         />
       </div>
+
+      {/* 자소서 버튼 */}
+      {(onAddCoverLetterQuestion || onViewCoverLetter) && (
+        <div className="flex gap-2 border-t border-gray-100 pt-2">
+          {onAddCoverLetterQuestion && (
+            <button
+              onClick={() => { onAddCoverLetterQuestion(application.saved_job.id); onClose() }}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              질문 추가
+            </button>
+          )}
+          {onViewCoverLetter && (
+            <button
+              onClick={() => { onViewCoverLetter(application.saved_job.id, jobLabel); onClose() }}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              자소서 보기
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 액션 버튼 */}
       <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
@@ -309,7 +387,7 @@ function DroppableColumn({
   )
 }
 
-export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadlineChange }: KanbanBoardProps) {
+export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadlineChange, onUpdateNotes, onAddCoverLetterQuestion, onViewCoverLetter }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overColumnId, setOverColumnId] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<{ app: ApplicationWithJob; rect: DOMRect } | null>(null)
@@ -418,6 +496,9 @@ export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadline
           onStatusChange={onStatusChange}
           onDelete={onDelete}
           onDeadlineChange={onDeadlineChange}
+          onUpdateNotes={onUpdateNotes}
+          onAddCoverLetterQuestion={onAddCoverLetterQuestion}
+          onViewCoverLetter={onViewCoverLetter}
           onClose={() => setSelectedApp(null)}
         />
       )}
