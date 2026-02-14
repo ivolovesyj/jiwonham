@@ -517,7 +517,7 @@ export default function Home() {
         .select('weight, apply_count, hold_count, pass_count')
         .eq('user_id', userId)
         .eq('keyword', keyword)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         await supabase.from('keyword_weights').update({
@@ -543,7 +543,7 @@ export default function Home() {
       .select('preference_score, apply_count, hold_count, pass_count')
       .eq('user_id', userId)
       .eq('company_name', job.company)
-      .single()
+      .maybeSingle()
 
     if (existingCompany) {
       await supabase.from('company_preference').update({
