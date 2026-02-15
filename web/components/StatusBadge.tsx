@@ -157,6 +157,7 @@ export function StatusBadge({ status, editable, onStatusChange }: StatusBadgePro
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
+          data-status-dropdown
           className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]"
           style={{
             top: dropdownPosition.top,

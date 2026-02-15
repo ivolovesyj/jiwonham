@@ -33,12 +33,14 @@ interface KanbanBoardProps {
 
 const KANBAN_COLUMNS: ApplicationStatus[] = [
   'pending',
+  'hold',
   'applied',
   'document_pass',
   'interviewing',
   'final',
   'accepted',
   'rejected',
+  'passed',
 ]
 
 const COLUMN_DOT_COLORS: Record<string, string> = {
@@ -119,6 +121,9 @@ function CardDetailPopover({
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
+        // StatusBadge 드롭다운 클릭 시 팝오버 닫히지 않도록
+        const target = e.target as HTMLElement
+        if (target.closest('[data-status-dropdown]')) return
         onClose()
       }
     }
@@ -390,7 +395,7 @@ export function KanbanBoard({ applications, onStatusChange, onDelete, onDeadline
       if (groups[app.status]) {
         groups[app.status].push(app)
       }
-      // 칸반에 없는 상태(hold, not_applying, passed 등)는 표시 안 함
+      // 칸반에 없는 상태(not_applying 등)는 표시 안 함
     }
     return groups
   }, [applications])
