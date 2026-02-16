@@ -43,7 +43,6 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const [includeSpace, setIncludeSpace] = useState(question.include_space)
   const [answer, setAnswer] = useState(question.answer || '')
   const [jdInfo, setJdInfo] = useState(question.jd_info || '')
-  const [showJdInfo, setShowJdInfo] = useState(!question.jd_info && !question.saved_job)
   const [saving, setSaving] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string>(question.saved_job_id || '')
   const [savedJobs, setSavedJobs] = useState<SavedJobOption[]>([])
@@ -545,29 +544,26 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
         </div>
       </div>
 
-      {/* JD 정보 (접이식) */}
-      <div className="border border-gray-200 rounded-md overflow-hidden">
-        <button
-          onClick={() => setShowJdInfo(!showJdInfo)}
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
-        >
-          <span>JD 및 회사정보 {jdInfo ? '(입력됨)' : '(AI 작성에 필요)'}</span>
-          {showJdInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-        {showJdInfo && (
-          <div className="p-3 pt-0 space-y-2">
-            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2 leading-relaxed">
-              회사의 인재상, 조직 문화, 직무 상세 내용 등 자소서 작성에 참고할 내용이 있다면 복사해서 붙여넣어 주세요. AI가 더 정확한 자소서를 작성합니다.
-            </p>
-            <textarea
-              value={jdInfo}
-              onChange={(e) => setJdInfo(e.target.value)}
-              placeholder="채용공고의 직무 설명, 자격요건, 우대사항, 회사 소개 등을 붙여넣으세요."
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-600"
-            />
-          </div>
-        )}
+      {/* JD 및 회사정보 */}
+      <div className="border border-amber-200 rounded-lg overflow-hidden bg-white">
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
+          <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-1.5">
+            <Building2 className="w-4 h-4" />
+            JD 및 회사정보
+          </h4>
+          <p className="text-xs text-amber-700 mt-1">
+            인재상, 조직 문화, 직무 상세 내용 등 자소서 작성에 참고할 내용이 있다면 복사해서 붙여넣어 주세요.
+          </p>
+        </div>
+        <div className="p-4">
+          <textarea
+            value={jdInfo}
+            onChange={(e) => setJdInfo(e.target.value)}
+            placeholder="채용공고의 직무 설명, 자격요건, 우대사항, 회사 소개 등을 붙여넣으세요."
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-gray-700"
+          />
+        </div>
       </div>
 
       {/* ============ AI 소재 추천 ============ */}
