@@ -555,17 +555,17 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
           {showJdInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
         {showJdInfo && (
-          <div className="p-3 pt-0">
+          <div className="p-3 pt-0 space-y-2">
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2 leading-relaxed">
+              회사의 인재상, 조직 문화, 직무 상세 내용 등 자소서 작성에 참고할 내용이 있다면 복사해서 붙여넣어 주세요. AI가 더 정확한 자소서를 작성합니다.
+            </p>
             <textarea
               value={jdInfo}
               onChange={(e) => setJdInfo(e.target.value)}
-              placeholder="채용공고의 직무 설명, 자격요건, 우대사항, 회사 소개 등을 붙여넣으세요. AI가 자소서 작성 시 참고합니다."
+              placeholder="채용공고의 직무 설명, 자격요건, 우대사항, 회사 소개 등을 붙여넣으세요."
               rows={4}
               className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-600"
             />
-            {!jdInfo && (
-              <p className="text-xs text-amber-600 mt-1">JD 정보를 입력하면 AI가 더 정확한 소재 추천과 답변 작성을 할 수 있습니다.</p>
-            )}
           </div>
         )}
       </div>
