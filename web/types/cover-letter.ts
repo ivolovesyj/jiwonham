@@ -62,6 +62,8 @@ export interface CoverLetterQuestionWithJob extends CoverLetterQuestion {
     title: string | null
     external_company: string | null
     external_title: string | null
+    description: string | null
+    detail: Record<string, any> | null
   } | null
 }
 

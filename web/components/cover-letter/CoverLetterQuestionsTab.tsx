@@ -53,7 +53,7 @@ export function CoverLetterQuestionsTab({ user, initialJobId }: Props) {
       if (jobIds.length > 0) {
         const { data: jobs } = await supabase
           .from('saved_jobs')
-          .select('id, company, title')
+          .select('id, company, title, description, detail')
           .in('id', jobIds)
 
         if (jobs) {
@@ -135,7 +135,7 @@ export function CoverLetterQuestionsTab({ user, initialJobId }: Props) {
       if (created.saved_job_id) {
         const { data: jobData } = await supabase
           .from('saved_jobs')
-          .select('id, company, title')
+          .select('id, company, title, description, detail')
           .eq('id', created.saved_job_id)
           .single()
         savedJob = jobData

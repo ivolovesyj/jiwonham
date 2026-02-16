@@ -23,6 +23,8 @@ interface SavedJobOption {
   id: string
   company: string
   title: string
+  description: string | null
+  detail: Record<string, any> | null
 }
 
 interface Props {
@@ -41,7 +43,7 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const [includeSpace, setIncludeSpace] = useState(question.include_space)
   const [answer, setAnswer] = useState(question.answer || '')
   const [jdInfo, setJdInfo] = useState(question.jd_info || '')
-  const [showJdInfo, setShowJdInfo] = useState(!question.jd_info)
+  const [showJdInfo, setShowJdInfo] = useState(!question.jd_info && !question.saved_job)
   const [saving, setSaving] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string>(question.saved_job_id || '')
   const [savedJobs, setSavedJobs] = useState<SavedJobOption[]>([])
@@ -68,6 +70,39 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const [showVersions, setShowVersions] = useState(false)
   const [versionSaving, setVersionSaving] = useState(false)
 
+  // 연결된 공고에서 JD 정보 자동 채우기
+  const buildJdInfoFromJob = useCallback((job: NonNullable<typeof question.saved_job>) => {
+    const parts: string[] = []
+    if (job.company) parts.push(`[회사] ${job.company}`)
+    if (job.title) parts.push(`[공고] ${job.title}`)
+
+    const detail = job.detail
+    if (detail) {
+      if (detail.intro) parts.push(`[회사소개]\n${detail.intro}`)
+      if (detail.main_tasks) parts.push(`[주요업무]\n${detail.main_tasks}`)
+      if (detail.requirements) parts.push(`[자격요건]\n${detail.requirements}`)
+      if (detail.preferred_points) parts.push(`[우대사항]\n${detail.preferred_points}`)
+      if (detail.benefits) parts.push(`[혜택 및 복지]\n${detail.benefits}`)
+      if (detail.employee_types?.length) parts.push(`[고용형태] ${detail.employee_types.join(', ')}`)
+      if (detail.career) parts.push(`[경력] ${detail.career}`)
+    }
+
+    if (parts.length <= 2 && job.description) {
+      parts.push(`[공고내용]\n${job.description}`)
+    }
+
+    return parts.join('\n\n')
+  }, [])
+
+  useEffect(() => {
+    if (!jdInfo && question.saved_job) {
+      const autoJd = buildJdInfoFromJob(question.saved_job)
+      if (autoJd) {
+        setJdInfo(autoJd)
+      }
+    }
+  }, [question.saved_job])
+
   // 공고 목록 fetch
   useEffect(() => {
     if (showJobSelect && savedJobs.length === 0) {
@@ -92,7 +127,7 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
 
       const { data } = await supabase
         .from('saved_jobs')
-        .select('id, company, title')
+        .select('id, company, title, description, detail')
         .in('id', pendingJobIds)
         .order('created_at', { ascending: false })
 
@@ -101,6 +136,8 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
           id: j.id,
           company: j.company || '회사명 없음',
           title: j.title || '공고명 없음',
+          description: j.description || null,
+          detail: j.detail || null,
         })))
       }
     } catch (error) {
@@ -393,7 +430,18 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
         {showJobSelect ? (
           <select
             value={selectedJobId}
-            onChange={(e) => setSelectedJobId(e.target.value)}
+            onChange={(e) => {
+              const newJobId = e.target.value
+              setSelectedJobId(newJobId)
+              // JD 정보가 비어있으면 선택한 공고에서 자동 채우기
+              if (!jdInfo && newJobId) {
+                const selectedJob = savedJobs.find(j => j.id === newJobId)
+                if (selectedJob) {
+                  const autoJd = buildJdInfoFromJob(selectedJob as any)
+                  if (autoJd) setJdInfo(autoJd)
+                }
+              }
+            }}
             className="flex-1 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="">공고 미연결</option>
