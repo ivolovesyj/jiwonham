@@ -52,14 +52,26 @@ const STATUS_ORDER: Record<string, number> = {
   declined: 10,
 }
 
-// 비로그인 사용자를 위한 샘플 데이터 (다양한 상태 미리보기)
-const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
+const toIsoDate = (offsetDays: number): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+  return date.toISOString().split('T')[0]
+}
+
+const toIsoDateTime = (offsetDays: number): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+  return date.toISOString()
+}
+
+// 비로그인 사용자를 위한 샘플 데이터 (상대 날짜로 자동 갱신)
+const createInitialDemoApplications = (): ApplicationWithJob[] => [
   {
     id: 'demo-1',
     user_id: 'demo',
     saved_job_id: 'demo-job-1',
     status: 'pending',
-    created_at: '2026-02-01T10:00:00Z',
+    created_at: toIsoDateTime(-4),
     applied_date: null,
     notes: null,
     required_documents: null,
@@ -71,8 +83,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: '프론트엔드 개발자',
       external_url: 'https://toss.im/career',
       external_location: '서울 강남구',
-      external_deadline: '2026-02-15',
-      created_at: '2026-02-01T10:00:00Z',
+      external_deadline: toIsoDate(3),
+      created_at: toIsoDateTime(-4),
       is_pinned: true,
       pin_order: 0,
     },
@@ -82,7 +94,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-2',
     status: 'hold',
-    created_at: '2026-02-02T10:00:00Z',
+    created_at: toIsoDateTime(-5),
     applied_date: null,
     notes: '추후 검토 필요',
     required_documents: null,
@@ -94,8 +106,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: 'React 개발자',
       external_url: 'https://careers.kakao.com',
       external_location: '경기 성남시 판교',
-      external_deadline: '2026-02-20',
-      created_at: '2026-02-02T10:00:00Z',
+      external_deadline: toIsoDate(6),
+      created_at: toIsoDateTime(-5),
       is_pinned: false,
       pin_order: null,
     },
@@ -105,8 +117,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-3',
     status: 'applied',
-    created_at: '2026-02-03T10:00:00Z',
-    applied_date: '2026-02-06',
+    created_at: toIsoDateTime(-8),
+    applied_date: toIsoDate(-6),
     notes: null,
     required_documents: { resume: 'ready', portfolio: 'ready' },
     saved_job: {
@@ -117,8 +129,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: 'AI 엔지니어',
       external_url: 'https://recruit.navercorp.com',
       external_location: '경기 성남시 분당',
-      external_deadline: '2026-02-25',
-      created_at: '2026-02-03T10:00:00Z',
+      external_deadline: toIsoDate(10),
+      created_at: toIsoDateTime(-8),
       is_pinned: false,
       pin_order: null,
     },
@@ -128,8 +140,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-4',
     status: 'interviewing',
-    created_at: '2026-02-04T10:00:00Z',
-    applied_date: '2026-02-05',
+    created_at: toIsoDateTime(-12),
+    applied_date: toIsoDate(-9),
     notes: '2차 면접 대기 중',
     required_documents: { resume: 'ready', portfolio: 'ready', cover_letter: 'ready' },
     saved_job: {
@@ -140,8 +152,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: '백엔드 개발자',
       external_url: 'https://careers.linecorp.com',
       external_location: '서울 강남구',
-      external_deadline: '2026-03-01',
-      created_at: '2026-02-04T10:00:00Z',
+      external_deadline: toIsoDate(14),
+      created_at: toIsoDateTime(-12),
       is_pinned: false,
       pin_order: null,
     },
@@ -151,8 +163,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-5',
     status: 'document_pass',
-    created_at: '2026-01-25T10:00:00Z',
-    applied_date: '2026-01-28',
+    created_at: toIsoDateTime(-15),
+    applied_date: toIsoDate(-12),
     notes: '서류 합격! 면접 준비 중',
     required_documents: { resume: 'ready', portfolio: 'ready' },
     saved_job: {
@@ -163,8 +175,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: '데이터 분석가',
       external_url: 'https://www.coupang.jobs',
       external_location: '서울 송파구',
-      external_deadline: '2026-03-05',
-      created_at: '2026-01-25T10:00:00Z',
+      external_deadline: toIsoDate(18),
+      created_at: toIsoDateTime(-15),
       is_pinned: false,
       pin_order: null,
     },
@@ -174,8 +186,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-6',
     status: 'rejected',
-    created_at: '2026-01-20T10:00:00Z',
-    applied_date: '2026-01-22',
+    created_at: toIsoDateTime(-20),
+    applied_date: toIsoDate(-17),
     notes: '불합격 - 다음 기회에 재도전',
     required_documents: null,
     saved_job: {
@@ -186,8 +198,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: 'UX 디자이너',
       external_url: 'https://career.woowahan.com',
       external_location: '서울 송파구',
-      external_deadline: '2026-02-10',
-      created_at: '2026-01-20T10:00:00Z',
+      external_deadline: toIsoDate(8),
+      created_at: toIsoDateTime(-20),
       is_pinned: false,
       pin_order: null,
     },
@@ -197,7 +209,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-7',
     status: 'pending',
-    created_at: '2026-02-05T10:00:00Z',
+    created_at: toIsoDateTime(-3),
     applied_date: null,
     notes: null,
     required_documents: null,
@@ -209,8 +221,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: 'Product Designer',
       external_url: 'https://about.daangn.com/jobs',
       external_location: '서울 구로구',
-      external_deadline: '2026-02-18',
-      created_at: '2026-02-05T10:00:00Z',
+      external_deadline: toIsoDate(11),
+      created_at: toIsoDateTime(-3),
       is_pinned: false,
       pin_order: null,
     },
@@ -220,7 +232,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-8',
     status: 'pending',
-    created_at: '2026-02-06T10:00:00Z',
+    created_at: toIsoDateTime(-2),
     applied_date: null,
     notes: '이력서 업데이트 필요',
     required_documents: null,
@@ -232,8 +244,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: '게임 클라이언트 개발',
       external_url: 'https://careers.nexon.com/',
       external_location: '경기 성남시 분당',
-      external_deadline: '2026-02-22',
-      created_at: '2026-02-06T10:00:00Z',
+      external_deadline: toIsoDate(13),
+      created_at: toIsoDateTime(-2),
       is_pinned: false,
       pin_order: null,
     },
@@ -243,8 +255,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-9',
     status: 'applied',
-    created_at: '2026-01-30T10:00:00Z',
-    applied_date: '2026-02-03',
+    created_at: toIsoDateTime(-10),
+    applied_date: toIsoDate(-7),
     notes: null,
     required_documents: { resume: 'ready', cover_letter: 'ready' },
     saved_job: {
@@ -255,8 +267,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: 'DevOps 엔지니어',
       external_url: 'https://careers.sktelecom.com/',
       external_location: '서울 중구',
-      external_deadline: '2026-03-10',
-      created_at: '2026-01-30T10:00:00Z',
+      external_deadline: toIsoDate(20),
+      created_at: toIsoDateTime(-10),
       is_pinned: false,
       pin_order: null,
     },
@@ -266,7 +278,7 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
     user_id: 'demo',
     saved_job_id: 'demo-job-10',
     status: 'not_applying',
-    created_at: '2026-01-28T10:00:00Z',
+    created_at: toIsoDateTime(-14),
     applied_date: null,
     notes: '조건이 맞지 않아 지원 안 함',
     required_documents: null,
@@ -278,8 +290,8 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
       external_title: '임베디드 SW 개발',
       external_url: 'https://careers.lg.com/',
       external_location: '서울 영등포구',
-      external_deadline: '2026-02-28',
-      created_at: '2026-01-28T10:00:00Z',
+      external_deadline: toIsoDate(16),
+      created_at: toIsoDateTime(-14),
       is_pinned: false,
       pin_order: null,
     },
@@ -289,23 +301,65 @@ const INITIAL_DEMO_APPLICATIONS: ApplicationWithJob[] = [
 // localStorage 키
 const DEMO_DATA_KEY = 'jiwonbox_demo_data'
 const DEMO_INTERACTION_KEY = 'jiwonbox_demo_interactions'
+const DEMO_DATA_VERSION = 'v2-relative-deadlines'
+const DEMO_DATA_TTL_MS = 1000 * 60 * 60 * 24
+
+type DemoDataPayload = {
+  version: string
+  generated_at: string
+  applications: ApplicationWithJob[]
+}
+
+const buildDemoPayload = (applications: ApplicationWithJob[]): DemoDataPayload => ({
+  version: DEMO_DATA_VERSION,
+  generated_at: new Date().toISOString(),
+  applications,
+})
+
+const isDemoDataFresh = (generatedAt?: string): boolean => {
+  if (!generatedAt) return false
+  const generatedTime = new Date(generatedAt).getTime()
+  if (Number.isNaN(generatedTime)) return false
+  return Date.now() - generatedTime < DEMO_DATA_TTL_MS
+}
 
 // localStorage 헬퍼 함수
 const getDemoData = (): ApplicationWithJob[] => {
-  if (typeof window === 'undefined') return INITIAL_DEMO_APPLICATIONS
+  const fallback = createInitialDemoApplications()
+  if (typeof window === 'undefined') return fallback
   try {
     const stored = localStorage.getItem(DEMO_DATA_KEY)
-    if (!stored) return INITIAL_DEMO_APPLICATIONS
-    return JSON.parse(stored)
+    if (!stored) {
+      localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(buildDemoPayload(fallback)))
+      return fallback
+    }
+
+    const parsed = JSON.parse(stored)
+    if (Array.isArray(parsed)) {
+      localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(buildDemoPayload(fallback)))
+      return fallback
+    }
+
+    const payload = parsed as Partial<DemoDataPayload>
+    if (
+      payload.version !== DEMO_DATA_VERSION ||
+      !Array.isArray(payload.applications) ||
+      !isDemoDataFresh(payload.generated_at)
+    ) {
+      localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(buildDemoPayload(fallback)))
+      return fallback
+    }
+
+    return payload.applications
   } catch {
-    return INITIAL_DEMO_APPLICATIONS
+    return fallback
   }
 }
 
 const saveDemoData = (data: ApplicationWithJob[]) => {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(data))
+    localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(buildDemoPayload(data)))
   } catch (error) {
     console.error('Failed to save demo data:', error)
   }
