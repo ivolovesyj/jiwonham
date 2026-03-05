@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { GA_ID } from "@/lib/analytics";
@@ -91,7 +92,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <AnalyticsBootstrap />
+          <Suspense fallback={null}>
+            <AnalyticsBootstrap />
+          </Suspense>
           {children}
         </AuthProvider>
         {GA_ID && (
