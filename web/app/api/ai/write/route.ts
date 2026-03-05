@@ -3,17 +3,34 @@ import { createClient } from '@supabase/supabase-js'
 import { getModel, parseGeminiJSON } from '@/lib/gemini'
 import { countChars } from '@/types/cover-letter'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { logApiEvent } from '@/lib/api-analytics'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
+  let userId: string | null = null
+  const respond = (status: number, body: Record<string, unknown>, success: boolean, errorMessage?: string, meta?: Record<string, unknown>) => {
+    logApiEvent({
+      route: '/api/ai/write',
+      method: 'POST',
+      status_code: status,
+      latency_ms: Date.now() - startedAt,
+      success,
+      user_id: userId,
+      error_message: errorMessage || null,
+      meta,
+    })
+    return NextResponse.json(body, { status })
+  }
+
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -22,14 +39,17 @@ export async function POST(request: NextRequest) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
+    userId = user.id
 
     const { allowed } = await checkRateLimit(user.id)
     if (!allowed) {
-      return NextResponse.json(
+      return respond(
+        429,
         { error: 'AI 기능 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.' },
-        { status: 429 }
+        false,
+        'Rate limited'
       )
     }
 
@@ -44,7 +64,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (qError || !question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+      return respond(404, { error: 'Question not found' }, false, 'Question not found')
     }
 
     // 연결된 공고 정보
@@ -75,7 +95,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
 
     if (!materials || materials.length === 0) {
-      return NextResponse.json({ error: 'No materials found' }, { status: 404 })
+      return respond(404, { error: 'No materials found' }, false, 'No materials found')
     }
 
     const spaceText = include_space ? '공백 포함' : '공백 제외'
@@ -123,17 +143,17 @@ ${char_limit ? `반드시 ${char_limit}자 이내(${spaceText})로 작성하세�
     const answer = (parsed.answer as string) || ''
     const charCount = countChars(answer, include_space ?? true)
 
-    return NextResponse.json({
+    return respond(200, {
       success: true,
       data: {
         answer,
         char_count: charCount,
         within_limit: !char_limit || charCount <= char_limit,
       },
-    })
+    }, true, undefined, { within_limit: !char_limit || charCount <= char_limit })
   } catch (error: unknown) {
     console.error('AI Write error:', error)
     const message = error instanceof Error ? error.message : 'Failed to generate answer'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return respond(500, { error: message }, false, message)
   }
 }

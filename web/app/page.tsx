@@ -441,6 +441,7 @@ export default function HomePage() {
   const [showSignupModal, setShowSignupModal] = useState(false)
   const [demoPinnedIds, setDemoPinnedIds] = useState<Set<string>>(new Set())
   const [demoPinOrder, setDemoPinOrder] = useState<string[]>([])
+  const [applicationsPageTracked, setApplicationsPageTracked] = useState(false)
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -455,6 +456,17 @@ export default function HomePage() {
       sessionStorage.setItem('jiwonbox_visited', 'true')
     }
   }, [])
+
+  useEffect(() => {
+    if (!applicationsPageTracked) {
+      trackEvent('applications_page_viewed', {
+        feature_name: 'applications',
+        action: 'view',
+        is_authenticated: !!user,
+      })
+      setApplicationsPageTracked(true)
+    }
+  }, [applicationsPageTracked, user])
 
   // 최소 로딩 시간 보장 (1초)
   useEffect(() => {
@@ -602,6 +614,11 @@ export default function HomePage() {
             : app
         )
       )
+      trackEvent('application_status_changed', {
+        feature_name: 'applications',
+        action: 'status_change',
+        status: newStatus,
+      })
       if (newStatus === 'applied') trackEvent('application_applied')
       else if (newStatus === 'accepted') trackEvent('application_accepted')
     } catch (error) {
@@ -666,6 +683,12 @@ export default function HomePage() {
             : app
         )
       )
+      trackEvent('deadline_updated', {
+        feature_name: 'applications',
+        action: 'deadline_update',
+        saved_job_id: savedJobId,
+        deadline: deadline || null,
+      })
     } catch (error) {
       console.error('Failed to update deadline:', error)
       alert('마감일 저장에 실패했습니다.')
@@ -820,7 +843,10 @@ export default function HomePage() {
         { ...status, saved_job: savedJob },
         ...prev,
       ])
-      trackEvent('external_job_saved')
+      trackEvent('external_job_saved', {
+        feature_name: 'applications',
+        action: 'external_save',
+      })
     } catch (error) {
       console.error('Failed to save external job:', error)
       alert('저장에 실패했습니다.')

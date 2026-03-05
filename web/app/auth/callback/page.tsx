@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { trackEvent } from '@/lib/analytics'
 
 export default function AuthCallback() {
   const router = useRouter()
@@ -21,6 +22,11 @@ export default function AuthCallback() {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.access_token) {
             setStatus('로그인 성공! 확인 중...')
+            const createdAt = session.user?.created_at ? new Date(session.user.created_at).getTime() : 0
+            const accountAgeMs = createdAt > 0 ? Date.now() - createdAt : Number.MAX_SAFE_INTEGER
+            if (accountAgeMs < 5 * 60 * 1000) {
+              trackEvent('signup_completed', { feature_name: 'auth', action: 'signup_complete', provider: 'kakao' })
+            }
 
             // 세션이 확실히 저장된 후 이동
             await new Promise(r => setTimeout(r, 500))

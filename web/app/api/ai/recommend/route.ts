@@ -1,17 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getModel, parseGeminiJSON } from '@/lib/gemini'
+import { logApiEvent } from '@/lib/api-analytics'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
+  let userId: string | null = null
+  const respond = (status: number, body: Record<string, unknown>, success: boolean, errorMessage?: string, meta?: Record<string, unknown>) => {
+    logApiEvent({
+      route: '/api/ai/recommend',
+      method: 'POST',
+      status_code: status,
+      latency_ms: Date.now() - startedAt,
+      success,
+      user_id: userId,
+      error_message: errorMessage || null,
+      meta,
+    })
+    return NextResponse.json(body, { status })
+  }
+
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -20,8 +37,9 @@ export async function POST(request: NextRequest) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
+    userId = user.id
 
     const { question_id } = await request.json()
 
@@ -34,7 +52,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (qError || !question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+      return respond(404, { error: 'Question not found' }, false, 'Question not found')
     }
 
     // 연결된 공고 정보
@@ -65,10 +83,10 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (!materials || materials.length === 0) {
-      return NextResponse.json({
+      return respond(200, {
         success: true,
         data: { recommendations: [], total_recommended: 0, reasoning: '등록된 경험 소재가 없습니다. 먼저 경험 소재를 추가해주세요.' },
-      })
+      }, true, undefined, { recommendation_count: 0 })
     }
 
     const charLimit = question.char_limit
@@ -126,13 +144,14 @@ ${materials.map((m: Record<string, unknown>, idx: number) => `${idx + 1}. ID: ${
     const responseText = result.response.text()
     const data = parseGeminiJSON(responseText)
 
-    return NextResponse.json({
+    const recommendationCount = Array.isArray(data?.recommendations) ? data.recommendations.length : undefined
+    return respond(200, {
       success: true,
       data,
-    })
+    }, true, undefined, { recommendation_count: recommendationCount })
   } catch (error: unknown) {
     console.error('AI Recommend error:', error)
     const message = error instanceof Error ? error.message : 'Failed to generate recommendations'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return respond(500, { error: message }, false, message)
   }
 }

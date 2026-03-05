@@ -290,11 +290,19 @@ export default function Home() {
   const [searchTotal, setSearchTotal] = useState<number | undefined>(undefined)
   const [isSearching, setIsSearching] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [pageViewTracked, setPageViewTracked] = useState(false)
 
   // 클라이언트에서만 랜덤 메시지 선택 (hydration 에러 방지)
   useEffect(() => {
     setLoadingMessage(getRandomLoadingMessage())
   }, [])
+
+  useEffect(() => {
+    if (!pageViewTracked) {
+      trackEvent('jobs_list_viewed', { feature_name: 'jobs', action: 'view' })
+      setPageViewTracked(true)
+    }
+  }, [pageViewTracked])
 
   // 페이지 로드 시 필터 옵션 로드
   useEffect(() => {
@@ -436,6 +444,12 @@ export default function Home() {
                 offsetRef.current = (data.offset ?? 0) + newJobs.length
                 if (append) setJobs(prev => [...prev, ...newJobs])
                 else { setJobs(newJobs); setCurrentIndex(0) }
+                trackEvent('jobs_list_viewed', {
+                  feature_name: 'jobs',
+                  action: append ? 'load_more' : 'load',
+                  job_count: newJobs.length,
+                  is_authenticated: !!user,
+                })
               }
               return
             }
@@ -487,6 +501,12 @@ export default function Home() {
           setJobs(newJobs)
           setCurrentIndex(0)
         }
+        trackEvent('jobs_list_viewed', {
+          feature_name: 'jobs',
+          action: append ? 'load_more' : 'load',
+          job_count: newJobs.length,
+          is_authenticated: !!user,
+        })
       } else if (!append) {
         setJobs([])
         setError('새로운 공고가 없습니다.')
@@ -689,6 +709,13 @@ export default function Home() {
 
       // 실시간 학습 (백그라운드)
       updateLearningData(user.id, targetJob, action).catch(console.error)
+      trackEvent('job_action', {
+        feature_name: 'jobs',
+        action,
+        job_id: targetJob.id,
+        company: targetJob.company,
+        title: targetJob.title,
+      })
       if (action === 'apply' || action === 'hold') trackEvent('job_saved', { action })
 
     } catch (error) {
@@ -781,9 +808,21 @@ export default function Home() {
             }))
             setSearchedJobs(newJobs)
             setSearchTotal(data.searchTotal ?? newJobs.length)
+            trackEvent('search_executed', {
+              feature_name: 'jobs_search',
+              action: 'search',
+              query: query.trim(),
+              result_count: newJobs.length,
+            })
           } else {
             setSearchedJobs([])
             setSearchTotal(0)
+            trackEvent('search_executed', {
+              feature_name: 'jobs_search',
+              action: 'search',
+              query: query.trim(),
+              result_count: 0,
+            })
           }
         }
       } catch (error) {
@@ -865,6 +904,15 @@ export default function Home() {
 
             // 로컬 상태 업데이트 먼저
             setFilters(newFilters)
+            trackEvent('filter_saved', {
+              feature_name: 'jobs_filter',
+              action: 'save',
+              preferred_job_types_count: newFilters.preferred_job_types.length,
+              preferred_locations_count: newFilters.preferred_locations.length,
+              preferred_work_style_count: newFilters.work_style.length,
+              preferred_company_types_count: newFilters.preferred_company_types?.length || 0,
+              preferred_education_count: newFilters.preferred_education?.length || 0,
+            })
 
             // 필터 변경 시 공고 새로 불러오기 (상태 업데이트 후 약간의 지연)
             offsetRef.current = 0
@@ -1097,6 +1145,15 @@ export default function Home() {
 
           // 로컬 상태 업데이트 먼저
           setFilters(newFilters)
+          trackEvent('filter_saved', {
+            feature_name: 'jobs_filter',
+            action: 'save',
+            preferred_job_types_count: newFilters.preferred_job_types.length,
+            preferred_locations_count: newFilters.preferred_locations.length,
+            preferred_work_style_count: newFilters.work_style.length,
+            preferred_company_types_count: newFilters.preferred_company_types?.length || 0,
+            preferred_education_count: newFilters.preferred_education?.length || 0,
+          })
 
           // 필터 변경 시 공고 새로 불러오기 (상태 업데이트 후 약간의 지연)
           offsetRef.current = 0

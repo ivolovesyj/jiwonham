@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { logApiEvent } from '@/lib/api-analytics'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -14,12 +15,28 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  * - 사용자가 수동으로 "선호도 업데이트" 버튼 클릭 시
  */
 export async function POST(request: Request) {
+  const startedAt = Date.now()
+  let userId: string | null = null
+  const respond = (status: number, body: Record<string, unknown>, success: boolean, errorMessage?: string, meta?: Record<string, unknown>) => {
+    logApiEvent({
+      route: '/api/learn',
+      method: 'POST',
+      status_code: status,
+      latency_ms: Date.now() - startedAt,
+      success,
+      user_id: userId,
+      error_message: errorMessage || null,
+      meta,
+    })
+    return NextResponse.json(body, { status })
+  }
+
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -32,8 +49,9 @@ export async function POST(request: Request) {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (!user || userError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
+    userId = user.id
 
     console.log(`[API /learn] Updating learned weights for user: ${user.id}`)
 
@@ -44,22 +62,24 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('[API /learn] Error updating weights:', error)
-      return NextResponse.json({ error: 'Failed to update learned weights' }, { status: 500 })
+      return respond(500, { error: 'Failed to update learned weights' }, false, error.message)
     }
 
     console.log('[API /learn] Result:', data)
 
-    return NextResponse.json({
+    return respond(200, {
       success: true,
       updated_features: data?.updated_features || 0,
       message: `${data?.updated_features || 0}개의 특성 가중치가 업데이트되었습니다.`
-    })
+    }, true, undefined, { updated_features: data?.updated_features || 0 })
 
   } catch (error) {
     console.error('[API /learn] Error:', error)
-    return NextResponse.json(
+    return respond(
+      500,
       { error: 'Internal server error' },
-      { status: 500 }
+      false,
+      error instanceof Error ? error.message : 'Internal server error'
     )
   }
 }
@@ -69,12 +89,28 @@ export async function POST(request: Request) {
  * 사용자의 현재 학습된 가중치를 조회합니다.
  */
 export async function GET(request: Request) {
+  const startedAt = Date.now()
+  let userId: string | null = null
+  const respond = (status: number, body: Record<string, unknown>, success: boolean, errorMessage?: string, meta?: Record<string, unknown>) => {
+    logApiEvent({
+      route: '/api/learn',
+      method: 'GET',
+      status_code: status,
+      latency_ms: Date.now() - startedAt,
+      success,
+      user_id: userId,
+      error_message: errorMessage || null,
+      meta,
+    })
+    return NextResponse.json(body, { status })
+  }
+
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -86,8 +122,9 @@ export async function GET(request: Request) {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (!user || userError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
+    userId = user.id
 
     // 학습된 가중치 조회
     const { data: weights, error } = await supabase.rpc('get_user_learned_weights', {
@@ -96,7 +133,7 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('[API /learn] Error fetching weights:', error)
-      return NextResponse.json({ error: 'Failed to fetch learned weights' }, { status: 500 })
+      return respond(500, { error: 'Failed to fetch learned weights' }, false, error.message)
     }
 
     // 타입별로 그룹화
@@ -122,7 +159,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({
+    return respond(200, {
       weights: grouped,
       total: (weights || []).length,
       summary: {
@@ -131,13 +168,15 @@ export async function GET(request: Request) {
         liked_skills: grouped.keyword.filter(k => k.weight > 0).map(k => k.value).slice(0, 5),
         disliked_skills: grouped.keyword.filter(k => k.weight < 0).map(k => k.value).slice(0, 5),
       }
-    })
+    }, true, undefined, { total: (weights || []).length })
 
   } catch (error) {
     console.error('[API /learn] Error:', error)
-    return NextResponse.json(
+    return respond(
+      500,
       { error: 'Internal server error' },
-      { status: 500 }
+      false,
+      error instanceof Error ? error.message : 'Internal server error'
     )
   }
 }

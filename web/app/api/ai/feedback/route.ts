@@ -3,17 +3,41 @@ import { createClient } from '@supabase/supabase-js'
 import { getModel, parseGeminiJSON } from '@/lib/gemini'
 import { countChars } from '@/types/cover-letter'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { logApiEvent } from '@/lib/api-analytics'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
+  let userId: string | null = null
+  const respond = (
+    status: number,
+    body: Record<string, unknown>,
+    success: boolean,
+    errorMessage?: string,
+    meta?: Record<string, unknown>,
+    headers?: Record<string, string>
+  ) => {
+    logApiEvent({
+      route: '/api/ai/feedback',
+      method: 'POST',
+      status_code: status,
+      latency_ms: Date.now() - startedAt,
+      success,
+      user_id: userId,
+      error_message: errorMessage || null,
+      meta,
+    })
+    return NextResponse.json(body, { status, headers })
+  }
+
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -22,21 +46,26 @@ export async function POST(request: NextRequest) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
+    userId = user.id
 
     const { allowed, remaining } = await checkRateLimit(user.id)
     if (!allowed) {
-      return NextResponse.json(
+      return respond(
+        429,
         { error: 'AI 기능 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.' },
-        { status: 429, headers: { 'X-RateLimit-Remaining': '0' } }
+        false,
+        'Rate limited',
+        { remaining },
+        { 'X-RateLimit-Remaining': '0' }
       )
     }
 
     const { previous_answer, user_feedback, char_limit, include_space } = await request.json()
 
     if (!previous_answer || !user_feedback) {
-      return NextResponse.json({ error: 'previous_answer and user_feedback are required' }, { status: 400 })
+      return respond(400, { error: 'previous_answer and user_feedback are required' }, false, 'Missing required fields')
     }
 
     const spaceText = include_space ? '공백 포함' : '공백 제외'
@@ -75,7 +104,7 @@ ${user_feedback}
     const revisedAnswer = (parsed.revised_answer as string) || ''
     const charCount = countChars(revisedAnswer, include_space ?? true)
 
-    return NextResponse.json({
+    return respond(200, {
       success: true,
       data: {
         revised_answer: revisedAnswer,
@@ -83,10 +112,10 @@ ${user_feedback}
         char_count: charCount,
         within_limit: !char_limit || charCount <= char_limit,
       },
-    })
+    }, true, undefined, { within_limit: !char_limit || charCount <= char_limit, remaining })
   } catch (error: unknown) {
     console.error('AI Feedback error:', error)
     const message = error instanceof Error ? error.message : 'Failed to revise answer'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return respond(500, { error: message }, false, message)
   }
 }

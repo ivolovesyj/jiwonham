@@ -199,6 +199,7 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
   const handleRecommend = async () => {
     setRecommendLoading(true)
     setChangesExplanation('')
+    trackEvent('ai_recommend_requested', { feature_name: 'cover_letter_ai', action: 'recommend_request' })
     try {
       const token = await getToken()
       if (!token) throw new Error('로그인이 필요합니다.')
@@ -222,7 +223,13 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
       setRecommendations(recs)
       setAiReasoning(result.data?.reasoning || '')
       setSelectedMaterialIds(new Set(recs.map((r: MaterialRecommendation) => r.material_id)))
+      trackEvent('ai_recommend_succeeded', {
+        feature_name: 'cover_letter_ai',
+        action: 'recommend_success',
+        recommendation_count: recs.length,
+      })
     } catch (error: unknown) {
+      trackEvent('ai_recommend_failed', { feature_name: 'cover_letter_ai', action: 'recommend_fail' })
       const message = error instanceof Error ? error.message : '추천을 가져오는데 실패했습니다.'
       alert(message)
     } finally {
@@ -251,6 +258,11 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
     }
 
     setWriteLoading(true)
+    trackEvent('ai_write_requested', {
+      feature_name: 'cover_letter_ai',
+      action: 'write_request',
+      selected_material_count: selectedMaterialIds.size,
+    })
     try {
       const token = await getToken()
       if (!token) throw new Error('로그인이 필요합니다.')
@@ -276,7 +288,13 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
 
       const result = await response.json()
       setAnswer(result.data.answer || '')
+      trackEvent('ai_write_succeeded', {
+        feature_name: 'cover_letter_ai',
+        action: 'write_success',
+        within_limit: result.data?.within_limit ?? null,
+      })
     } catch (error: unknown) {
+      trackEvent('ai_write_failed', { feature_name: 'cover_letter_ai', action: 'write_fail' })
       const message = error instanceof Error ? error.message : '답변 생성에 실패했습니다.'
       alert(message)
     } finally {
@@ -297,6 +315,7 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
     }
 
     setFeedbackLoading(true)
+    trackEvent('ai_feedback_requested', { feature_name: 'cover_letter_ai', action: 'feedback_request' })
     try {
       const token = await getToken()
       if (!token) throw new Error('로그인이 필요합니다.')
@@ -324,7 +343,13 @@ export function AnswerEditor({ question, onUpdate, onDelete, user }: Props) {
       setAnswer(result.data.revised_answer || '')
       setChangesExplanation(result.data.changes_explanation || '')
       setFeedback('')
+      trackEvent('ai_feedback_succeeded', {
+        feature_name: 'cover_letter_ai',
+        action: 'feedback_success',
+        within_limit: result.data?.within_limit ?? null,
+      })
     } catch (error: unknown) {
+      trackEvent('ai_feedback_failed', { feature_name: 'cover_letter_ai', action: 'feedback_fail' })
       const message = error instanceof Error ? error.message : '답변 수정에 실패했습니다.'
       alert(message)
     } finally {

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { identifyUser, trackEvent } from './analytics'
 
 interface AuthContextType {
   user: User | null
@@ -21,14 +22,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 초기 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      identifyUser(session?.user?.id ?? null)
       setLoading(false)
     })
 
     // 인증 상태 변경 리스너
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
+      identifyUser(session?.user?.id ?? null)
+
+      if (event === 'SIGNED_IN') {
+        trackEvent('login_completed', { feature_name: 'auth', action: 'login' })
+      } else if (event === 'SIGNED_OUT') {
+        trackEvent('logout', { feature_name: 'auth', action: 'logout' })
+      }
+
       setLoading(false)
     })
 
@@ -36,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signInWithKakao = async () => {
+    trackEvent('signup_started', { feature_name: 'auth', action: 'signup_start', provider: 'kakao' })
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {

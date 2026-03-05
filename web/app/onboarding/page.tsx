@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { trackEvent } from '@/lib/analytics'
 import { Check, ChevronRight, ChevronLeft, Loader2, ThumbsUp, ThumbsDown, MapPin, Briefcase, ExternalLink, X } from 'lucide-react'
 import { Job } from '@/types/job'
 
@@ -121,10 +122,18 @@ export default function OnboardingPage() {
   const [testIndex, setTestIndex] = useState(0)
   const [testResults, setTestResults] = useState<{ job: Job, liked: boolean }[]>([])
   const [loadingTest, setLoadingTest] = useState(false)
+  const [onboardingTracked, setOnboardingTracked] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login')
   }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (user && !onboardingTracked) {
+      trackEvent('onboarding_started', { feature_name: 'onboarding', action: 'start' })
+      setOnboardingTracked(true)
+    }
+  }, [user, onboardingTracked])
 
   useEffect(() => {
     if (user) fetchOptions()
@@ -171,6 +180,13 @@ export default function OnboardingPage() {
         career_level: selectedCareer || '경력무관',
         work_style: selectedEmployeeTypes,
       })
+      trackEvent('filter_saved', {
+        feature_name: 'jobs_filter',
+        action: 'save',
+        preferred_job_types_count: finalJobTypes.length,
+        preferred_regions_count: selectedRegions.length,
+        preferred_work_style_count: selectedEmployeeTypes.length,
+      })
 
       // 테스트 공고 로드
       setLoadingTest(true)
@@ -192,6 +208,7 @@ export default function OnboardingPage() {
         }))
         setTestJobs(jobs)
         setStep(5) // 테스트 단계로
+        trackEvent('onboarding_step_completed', { feature_name: 'onboarding', action: 'preferences_saved', step: 4 })
       }
     } catch (e) {
       console.error('Error:', e)
@@ -206,6 +223,12 @@ export default function OnboardingPage() {
     const job = testJobs[testIndex]
     setTestResults(prev => [...prev, { job, liked }])
     setTestIndex(testIndex + 1)
+    trackEvent('onboarding_step_completed', {
+      feature_name: 'onboarding_test',
+      action: liked ? 'like' : 'pass',
+      step: 5,
+      job_id: job?.id,
+    })
   }
 
   // 테스트 완료 → 학습 데이터 저장 + 메인으로
@@ -291,6 +314,11 @@ export default function OnboardingPage() {
         onboarding_completed: true,
         email: user.email,
       })
+      trackEvent('onboarding_completed', {
+        feature_name: 'onboarding',
+        action: 'complete',
+        evaluated_jobs: testResults.length,
+      })
 
       router.push('/')
     } catch (e) {
@@ -329,6 +357,7 @@ export default function OnboardingPage() {
       if (profileError) {
         console.error('user_profiles 저장 실패:', profileError)
       }
+      trackEvent('onboarding_skipped', { feature_name: 'onboarding', action: 'skip' })
 
       // 저장 실패해도 일단 홈으로 이동 (사용자 경험 우선)
       router.push('/')
@@ -647,7 +676,14 @@ export default function OnboardingPage() {
               </Button>
             )}
             {!isLastFilter ? (
-              <Button onClick={() => setStep(step + 1)} disabled={!currentStep.valid} className="flex-1">
+              <Button
+                onClick={() => {
+                  trackEvent('onboarding_step_completed', { feature_name: 'onboarding', action: 'next', step })
+                  setStep(step + 1)
+                }}
+                disabled={!currentStep.valid}
+                className="flex-1"
+              >
                 다음<ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             ) : (

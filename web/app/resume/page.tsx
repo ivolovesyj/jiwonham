@@ -78,8 +78,16 @@ export default function ResumePage() {
   const [addedMaterialIds, setAddedMaterialIds] = useState<Set<string>>(new Set())
   type MaterialPrefill = { title: string; experience_type: string; content: string; resume_item_type: string; resume_item_id: string; modalTitle: string }
   const [materialModalPrefill, setMaterialModalPrefill] = useState<MaterialPrefill | null>(null)
+  const [resumePageTracked, setResumePageTracked] = useState(false)
 
   const active = resumes.find(r => r.id === activeId) ?? null
+
+  useEffect(() => {
+    if (!resumePageTracked) {
+      trackEvent('resume_page_viewed', { feature_name: 'resume', action: 'view' })
+      setResumePageTracked(true)
+    }
+  }, [resumePageTracked])
 
   // ── 로드 ──────────────────────────────────────────────
   useEffect(() => {
@@ -157,7 +165,11 @@ export default function ResumePage() {
       .insert({ user_id: user.id, ...DEFAULT_NEW_RESUME, title: `이력서 ${resumes.length + 1}`, is_default: false })
       .select()
       .single()
-    if (data) { setResumes(prev => [...prev, data]); setActiveId(data.id) }
+    if (data) {
+      setResumes(prev => [...prev, data])
+      setActiveId(data.id)
+      trackEvent('resume_created', { feature_name: 'resume', action: 'create', resume_id: data.id })
+    }
   }
 
   const handleRename = async (id: string, title: string) => {
@@ -170,6 +182,7 @@ export default function ResumePage() {
     const remaining = resumes.filter(r => r.id !== id)
     setResumes(remaining)
     if (activeId === id) setActiveId(remaining[0]?.id ?? null)
+    trackEvent('resume_deleted', { feature_name: 'resume', action: 'delete', resume_id: id })
   }
 
   // ── 이력서 → 자소서 소재 ──────────────────────────────

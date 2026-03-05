@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { GA_ID } from "@/lib/analytics";
+import { AnalyticsBootstrap } from "@/components/AnalyticsBootstrap";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,6 +91,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
+          <AnalyticsBootstrap />
           {children}
         </AuthProvider>
         {GA_ID && (
