@@ -808,6 +808,7 @@ export async function GET(request: Request) {
         p_work_styles: preferences?.work_style?.length ? preferences.work_style : null,
         p_company_types: preferences?.preferred_company_types?.length ? preferences.preferred_company_types : null,
         p_education: preferences?.preferred_education?.length ? preferences.preferred_education : null,
+        p_job_types: preferences?.preferred_job_types?.length ? preferences.preferred_job_types : null,
         p_search: searchQuery || null,
         p_limit: batchSize,
         p_offset: rpcOffset,
