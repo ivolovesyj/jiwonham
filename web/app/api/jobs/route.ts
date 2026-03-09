@@ -744,17 +744,16 @@ export async function GET(request: Request) {
 
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
-    // 5. RPC 기반 exact query로 eligible set 조회
-    // search_eligible_jobs RPC가 GIN 인덱스를 강제 사용하여 빠르게 필터링
-    // DB가 후보 집합을 정확히 정의하고, 앱은 스코어링+랭킹만 담당
-    const batchSize = 1000
+    // 5. 2단계 조회: 경량 RPC로 전체 eligible set 스코어링 → top K만 상세 조회
+    // Phase 1: search_eligible_jobs_light (detail 제외) → 전체 스코어링
+    // Phase 2: top K ID로 full detail fetch
 
     // 사용자 경력 레벨을 career_buckets 필터용으로 변환
     const careerBuckets: string[] = preferences?.career_level
       ? preferences.career_level.split(',').filter(Boolean)
       : []
 
-    console.log('[API /jobs] RPC query config:', JSON.stringify({
+    console.log('[API /jobs] Light RPC config:', JSON.stringify({
       locations: preferences?.preferred_locations?.length || 0,
       jobTypes: preferences?.preferred_job_types?.length || 0,
       careerBuckets: careerBuckets.length,
@@ -764,23 +763,54 @@ export async function GET(request: Request) {
       searchQuery: searchQuery || '(none)',
     }))
 
-    interface ScoredJob {
+    // Phase 1: 경량 RPC로 전체 eligible 조회 + 스코어링
+    const { data: lightJobs, error: lightError } = await supabase.rpc('search_eligible_jobs_light', {
+      p_locations: preferences?.preferred_locations?.length ? preferences.preferred_locations : null,
+      p_career_buckets: careerBuckets.length ? careerBuckets : null,
+      p_work_styles: preferences?.work_style?.length ? preferences.work_style : null,
+      p_company_types: preferences?.preferred_company_types?.length ? preferences.preferred_company_types : null,
+      p_education: preferences?.preferred_education?.length ? preferences.preferred_education : null,
+      p_job_types: preferences?.preferred_job_types?.length ? preferences.preferred_job_types : null,
+      p_search: searchQuery || null,
+    })
+
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Light RPC done, rows: ${lightJobs?.length ?? 0}`)
+
+    if (lightError) {
+      const errDetail = `code=${lightError?.code}, message=${lightError?.message}, hint=${lightError?.hint}`
+      console.error(`[API /jobs] Light RPC FAILED: ${errDetail}`)
+      return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
+    }
+
+    if (!lightJobs || lightJobs.length === 0) {
+      return NextResponse.json({
+        jobs: [],
+        total: 0,
+        limit,
+        offset,
+        message: 'No matching jobs found.',
+      })
+    }
+
+    // 경량 데이터로 스코어링 (detail 없이)
+    const now = Date.now()
+    const searchLower = searchQuery ? searchQuery.toLowerCase() : ''
+
+    interface ScoredLightJob {
       id: string
+      score: number
+      reasons: string[]
+      warnings: string[]
+      // 경량 데이터 (detail 제외)
       company: string
       company_image: string | null
       company_type: string | null
       title: string
       location: string
-      score: number
-      reason: string
-      reasons: string[]
-      warnings: string[]
-      link: string
+      source: string
       redirect_url: string | null
       affiliate: string | null
-      source: string
       crawledAt: string
-      detail: Record<string, string> | null
       depth_ones: string[] | null
       depth_twos: string[] | null
       keywords: string[] | null
@@ -792,116 +822,64 @@ export async function GET(request: Request) {
       is_new: boolean
     }
 
-    const allScored: ScoredJob[] = []
-    let totalEligible = 0
-    let fetchError: { code?: string; message?: string; hint?: string } | null = null
-    const now = Date.now()
-    const searchLower = searchQuery ? searchQuery.toLowerCase() : ''
+    const allScored: ScoredLightJob[] = []
 
-    // RPC 배치 조회 (offset 기반)
-    let rpcOffset = 0
+    for (const raw of lightJobs) {
+      const job = normalizeJobRow(raw)
+      if (seenJobIds.has(job.id)) continue
 
-    while (true) {
-      const { data: batchJobs, error: batchError } = await supabase.rpc('search_eligible_jobs', {
-        p_locations: preferences?.preferred_locations?.length ? preferences.preferred_locations : null,
-        p_career_buckets: careerBuckets.length ? careerBuckets : null,
-        p_work_styles: preferences?.work_style?.length ? preferences.work_style : null,
-        p_company_types: preferences?.preferred_company_types?.length ? preferences.preferred_company_types : null,
-        p_education: preferences?.preferred_education?.length ? preferences.preferred_education : null,
-        p_job_types: preferences?.preferred_job_types?.length ? preferences.preferred_job_types : null,
-        p_search: searchQuery || null,
-        p_limit: batchSize,
-        p_offset: rpcOffset,
-      })
-
-      if (batchError) {
-        fetchError = batchError
-        break
+      // 검색어 추가 필터 (keywords, depth_twos 등 RPC에서 못 거른 것)
+      if (searchLower) {
+        const matchesSearch =
+          job.company.toLowerCase().includes(searchLower) ||
+          job.title.toLowerCase().includes(searchLower) ||
+          (job.company_type && job.company_type.toLowerCase().includes(searchLower)) ||
+          (job.employee_types && job.employee_types.some((t: string) => t.toLowerCase().includes(searchLower))) ||
+          (job.depth_twos && job.depth_twos.some((d: string) => d.toLowerCase().includes(searchLower))) ||
+          (job.keywords && job.keywords.some((k: string) => k.toLowerCase().includes(searchLower)))
+        if (!matchesSearch) continue
       }
 
-      const typedBatch = parseJobRows(batchJobs)
-      if (typedBatch.length === 0) break
+      const companyType = job.company_type || '기타'
+      const isInDB = job.company_type !== null && job.company_type !== '기타'
+      const { score, reasons, warnings, matchesFilter } = scoreJob(
+        job, preferences, keywordWeights, companyPrefs, learnedWeights, companyType, isInDB
+      )
 
-      for (const job of typedBatch) {
-        if (seenJobIds.has(job.id)) continue
+      if (!matchesFilter) continue
 
-        // 검색어 추가 필터 (keywords, depth_twos 등 RPC에서 못 거른 것)
-        if (searchLower) {
-          const matchesSearch =
-            job.company.toLowerCase().includes(searchLower) ||
-            job.title.toLowerCase().includes(searchLower) ||
-            (job.company_type && job.company_type.toLowerCase().includes(searchLower)) ||
-            (job.employee_types && job.employee_types.some((t: string) => t.toLowerCase().includes(searchLower))) ||
-            (job.depth_twos && job.depth_twos.some((d: string) => d.toLowerCase().includes(searchLower))) ||
-            (job.keywords && job.keywords.some((k: string) => k.toLowerCase().includes(searchLower)))
-          if (!matchesSearch) continue
-        }
+      const scoreThreshold = searchQuery ? 0 : 40
+      if (score < scoreThreshold) continue
 
-        const companyType = job.company_type || '기타'
-        const isInDB = job.company_type !== null && job.company_type !== '기타'
-        const { score, reasons, warnings, matchesFilter } = scoreJob(
-          job, preferences, keywordWeights, companyPrefs, learnedWeights, companyType, isInDB
-        )
+      const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
-        if (!matchesFilter) continue
-
-        const scoreThreshold = searchQuery ? 0 : 40
-        if (score < scoreThreshold) continue
-
-        const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
-
-        allScored.push({
-          id: job.id,
-          company: job.company,
-          company_image: job.company_image,
-          company_type: job.company_type,
-          title: job.title,
-          location: job.location || '위치 미정',
-          score,
-          reason: reasons[0] || '추천 공고',
-          reasons,
-          warnings,
-          link: `https://zighang.com/recruitment/${job.id}`,
-          redirect_url: job.redirect_url,
-          affiliate: job.affiliate,
-          source: job.source,
-          crawledAt: job.crawled_at,
-          detail: job.detail,
-          depth_ones: job.depth_ones,
-          depth_twos: job.depth_twos,
-          keywords: job.keywords,
-          career_min: job.career_min,
-          career_max: job.career_max,
-          employee_types: job.employee_types,
-          deadline_type: job.deadline_type,
-          end_date: job.end_date,
-          is_new: isNew,
-        })
-
-        totalEligible++
-      }
-
-      rpcOffset += batchSize
-      if (typedBatch.length < batchSize) break
-    }
-
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - RPC query done, eligible: ${totalEligible}`)
-
-    if (fetchError) {
-      const errDetail = `code=${fetchError?.code}, message=${fetchError?.message}, hint=${fetchError?.hint}`
-      console.error(`[API /jobs] Fetch FAILED: ${errDetail}`)
-      return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
-    }
-
-    if (allScored.length === 0) {
-      return NextResponse.json({
-        jobs: [],
-        total: 0,
-        limit,
-        offset,
-        message: 'No matching jobs found.',
+      allScored.push({
+        id: job.id,
+        score,
+        reasons,
+        warnings,
+        company: job.company,
+        company_image: job.company_image,
+        company_type: job.company_type,
+        title: job.title,
+        location: job.location || '위치 미정',
+        source: job.source,
+        redirect_url: job.redirect_url,
+        affiliate: job.affiliate,
+        crawledAt: job.crawled_at,
+        depth_ones: job.depth_ones,
+        depth_twos: job.depth_twos,
+        keywords: job.keywords,
+        career_min: job.career_min,
+        career_max: job.career_max,
+        employee_types: job.employee_types,
+        deadline_type: job.deadline_type,
+        end_date: job.end_date,
+        is_new: isNew,
       })
     }
+
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Scoring done, eligible: ${allScored.length}`)
 
     // 점수 내림차순 → 최신순 정렬
     allScored.sort((a, b) => {
@@ -909,12 +887,58 @@ export async function GET(request: Request) {
       return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
     })
 
-    const paginatedJobs = allScored.slice(offset, offset + limit)
+    // Phase 2: 현재 페이지에 필요한 job ID만 상세 조회
+    const pageJobs = allScored.slice(offset, offset + limit)
+    const pageJobIds = pageJobs.map(j => j.id)
 
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - Done, returning ${paginatedJobs.length}/${allScored.length} jobs (search: "${searchQuery}")`)
+    let detailMap: Record<string, Record<string, string>> = {}
+    if (pageJobIds.length > 0) {
+      const { data: detailRows } = await supabase
+        .from('jobs')
+        .select('id, detail')
+        .in('id', pageJobIds)
+
+      if (detailRows) {
+        for (const row of detailRows) {
+          if (row.detail && typeof row.detail === 'object') {
+            detailMap[row.id] = row.detail as Record<string, string>
+          }
+        }
+      }
+    }
+
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Done, returning ${pageJobs.length}/${allScored.length} jobs (search: "${searchQuery}")`)
+
+    const finalJobs = pageJobs.map(j => ({
+      id: j.id,
+      company: j.company,
+      company_image: j.company_image,
+      company_type: j.company_type,
+      title: j.title,
+      location: j.location,
+      score: j.score,
+      reason: j.reasons[0] || '추천 공고',
+      reasons: j.reasons,
+      warnings: j.warnings,
+      link: `https://zighang.com/recruitment/${j.id}`,
+      redirect_url: j.redirect_url,
+      affiliate: j.affiliate,
+      source: j.source,
+      crawledAt: j.crawledAt,
+      detail: detailMap[j.id] || null,
+      depth_ones: j.depth_ones,
+      depth_twos: j.depth_twos,
+      keywords: j.keywords,
+      career_min: j.career_min,
+      career_max: j.career_max,
+      employee_types: j.employee_types,
+      deadline_type: j.deadline_type,
+      end_date: j.end_date,
+      is_new: j.is_new,
+    }))
 
     return NextResponse.json({
-      jobs: paginatedJobs,
+      jobs: finalJobs,
       total: allScored.length,
       limit,
       offset,
