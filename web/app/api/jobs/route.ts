@@ -3,6 +3,33 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const JOB_SELECT_COLUMNS = [
+  'id',
+  'source',
+  'company',
+  'company_image',
+  'company_type',
+  'title',
+  'regions',
+  'location',
+  'career_min',
+  'career_max',
+  'employee_types',
+  'deadline_type',
+  'end_date',
+  'depth_ones',
+  'depth_twos',
+  'keywords',
+  'views',
+  'detail',
+  'education',
+  'redirect_url',
+  'affiliate',
+  'original_created_at',
+  'last_modified_at',
+  'crawled_at',
+  'is_active',
+].join(', ')
 
 // ============================================
 // Jaro-Winkler 유사도 계산 (비용 없는 유사도 매칭)
@@ -141,6 +168,17 @@ interface JobRow {
   last_modified_at: string | null
   crawled_at: string
   is_active: boolean
+}
+
+function normalizeJobRow(job: any): JobRow {
+  return {
+    ...job,
+    depth_ones: Array.isArray(job.depth_ones) ? job.depth_ones : (job.depth_ones || []),
+    depth_twos: Array.isArray(job.depth_twos) ? job.depth_twos : (job.depth_twos || []),
+    keywords: Array.isArray(job.keywords) ? job.keywords : (job.keywords || []),
+    regions: Array.isArray(job.regions) ? job.regions : (job.regions || []),
+    employee_types: Array.isArray(job.employee_types) ? job.employee_types : (job.employee_types || []),
+  }
 }
 
 function scoreJob(
@@ -645,86 +683,74 @@ export async function GET(request: Request) {
 
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
-    // 5. 활성 공고 가져오기 (RPC 함수로 직무/지역 필터링)
-    // 기존 값(최소 2000~5000)은 타임아웃 위험이 높아 요청량을 축소
-    const fetchLimit = searchQuery
-      ? Math.min(1500, Math.max(300, (offset + limit) * 6))
-      : Math.min(800, Math.max(200, (offset + limit) * 4))
+    // 5. 활성 공고를 직접 조회한다.
+    // RPC는 PostgREST 경로에서 generic plan 문제로 반복적으로 timeout 되었고,
+    // 단순 인덱스 친화 조건만 DB에 맡기고 나머지는 기존 scoreJob 로직에서 처리하는 편이 안정적이다.
+    const today = new Date().toISOString().split('T')[0]
+    const targetCount = offset + limit
+    const batchSize = searchQuery
+      ? Math.min(300, Math.max(150, targetCount * 3))
+      : Math.min(400, Math.max(200, targetCount * 4))
+    const maxScanCount = searchQuery
+      ? Math.min(2400, Math.max(900, targetCount * 25))
+      : Math.min(3200, Math.max(1200, targetCount * 50))
 
-    const rpcStartTime = Date.now()
+    console.log('[API /jobs] Direct fetch config:', JSON.stringify({
+      batchSize,
+      maxScanCount,
+      companyTypes: preferences?.preferred_company_types?.length || 0,
+      educationFilters: preferences?.preferred_education?.length || 0,
+    }))
 
-    // RPC 파라미터 (hard filter를 SQL에서 수행하여 반환 건수 대폭 축소)
-    const rpcParams = {
-      p_job_types: preferences?.preferred_job_types?.length
-        ? preferences.preferred_job_types
-        : null,
-      p_locations: preferences?.preferred_locations?.length
-        ? preferences.preferred_locations
-        : null,
-      p_limit: fetchLimit,
-      p_career_levels: preferences?.career_level
-        ? preferences.career_level.split(',').filter(Boolean)
-        : null,
-      p_work_styles: preferences?.work_style?.length
-        ? preferences.work_style
-        : null,
-      p_company_types: preferences?.preferred_company_types?.length
-        ? preferences.preferred_company_types
-        : null,
-      p_education: preferences?.preferred_education?.length
-        ? preferences.preferred_education
-        : null,
-    }
+    let jobs: JobRow[] = []
+    let jobsError: any = null
+    let rangeStart = 0
 
-    console.log('[API /jobs] RPC params:', JSON.stringify(rpcParams))
-
-    let { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
-
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - RPC done (took ${Date.now() - rpcStartTime}ms), returned: ${jobs ? jobs.length : 0} jobs`)
-
-    // RPC 타임아웃 시 fallback: 활성 + 미마감 공고를 최신순으로 가져온 뒤 앱 레벨 필터/스코어링
-    if (jobsError?.code === '57014') {
-      console.warn('[API /jobs] RPC timeout detected, switching to fallback query')
-      const today = new Date().toISOString().split('T')[0]
-      const fallbackLimit = searchQuery
-        ? Math.min(1200, Math.max(300, (offset + limit) * 6))
-        : Math.min(600, Math.max(200, (offset + limit) * 4))
-
-      const fallbackQuery = supabase
+    while (rangeStart < maxScanCount) {
+      let jobsQuery = supabase
         .from('jobs')
-        .select('*')
+        .select(JOB_SELECT_COLUMNS)
         .eq('is_active', true)
         .or(`end_date.is.null,end_date.gte.${today}`)
 
-      const { data: fallbackJobs, error: fallbackError } = await fallbackQuery
+      if (preferences?.preferred_company_types?.length) {
+        jobsQuery = jobsQuery.in('company_type', preferences.preferred_company_types)
+      }
+
+      if (preferences?.preferred_education?.length) {
+        jobsQuery = jobsQuery.in('education', preferences.preferred_education)
+      }
+
+      const { data: batchJobs, error: batchError } = await jobsQuery
         .order('crawled_at', { ascending: false })
-        .range(0, fallbackLimit - 1)
+        .range(rangeStart, rangeStart + batchSize - 1)
 
-      jobs = fallbackJobs as JobRow[] | null
-      jobsError = fallbackError ?? null
-      console.log(`[API /jobs] +${Date.now() - startTime}ms - Fallback done, returned: ${jobs ? jobs.length : 0} jobs`)
+      if (batchError) {
+        jobsError = batchError
+        break
+      }
+
+      if (!batchJobs || batchJobs.length === 0) {
+        break
+      }
+
+      jobs.push(...batchJobs.map(normalizeJobRow))
+      rangeStart += batchJobs.length
+
+      if (batchJobs.length < batchSize) {
+        break
+      }
     }
 
-    // jsonb 타입을 배열로 변환
-    if (jobs && jobs.length > 0) {
-      jobs = jobs.map((job: any) => ({
-        ...job,
-        depth_ones: Array.isArray(job.depth_ones) ? job.depth_ones : (job.depth_ones || []),
-        depth_twos: Array.isArray(job.depth_twos) ? job.depth_twos : (job.depth_twos || []),
-        keywords: Array.isArray(job.keywords) ? job.keywords : (job.keywords || []),
-        regions: Array.isArray(job.regions) ? job.regions : (job.regions || []),
-        employee_types: Array.isArray(job.employee_types) ? job.employee_types : (job.employee_types || []),
-      }))
-    }
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Direct fetch done, scanned ${jobs.length} jobs`)
 
     if (jobsError) {
       const errDetail = `code=${jobsError?.code}, message=${jobsError?.message}, hint=${jobsError?.hint}`
-      console.error(`[API /jobs] RPC FAILED: ${errDetail}`)
+      console.error(`[API /jobs] Direct fetch FAILED: ${errDetail}`)
       return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
     }
 
-
-    if (!jobs || jobs.length === 0) {
+    if (jobs.length === 0) {
       return NextResponse.json({
         jobs: [],
         total: 0,
