@@ -690,31 +690,18 @@ export async function GET(request: Request) {
         ? Math.min(1200, Math.max(300, (offset + limit) * 6))
         : Math.min(600, Math.max(200, (offset + limit) * 4))
 
-      let fallbackQuery = supabase
+      const fallbackQuery = supabase
         .from('jobs')
         .select('*')
         .eq('is_active', true)
         .or(`end_date.is.null,end_date.gte.${today}`)
-
-      if (searchQuery) {
-        fallbackQuery = fallbackQuery.or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
-      }
-
-      // 선호 지역이 있는 경우 fallback에서도 1차 축소
-      if (preferences?.preferred_locations?.length) {
-        const locationFilters = preferences.preferred_locations
-          .slice(0, 3)
-          .map((loc) => `location.ilike.%${loc}%`)
-          .join(',')
-        fallbackQuery = fallbackQuery.or(locationFilters)
-      }
 
       const { data: fallbackJobs, error: fallbackError } = await fallbackQuery
         .order('crawled_at', { ascending: false })
         .range(0, fallbackLimit - 1)
 
       jobs = fallbackJobs as JobRow[] | null
-      jobsError = fallbackError
+      jobsError = fallbackError ?? null
       console.log(`[API /jobs] +${Date.now() - startTime}ms - Fallback done, returned: ${jobs ? jobs.length : 0} jobs`)
     }
 
