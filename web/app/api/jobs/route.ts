@@ -744,117 +744,144 @@ export async function GET(request: Request) {
 
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
-    // 5. 활성 공고를 직접 조회한다.
-    // RPC는 PostgREST 경로에서 generic plan 문제로 반복적으로 timeout 되었고,
-    // 단순 인덱스 친화 조건만 DB에 맡기고 나머지는 기존 scoreJob 로직에서 처리하는 편이 안정적이다.
+    // 5. 정규화 컬럼 기반 exact query로 eligible set 조회
+    // DB가 후보 집합을 정확히 정의하고, 앱은 스코어링+랭킹만 담당
     const today = new Date().toISOString().split('T')[0]
+    const batchSize = 500
     const targetCount = offset + limit
-    const batchSize = searchQuery
-      ? Math.min(300, Math.max(150, targetCount * 3))
-      : Math.min(400, Math.max(200, targetCount * 4))
-    const maxScanCount = searchQuery
-      ? Math.min(2400, Math.max(900, targetCount * 25))
-      : Math.min(3200, Math.max(1200, targetCount * 50))
 
-    console.log('[API /jobs] Direct fetch config:', JSON.stringify({
-      batchSize,
-      maxScanCount,
+    // 사용자 경력 레벨을 career_buckets 필터용으로 변환
+    const careerBuckets: string[] = preferences?.career_level
+      ? preferences.career_level.split(',').filter(Boolean)
+      : []
+
+    console.log('[API /jobs] Exact query config:', JSON.stringify({
+      locations: preferences?.preferred_locations?.length || 0,
+      jobTypes: preferences?.preferred_job_types?.length || 0,
+      careerBuckets: careerBuckets.length,
+      workStyles: preferences?.work_style?.length || 0,
       companyTypes: preferences?.preferred_company_types?.length || 0,
       educationFilters: preferences?.preferred_education?.length || 0,
+      searchQuery: searchQuery || '(none)',
     }))
 
-    let jobs: JobRow[] = []
-    let jobsError: any = null
-    let lastCrawledAt: string | null = null
+    // top K를 유지하는 min-heap 대신 간단한 배열 + 정렬 사용
+    // (eligible set이 수천 건 수준이므로 충분히 효율적)
+    interface ScoredJob {
+      id: string
+      company: string
+      company_image: string | null
+      company_type: string | null
+      title: string
+      location: string
+      score: number
+      reason: string
+      reasons: string[]
+      warnings: string[]
+      link: string
+      redirect_url: string | null
+      affiliate: string | null
+      source: string
+      crawledAt: string
+      detail: Record<string, string> | null
+      depth_ones: string[] | null
+      depth_twos: string[] | null
+      keywords: string[] | null
+      career_min: number | null
+      career_max: number | null
+      employee_types: string[] | null
+      deadline_type: string | null
+      end_date: string | null
+      is_new: boolean
+    }
 
-    while (jobs.length < maxScanCount) {
-      let jobsQuery = supabase
+    const allScored: ScoredJob[] = []
+    let totalEligible = 0
+    let lastCrawledAt: string | null = null
+    let fetchError: { code?: string; message?: string; hint?: string } | null = null
+    const now = Date.now()
+    const searchLower = searchQuery ? searchQuery.toLowerCase() : ''
+
+    while (true) {
+      let query = supabase
         .from('jobs')
         .select(JOB_SELECT_COLUMNS)
         .eq('is_active', true)
         .or(`end_date.is.null,end_date.gte.${today}`)
 
+      // DB 레벨 exact filters (정규화 컬럼 사용)
+      if (preferences?.preferred_locations?.length) {
+        query = query.overlaps('location_tokens', preferences.preferred_locations)
+      }
+
+      if (careerBuckets.length) {
+        query = query.overlaps('career_buckets', careerBuckets)
+      }
+
+      if (preferences?.work_style?.length) {
+        query = query.overlaps('work_styles_normalized', preferences.work_style)
+      }
+
       if (preferences?.preferred_company_types?.length) {
-        jobsQuery = jobsQuery.in('company_type', preferences.preferred_company_types)
+        query = query.in('company_type', preferences.preferred_company_types)
       }
 
       if (preferences?.preferred_education?.length) {
-        jobsQuery = jobsQuery.in('education', preferences.preferred_education)
+        query = query.in('education', preferences.preferred_education)
       }
 
+      // 검색어 필터 (DB 레벨)
+      if (searchQuery) {
+        query = query.or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
+      }
+
+      // keyset pagination
       if (lastCrawledAt) {
-        jobsQuery = jobsQuery.lt('crawled_at', lastCrawledAt)
+        query = query.lt('crawled_at', lastCrawledAt)
       }
 
-      const { data: batchJobs, error: batchError } = await jobsQuery
+      const { data: batchJobs, error: batchError } = await query
         .order('crawled_at', { ascending: false })
         .limit(batchSize)
 
       if (batchError) {
-        jobsError = batchError
+        fetchError = batchError
         break
       }
 
-      const typedBatchJobs = parseJobRows(batchJobs)
+      const typedBatch = parseJobRows(batchJobs)
+      if (typedBatch.length === 0) break
 
-      if (typedBatchJobs.length === 0) {
-        break
-      }
+      // 배치별 스코어링 + seen 제외
+      for (const job of typedBatch) {
+        if (seenJobIds.has(job.id)) continue
 
-      jobs.push(...typedBatchJobs)
-      lastCrawledAt = typedBatchJobs[typedBatchJobs.length - 1]?.crawled_at ?? null
+        // 검색어 추가 필터 (keywords, depth_twos 등 DB에서 못 거른 것)
+        if (searchLower) {
+          const matchesSearch =
+            job.company.toLowerCase().includes(searchLower) ||
+            job.title.toLowerCase().includes(searchLower) ||
+            (job.company_type && job.company_type.toLowerCase().includes(searchLower)) ||
+            (job.employee_types && job.employee_types.some((t: string) => t.toLowerCase().includes(searchLower))) ||
+            (job.depth_twos && job.depth_twos.some((d: string) => d.toLowerCase().includes(searchLower))) ||
+            (job.keywords && job.keywords.some((k: string) => k.toLowerCase().includes(searchLower)))
+          if (!matchesSearch) continue
+        }
 
-      if (typedBatchJobs.length < batchSize) {
-        break
-      }
-    }
-
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - Direct fetch done, scanned ${jobs.length} jobs`)
-
-    if (jobsError) {
-      const errDetail = `code=${jobsError?.code}, message=${jobsError?.message}, hint=${jobsError?.hint}`
-      console.error(`[API /jobs] Direct fetch FAILED: ${errDetail}`)
-      return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
-    }
-
-    if (jobs.length === 0) {
-      return NextResponse.json({
-        jobs: [],
-        total: 0,
-        limit,
-        offset,
-        message: 'No jobs available. Please run the crawler first.',
-      })
-    }
-
-    // company_type은 이미 jobs 테이블에 포함되어 있음 (별도 조회 불필요)
-
-    // 6. 이미 본 공고 제외 + 검색 필터링 + 점수 계산 + 정렬
-    const now = Date.now()
-
-    // 검색어 필터링 (서버 사이드)
-    let filteredJobs: JobRow[] = jobs
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      filteredJobs = jobs.filter((job: JobRow) =>
-        job.company.toLowerCase().includes(q) ||
-        job.title.toLowerCase().includes(q) ||
-        (job.company_type && job.company_type.toLowerCase().includes(q)) ||
-        (job.employee_types && job.employee_types.some((t: string) => t.toLowerCase().includes(q))) ||
-        (job.depth_twos && job.depth_twos.some((d: string) => d.toLowerCase().includes(q))) ||
-        (job.keywords && job.keywords.some((k: string) => k.toLowerCase().includes(q)))
-      )
-    }
-
-    const scoredJobs = filteredJobs
-      .filter((job: JobRow) => !seenJobIds.has(job.id))
-      .map((job: JobRow) => {
         const companyType = job.company_type || '기타'
         const isInDB = job.company_type !== null && job.company_type !== '기타'
-        const { score, reasons, warnings, matchesFilter } = scoreJob(job, preferences, keywordWeights, companyPrefs, learnedWeights, companyType, isInDB)
+        const { score, reasons, warnings, matchesFilter } = scoreJob(
+          job, preferences, keywordWeights, companyPrefs, learnedWeights, companyType, isInDB
+        )
+
+        if (!matchesFilter) continue
+
+        const scoreThreshold = searchQuery ? 0 : 40
+        if (score < scoreThreshold) continue
+
         const isNew = (now - new Date(job.crawled_at).getTime()) < 24 * 60 * 60 * 1000
 
-        return {
+        allScored.push({
           id: job.id,
           company: job.company,
           company_image: job.company_image,
@@ -880,29 +907,50 @@ export async function GET(request: Request) {
           deadline_type: job.deadline_type,
           end_date: job.end_date,
           is_new: isNew,
-          matchesFilter,
-        }
-      })
-      .filter(j => j.matchesFilter) // 필터 통과한 공고만
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score
-        return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
-      })
+        })
 
-    // 7. 40점 이상 필터 + 페이지네이션 (검색 시에는 점수 필터 완화)
-    const scoreThreshold = searchQuery ? 0 : 40
-    const passedJobs = scoredJobs.filter(j => j.score >= scoreThreshold)
-    const paginatedJobs = passedJobs.slice(offset, offset + limit)
+        totalEligible++
+      }
 
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - Total done, returning ${paginatedJobs.length} jobs (search: "${searchQuery}")`)
+      lastCrawledAt = typedBatch[typedBatch.length - 1]?.crawled_at ?? null
+      if (typedBatch.length < batchSize) break
+    }
+
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Exact query done, eligible: ${totalEligible}`)
+
+    if (fetchError) {
+      const errDetail = `code=${fetchError?.code}, message=${fetchError?.message}, hint=${fetchError?.hint}`
+      console.error(`[API /jobs] Fetch FAILED: ${errDetail}`)
+      return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
+    }
+
+    if (allScored.length === 0) {
+      return NextResponse.json({
+        jobs: [],
+        total: 0,
+        limit,
+        offset,
+        message: 'No matching jobs found.',
+      })
+    }
+
+    // 점수 내림차순 → 최신순 정렬
+    allScored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return new Date(b.crawledAt).getTime() - new Date(a.crawledAt).getTime()
+    })
+
+    const paginatedJobs = allScored.slice(offset, offset + limit)
+
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - Done, returning ${paginatedJobs.length}/${allScored.length} jobs (search: "${searchQuery}")`)
 
     return NextResponse.json({
       jobs: paginatedJobs,
-      total: passedJobs.length,
+      total: allScored.length,
       limit,
       offset,
-      hasMore: offset + limit < passedJobs.length,
-      ...(searchQuery && { searchTotal: passedJobs.length }),
+      hasMore: offset + limit < allScored.length,
+      ...(searchQuery && { searchTotal: allScored.length }),
     })
 
   } catch (error) {
