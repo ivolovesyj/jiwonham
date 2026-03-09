@@ -646,10 +646,10 @@ export async function GET(request: Request) {
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
     // 5. 활성 공고 가져오기 (RPC 함수로 직무/지역 필터링)
-    // 검색 시에는 더 많이 가져와서 텍스트 매칭 (최대 5000)
+    // 기존 값(최소 2000~5000)은 타임아웃 위험이 높아 요청량을 축소
     const fetchLimit = searchQuery
-      ? Math.max(5000, (offset + limit) * 10)
-      : Math.max(2000, (offset + limit) * 5)
+      ? Math.min(1500, Math.max(300, (offset + limit) * 6))
+      : Math.min(800, Math.max(200, (offset + limit) * 4))
 
     const rpcStartTime = Date.now()
 
@@ -681,6 +681,42 @@ export async function GET(request: Request) {
     let { data: jobs, error: jobsError } = await supabase.rpc('get_filtered_jobs', rpcParams) as { data: JobRow[] | null, error: any }
 
     console.log(`[API /jobs] +${Date.now() - startTime}ms - RPC done (took ${Date.now() - rpcStartTime}ms), returned: ${jobs ? jobs.length : 0} jobs`)
+
+    // RPC 타임아웃 시 fallback: 활성 + 미마감 공고를 최신순으로 가져온 뒤 앱 레벨 필터/스코어링
+    if (jobsError?.code === '57014') {
+      console.warn('[API /jobs] RPC timeout detected, switching to fallback query')
+      const today = new Date().toISOString().split('T')[0]
+      const fallbackLimit = searchQuery
+        ? Math.min(1200, Math.max(300, (offset + limit) * 6))
+        : Math.min(600, Math.max(200, (offset + limit) * 4))
+
+      let fallbackQuery = supabase
+        .from('jobs')
+        .select('*')
+        .eq('is_active', true)
+        .or(`end_date.is.null,end_date.gte.${today}`)
+
+      if (searchQuery) {
+        fallbackQuery = fallbackQuery.or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
+      }
+
+      // 선호 지역이 있는 경우 fallback에서도 1차 축소
+      if (preferences?.preferred_locations?.length) {
+        const locationFilters = preferences.preferred_locations
+          .slice(0, 3)
+          .map((loc) => `location.ilike.%${loc}%`)
+          .join(',')
+        fallbackQuery = fallbackQuery.or(locationFilters)
+      }
+
+      const { data: fallbackJobs, error: fallbackError } = await fallbackQuery
+        .order('crawled_at', { ascending: false })
+        .range(0, fallbackLimit - 1)
+
+      jobs = fallbackJobs as JobRow[] | null
+      jobsError = fallbackError
+      console.log(`[API /jobs] +${Date.now() - startTime}ms - Fallback done, returned: ${jobs ? jobs.length : 0} jobs`)
+    }
 
     // jsonb 타입을 배열로 변환
     if (jobs && jobs.length > 0) {
