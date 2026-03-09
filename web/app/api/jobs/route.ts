@@ -744,18 +744,17 @@ export async function GET(request: Request) {
 
     console.log(`[API /jobs] Learned weights: ${learnedWeights.length} features`)
 
-    // 5. 정규화 컬럼 기반 exact query로 eligible set 조회
+    // 5. RPC 기반 exact query로 eligible set 조회
+    // search_eligible_jobs RPC가 GIN 인덱스를 강제 사용하여 빠르게 필터링
     // DB가 후보 집합을 정확히 정의하고, 앱은 스코어링+랭킹만 담당
-    const today = new Date().toISOString().split('T')[0]
-    const batchSize = 500
-    const targetCount = offset + limit
+    const batchSize = 1000
 
     // 사용자 경력 레벨을 career_buckets 필터용으로 변환
     const careerBuckets: string[] = preferences?.career_level
       ? preferences.career_level.split(',').filter(Boolean)
       : []
 
-    console.log('[API /jobs] Exact query config:', JSON.stringify({
+    console.log('[API /jobs] RPC query config:', JSON.stringify({
       locations: preferences?.preferred_locations?.length || 0,
       jobTypes: preferences?.preferred_job_types?.length || 0,
       careerBuckets: careerBuckets.length,
@@ -765,8 +764,6 @@ export async function GET(request: Request) {
       searchQuery: searchQuery || '(none)',
     }))
 
-    // top K를 유지하는 min-heap 대신 간단한 배열 + 정렬 사용
-    // (eligible set이 수천 건 수준이므로 충분히 효율적)
     interface ScoredJob {
       id: string
       company: string
@@ -797,52 +794,24 @@ export async function GET(request: Request) {
 
     const allScored: ScoredJob[] = []
     let totalEligible = 0
-    let lastCrawledAt: string | null = null
     let fetchError: { code?: string; message?: string; hint?: string } | null = null
     const now = Date.now()
     const searchLower = searchQuery ? searchQuery.toLowerCase() : ''
 
+    // RPC 배치 조회 (offset 기반)
+    let rpcOffset = 0
+
     while (true) {
-      let query = supabase
-        .from('jobs')
-        .select(JOB_SELECT_COLUMNS)
-        .eq('is_active', true)
-        .or(`end_date.is.null,end_date.gte.${today}`)
-
-      // DB 레벨 exact filters (정규화 컬럼 사용)
-      if (preferences?.preferred_locations?.length) {
-        query = query.overlaps('location_tokens', preferences.preferred_locations)
-      }
-
-      if (careerBuckets.length) {
-        query = query.overlaps('career_buckets', careerBuckets)
-      }
-
-      if (preferences?.work_style?.length) {
-        query = query.overlaps('work_styles_normalized', preferences.work_style)
-      }
-
-      if (preferences?.preferred_company_types?.length) {
-        query = query.in('company_type', preferences.preferred_company_types)
-      }
-
-      if (preferences?.preferred_education?.length) {
-        query = query.in('education', preferences.preferred_education)
-      }
-
-      // 검색어 필터 (DB 레벨)
-      if (searchQuery) {
-        query = query.or(`company.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`)
-      }
-
-      // keyset pagination
-      if (lastCrawledAt) {
-        query = query.lt('crawled_at', lastCrawledAt)
-      }
-
-      const { data: batchJobs, error: batchError } = await query
-        .order('crawled_at', { ascending: false })
-        .limit(batchSize)
+      const { data: batchJobs, error: batchError } = await supabase.rpc('search_eligible_jobs', {
+        p_locations: preferences?.preferred_locations?.length ? preferences.preferred_locations : null,
+        p_career_buckets: careerBuckets.length ? careerBuckets : null,
+        p_work_styles: preferences?.work_style?.length ? preferences.work_style : null,
+        p_company_types: preferences?.preferred_company_types?.length ? preferences.preferred_company_types : null,
+        p_education: preferences?.preferred_education?.length ? preferences.preferred_education : null,
+        p_search: searchQuery || null,
+        p_limit: batchSize,
+        p_offset: rpcOffset,
+      })
 
       if (batchError) {
         fetchError = batchError
@@ -852,11 +821,10 @@ export async function GET(request: Request) {
       const typedBatch = parseJobRows(batchJobs)
       if (typedBatch.length === 0) break
 
-      // 배치별 스코어링 + seen 제외
       for (const job of typedBatch) {
         if (seenJobIds.has(job.id)) continue
 
-        // 검색어 추가 필터 (keywords, depth_twos 등 DB에서 못 거른 것)
+        // 검색어 추가 필터 (keywords, depth_twos 등 RPC에서 못 거른 것)
         if (searchLower) {
           const matchesSearch =
             job.company.toLowerCase().includes(searchLower) ||
@@ -912,11 +880,11 @@ export async function GET(request: Request) {
         totalEligible++
       }
 
-      lastCrawledAt = typedBatch[typedBatch.length - 1]?.crawled_at ?? null
+      rpcOffset += batchSize
       if (typedBatch.length < batchSize) break
     }
 
-    console.log(`[API /jobs] +${Date.now() - startTime}ms - Exact query done, eligible: ${totalEligible}`)
+    console.log(`[API /jobs] +${Date.now() - startTime}ms - RPC query done, eligible: ${totalEligible}`)
 
     if (fetchError) {
       const errDetail = `code=${fetchError?.code}, message=${fetchError?.message}, hint=${fetchError?.hint}`
