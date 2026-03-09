@@ -2,7 +2,7 @@
 
 이 문서는 새로운 AI 세션/개발자가 바로 작업을 이어갈 수 있도록 현재 운영 기준을 정리한 문서입니다.
 
-최종 업데이트: 2026-03-05  
+최종 업데이트: 2026-03-09  
 저장소: https://github.com/ivolovesyj/jiwonham
 
 ---
@@ -59,6 +59,15 @@
 ### C) 분석 SQL/문서 추가
 - `docs/create-analytics-tables.sql`
 - `docs/analytics-event-taxonomy.md`
+
+### D) jobs RPC timeout 대응
+- 앱 측 임시 완화:
+  - `web/app/api/jobs/route.ts`
+  - RPC timeout 시 fallback 조회
+  - 요청 candidate limit 축소
+- 장기 DB 수정안:
+  - `docs/optimize-get-filtered-jobs-v2.sql`
+  - `get_filtered_jobs` 7-인자 버전의 장기 최적화 SQL
 
 ---
 
@@ -150,4 +159,4 @@ npm run dev
 2. `PROJECT_GUIDE.md`와 `docs/analytics-event-taxonomy.md` 확인  
 3. 분석 작업이면 Supabase에서 `product_events` 유입 여부 먼저 확인  
 4. 기능 작업이면 해당 페이지 + 연동 API 라우트를 함께 수정  
-
+5. 공고 조회 장애면 `docs/optimize-get-filtered-jobs-v2.sql`과 `/api/jobs` 로그를 먼저 확인
