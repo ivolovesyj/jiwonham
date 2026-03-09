@@ -189,9 +189,12 @@ function toStringArray(value: unknown): string[] {
 
 function toDetailRecord(value: unknown): Record<string, string> | null {
   if (!isRecord(value)) return null
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entryValue]) => typeof entryValue === 'string')
-  )
+  return Object.entries(value).reduce<Record<string, string>>((acc, [key, entryValue]) => {
+    if (typeof entryValue === 'string') {
+      acc[key] = entryValue
+    }
+    return acc
+  }, {})
 }
 
 function normalizeJobRow(job: Record<string, unknown>): JobRow {
