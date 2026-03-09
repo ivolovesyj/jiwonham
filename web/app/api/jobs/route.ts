@@ -170,15 +170,73 @@ interface JobRow {
   is_active: boolean
 }
 
-function normalizeJobRow(job: any): JobRow {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toNullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+function toNullableNumber(value: unknown): number | null {
+  return typeof value === 'number' ? value : null
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function toDetailRecord(value: unknown): Record<string, string> | null {
+  if (!isRecord(value)) return null
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => typeof entryValue === 'string')
+  )
+}
+
+function normalizeJobRow(job: Record<string, unknown>): JobRow {
   return {
-    ...job,
-    depth_ones: Array.isArray(job.depth_ones) ? job.depth_ones : (job.depth_ones || []),
-    depth_twos: Array.isArray(job.depth_twos) ? job.depth_twos : (job.depth_twos || []),
-    keywords: Array.isArray(job.keywords) ? job.keywords : (job.keywords || []),
-    regions: Array.isArray(job.regions) ? job.regions : (job.regions || []),
-    employee_types: Array.isArray(job.employee_types) ? job.employee_types : (job.employee_types || []),
+    id: String(job.id),
+    source: String(job.source),
+    company: String(job.company),
+    company_image: toNullableString(job.company_image),
+    company_type: toNullableString(job.company_type),
+    title: String(job.title),
+    regions: toStringArray(job.regions),
+    location: toNullableString(job.location),
+    career_min: toNullableNumber(job.career_min),
+    career_max: toNullableNumber(job.career_max),
+    employee_types: toStringArray(job.employee_types),
+    deadline_type: toNullableString(job.deadline_type),
+    end_date: toNullableString(job.end_date),
+    depth_ones: toStringArray(job.depth_ones),
+    depth_twos: toStringArray(job.depth_twos),
+    keywords: toStringArray(job.keywords),
+    views: toNullableNumber(job.views),
+    detail: toDetailRecord(job.detail),
+    education: toNullableString(job.education),
+    redirect_url: toNullableString(job.redirect_url),
+    affiliate: toNullableString(job.affiliate),
+    original_created_at: toNullableString(job.original_created_at),
+    last_modified_at: toNullableString(job.last_modified_at),
+    crawled_at: String(job.crawled_at),
+    is_active: Boolean(job.is_active),
   }
+}
+
+function parseJobRows(data: unknown): JobRow[] {
+  if (!Array.isArray(data)) return []
+
+  return data
+    .filter((row): row is Record<string, unknown> => {
+      return isRecord(row)
+        && typeof row.id === 'string'
+        && typeof row.source === 'string'
+        && typeof row.company === 'string'
+        && typeof row.title === 'string'
+        && typeof row.crawled_at === 'string'
+    })
+    .map(normalizeJobRow)
 }
 
 function scoreJob(
@@ -734,7 +792,7 @@ export async function GET(request: Request) {
         break
       }
 
-      const typedBatchJobs = (batchJobs as JobRow[] | null) || []
+      const typedBatchJobs = parseJobRows(batchJobs)
 
       if (typedBatchJobs.length === 0) {
         break
