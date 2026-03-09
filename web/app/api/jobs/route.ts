@@ -801,7 +801,7 @@ export async function GET(request: Request) {
         break
       }
 
-      jobs.push(...typedBatchJobs.map(normalizeJobRow))
+      jobs.push(...typedBatchJobs)
       lastCrawledAt = typedBatchJobs[typedBatchJobs.length - 1]?.crawled_at ?? null
 
       if (typedBatchJobs.length < batchSize) {
