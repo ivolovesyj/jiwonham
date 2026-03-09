@@ -68,6 +68,8 @@
 - 장기 DB 수정안:
   - `docs/optimize-get-filtered-jobs-v2.sql`
   - `get_filtered_jobs` 7-인자 버전의 장기 최적화 SQL
+  - `docs/optimize-get-filtered-jobs-v3-dynamic.sql`
+  - RPC prepared statement의 generic plan 문제를 피하기 위한 dynamic SQL 버전
 
 ---
 
