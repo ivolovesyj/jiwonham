@@ -734,14 +734,16 @@ export async function GET(request: Request) {
         break
       }
 
-      if (!batchJobs || batchJobs.length === 0) {
+      const typedBatchJobs = (batchJobs as JobRow[] | null) || []
+
+      if (typedBatchJobs.length === 0) {
         break
       }
 
-      jobs.push(...batchJobs.map(normalizeJobRow))
-      lastCrawledAt = batchJobs[batchJobs.length - 1]?.crawled_at ?? null
+      jobs.push(...typedBatchJobs.map(normalizeJobRow))
+      lastCrawledAt = typedBatchJobs[typedBatchJobs.length - 1]?.crawled_at ?? null
 
-      if (batchJobs.length < batchSize) {
+      if (typedBatchJobs.length < batchSize) {
         break
       }
     }
