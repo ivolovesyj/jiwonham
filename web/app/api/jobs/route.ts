@@ -704,9 +704,9 @@ export async function GET(request: Request) {
 
     let jobs: JobRow[] = []
     let jobsError: any = null
-    let rangeStart = 0
+    let lastCrawledAt: string | null = null
 
-    while (rangeStart < maxScanCount) {
+    while (jobs.length < maxScanCount) {
       let jobsQuery = supabase
         .from('jobs')
         .select(JOB_SELECT_COLUMNS)
@@ -721,9 +721,13 @@ export async function GET(request: Request) {
         jobsQuery = jobsQuery.in('education', preferences.preferred_education)
       }
 
+      if (lastCrawledAt) {
+        jobsQuery = jobsQuery.lt('crawled_at', lastCrawledAt)
+      }
+
       const { data: batchJobs, error: batchError } = await jobsQuery
         .order('crawled_at', { ascending: false })
-        .range(rangeStart, rangeStart + batchSize - 1)
+        .limit(batchSize)
 
       if (batchError) {
         jobsError = batchError
@@ -735,7 +739,7 @@ export async function GET(request: Request) {
       }
 
       jobs.push(...batchJobs.map(normalizeJobRow))
-      rangeStart += batchJobs.length
+      lastCrawledAt = batchJobs[batchJobs.length - 1]?.crawled_at ?? null
 
       if (batchJobs.length < batchSize) {
         break
