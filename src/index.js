@@ -280,12 +280,14 @@ async function main() {
   if (result.allSitemapIds && result.allSitemapIds.size > 0) {
     console.log('\n🔍 사이트맵 diff 비활성화 (사이트맵에 없는 공고만 비활성화)...');
     let diffOffset = 0;
-    const DIFF_BATCH = 1000;
+    const DIFF_BATCH = 5000;
     let diffDeactivated = 0;
     let expiredInSitemap = 0;
 
     const today = new Date().toISOString().split('T')[0];
 
+    // 1단계: 비활성화 대상 ID 수집
+    const allToDeactivate = [];
     while (true) {
       const dbRes = await fetch(
         `${SUPABASE_URL}/rest/v1/jobs?is_active=eq.true&select=id,end_date&order=id&limit=${DIFF_BATCH}&offset=${diffOffset}`,
@@ -299,34 +301,40 @@ async function main() {
       const dbJobs = await dbRes.json();
       if (!dbJobs.length) break;
 
-      // 사이트맵에 없는 공고만 비활성화
-      const toDeactivate = dbJobs.filter(j => !result.allSitemapIds.has(j.id)).map(j => j.id);
-
-      // 통계: end_date 지났지만 사이트맵에 있는 공고 (마감 연장 가능성)
-      const expiredButInSitemap = dbJobs.filter(j =>
-        result.allSitemapIds.has(j.id) &&
-        j.end_date &&
-        j.end_date < today
-      );
-      expiredInSitemap += expiredButInSitemap.length;
-
-      for (const id of toDeactivate) {
-        await withRetry(async () => {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_SERVICE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ is_active: false }),
-          });
-          if (!res.ok) throw new Error(`PATCH 실패: ${res.status}`);
-        });
+      for (const j of dbJobs) {
+        if (!result.allSitemapIds.has(j.id)) {
+          allToDeactivate.push(j.id);
+        } else if (j.end_date && j.end_date < today) {
+          expiredInSitemap++;
+        }
       }
-      diffDeactivated += toDeactivate.length;
+
       diffOffset += DIFF_BATCH;
+      if (diffOffset % 10000 === 0) {
+        console.log(`  📊 스캔 진행: ${diffOffset}건 확인...`);
+      }
     }
+
+    // 2단계: 배치 PATCH (100개씩 IN 쿼리)
+    const PATCH_BATCH = 100;
+    for (let i = 0; i < allToDeactivate.length; i += PATCH_BATCH) {
+      const batch = allToDeactivate.slice(i, i + PATCH_BATCH);
+      const ids = batch.map(id => `"${id}"`).join(',');
+      await withRetry(async () => {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=in.(${ids})`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ is_active: false }),
+        });
+        if (!res.ok) throw new Error(`PATCH 실패: ${res.status}`);
+      });
+      diffDeactivated += batch.length;
+    }
+
     console.log(`  🗑️ 사이트맵에서 제거됨: ${diffDeactivated}건 비활성화`);
     if (expiredInSitemap > 0) {
       console.log(`  📅 end_date 지났지만 사이트맵에 있음: ${expiredInSitemap}건 (마감 연장 가능성 → 유지)`);

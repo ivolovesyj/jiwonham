@@ -9,7 +9,7 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 1시간 제한 (증분은 빠름)
+    timeout-minutes: 90  # 1.5시간 제한
     
     steps:
       - name: Checkout code
@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "Starting incremental crawl (changes since last run)..."
           node src/index.js
-        timeout-minutes: 55
+        timeout-minutes: 80
         id: crawler
       
       - name: Notify on completion
