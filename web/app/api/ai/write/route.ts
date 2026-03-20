@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getModel, parseGeminiJSON } from '@/lib/gemini'
 import { countChars } from '@/types/cover-letter'
-import { checkRateLimit } from '@/lib/rate-limit'
 import { logApiEvent } from '@/lib/api-analytics'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -42,16 +41,6 @@ export async function POST(request: NextRequest) {
       return respond(401, { error: 'Unauthorized' }, false, 'Unauthorized')
     }
     userId = user.id
-
-    const { allowed } = await checkRateLimit(user.id)
-    if (!allowed) {
-      return respond(
-        429,
-        { error: 'AI 기능 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.' },
-        false,
-        'Rate limited'
-      )
-    }
 
     const { question_id, selected_material_ids, char_limit, include_space } = await request.json()
 
